@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+// This file describes what deployments SEND to POST /api/v1/ingest.
+//
+// It is deliberately a smaller message than dashboard.v1.Service: the derived
+// fields (status, trends, rank_movement) are absent rather than ignored, so the
+// contract states plainly that a deployment reports observations and the
+// dashboard decides verdicts.
+package dpi.v1;
+
+import "google/protobuf/timestamp.proto";
+import "dpi/v1/dashboard.proto";
+
+option go_package = "github.com/centre-for-dpi/whitelabel-dpi-dashboard/internal/gen/dpi/v1;dpiv1";
+
+message IngestService {
+  // Stable identifier. Required. Used as the upsert key.
+  string id = 1;
+
+  // Short slug used for demo traffic weighting and as a fallback display key.
+  string key = 2;
+
+  // Term ids resolved against the active locale. A deployment that does not
+  // translate can pass literal text; the resolver falls through to the raw
+  // string when no matching key exists.
+  string name_term_id = 3;
+  string desc_term_id = 4;
+
+  // Must match ids declared in the deployment's domain.yaml taxonomy.
+  string category_id = 5;
+  string region_id = 6;
+  string provider_id = 7;
+  string scope = 8;
+
+  Metrics metrics = 9;
+  Maintenance maintenance = 10;
+
+  // Optional. Supply this to backfill charts immediately; omit it and the
+  // dashboard rolls up its own daily buckets from successive observations.
+  repeated HistoryPoint history = 11;
+
+  repeated Incident incidents = 12;
+  repeated ErrorBucket errors = 13;
+
+  // When the upstream observed these metrics. The server stamps its own
+  // receipt time if this is absent.
+  google.protobuf.Timestamp observed_at = 14;
+}
+
+enum IngestMode {
+  INGEST_MODE_UNSPECIFIED = 0;
+  // Merge the named services; anything not mentioned is left untouched.
+  INGEST_MODE_UPSERT = 1;
+  // This payload is the complete set; services absent from it are dropped.
+  INGEST_MODE_REPLACE = 2;
+}
+
+message IngestRequest {
+  // Defaults to INGEST_MODE_UPSERT when unspecified.
+  IngestMode mode = 1;
+  repeated IngestService services = 2;
+  // Free-form label for the shipper, recorded in the ingest log so multiple
+  // collectors feeding one dashboard stay distinguishable.
+  string source_id = 3;
+}
+
+message IngestError {
+  string service_id = 1;
+  string field = 2;
+  string message = 3;
+}
+
+message IngestResponse {
+  int32 accepted = 1;
+  int32 rejected = 2;
+  // Per-service validation failures. A partially valid payload is accepted:
+  // valid services are stored and invalid ones are reported here.
+  repeated IngestError errors = 3;
+  google.protobuf.Timestamp received_at = 4;
+}

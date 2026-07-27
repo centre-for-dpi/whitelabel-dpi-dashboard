@@ -1,0 +1,241 @@
+# yaml-language-server: $schema=../../schema/locale.schema.json
+#
+# Chinese (Simplified) — 中文.
+#
+# Every term falls back to en.yaml key by key, so this file needs to carry
+# only what differs. Anything absent renders in English rather than as a raw
+# term id, which is what makes a partial translation genuinely useful.
+#
+# Translated here: 175 of 299 terms — the entire interface.
+# Left in English: 124 names of Indian services, providers and
+# states. Those are proper nouns, and they belong to the *example* domain
+# config that a deployment replaces wholesale — translating "Aadhaar" or
+# "Maharashtra" here would be inventing a rendering nobody asked for, and
+# would be thrown away by the first real deployment anyway.
+#
+# Numbers, dates and plural categories are not configured here. They come
+# from CLDR via the locale code above, which knows more cases than a config
+# block would: grouping, digit shapes and which plural forms this language
+# actually has.
+#
+# Chinese has a single plural category, so every plural term here has
+# one arm. That is correct, not lazy.
+
+locale: zh
+name: 中文
+direction: ltr
+
+date:
+  short: "1月2日"
+  full: "2006年1月2日 15:04"
+
+terms:
+
+  # --- Terms the Go implementation introduced that the original prototype did
+  # not have: the accessible table behind each chart, and a few control labels.
+  chrome.apply:     "应用"
+  dr.why:           "判定依据："
+  dr.day:           "日期"
+  dr.err.code:      "代码"
+  dr.err.meaning:   "含义"
+  dr.err.count:     "请求数"
+  dr.err.share:     "占比"
+  dr.err.table:     "以表格显示这些数据"
+  dr.traffic.table: "以表格显示这些数据"
+  dr.spark.summary: "最近 {days} 天的可用率，介于 {min} 与 {max} 之间。"
+  verdict.barLabel: "各状态服务占比"
+  lb.col.name:      "服务"
+  lb.rank.up:       "上升 {n}"
+  lb.rank.down:     "下降 {n}"
+  lb.rank.same:     "排名未变"
+  metric.trend:     "{delta}（{days} 天）"
+
+  # --- How long ago, and for how long. Written as plurals so that CLDR picks
+  # the form; a translator writes only the arms their language uses.
+  time.ago.second: "{n, plural, =0{刚刚} other{# 秒前}}"
+  time.ago.minute: "{n, plural, other{# 分钟前}}"
+  time.ago.hour:   "{n, plural, other{# 小时前}}"
+  time.ago.day:    "{n, plural, other{# 天前}}"
+  time.for.second: "{n, plural, other{# 秒}}"
+  time.for.minute: "{n, plural, other{# 分钟}}"
+  time.for.hour:   "{n, plural, other{# 小时}}"
+  time.for.day:    "{n, plural, other{# 天}}"
+
+  # --- The dashboard's own name and strapline.
+  brand.tagline:  "用通俗语言呈现公共服务运行状况"
+  brand.wordmark: "服务状态"
+
+  # --- The header: scope, period, language and theme controls.
+  chrome.locale.label:   "语言"
+  chrome.period.label:   "周期"
+  chrome.scope.label:    "范围"
+  chrome.scope.national: "全国"
+  chrome.scope.state:    "地方（次国家级）"
+  chrome.skip:           "跳到主内容"
+  chrome.theme.label:    "主题"
+  period.24h:            "24 小时"
+  period.30d:            "30 天"
+  period.7d:             "7 天"
+  period.90d:            "90 天"
+  theme.dark:            "深色"
+  theme.light:           "浅色"
+
+  # --- The question at the top of the page, and its answer.
+  legend.title:         "状态如何判定"
+  verdict.allClear:     "所有已接入服务均正常。"
+  verdict.coverage:     "已接入 {total} 项全国与地方服务中的 {onboarded} 项"
+  verdict.findService:  "查找服务"
+  verdict.h1.national:  "全国数据共享服务现在运行正常吗？"
+  verdict.h1.state:     "地方数据共享服务现在运行正常吗？"
+  verdict.kicker1:      "正常运行，意味着一次如约的预约、一份签发的执照、一笔发放的养老金。"
+  verdict.kicker1.lead: "正常运行"
+  verdict.kicker2:      "这里的一次中断，意味着某处排起的长队。"
+  verdict.kicker2.word: "中断"
+  verdict.kicker3:      "每一个错误，都是一个前来求助却空手而归的人。"
+  verdict.kicker3.word: "错误"
+  verdict.segment:      "{count} {label}"
+  verdict.source:       "覆盖范围取自 API Setu 目录"
+  verdict.updated:      "更新于 {rel}"
+
+  # --- The five outcomes.
+  status.maintenance: "维护中"
+  status.major:       "严重中断"
+  status.operational: "正常"
+  status.partial:     "部分中断"
+  status.unknown:     "未知"
+
+  # --- The published rules. Each receives the live threshold values, so the sentence on screen always quotes the numbers actually in force.
+  rule.maintenance: "维护中 = 当前正处于计划维护窗口。"
+  rule.major:       "严重中断 = 可用率低于 {majorAvail}% 或错误率高于 {majorErr}%。"
+  rule.operational: "正常 = 可用率不低于 {partialAvail}% 且错误率不高于 {partialErr}%。"
+  rule.partial:     "部分中断 = 可用率低于 {partialAvail}% 或错误率高于 {partialErr}%。"
+  rule.unknown:     "未知 = 无读数，或数据超过 {staleMinutes} 分钟未更新。"
+
+  # --- Findings, and the rule each one applied.
+  sig.belowTarget.rule:      "规则：最近 {days} 天每天可用率都低于目标。"
+  sig.belowTarget.title:     "{count} 项服务低于目标"
+  sig.empty:                 "最近 30 天没有服务未达目标。"
+  sig.errorRising.rule:      "规则：{min}+ 个类别的平均错误率高于 30 天前。"
+  sig.errorRising.title:     "{count} 个类别错误率上升"
+  sig.eyebrow:               "需要关注"
+  sig.longestIncident.rule:  "规则：开始时间最早的未结事件。"
+  sig.longestIncident.title: "持续最久的未结事件：{duration}"
+  sig.maintenance.rule:      "规则：当前有计划维护窗口。"
+  sig.maintenance.title:     "{count} 项服务维护中"
+  sig.ruleLabel:             "该规则"
+  sig.viewAffected:          "查看受影响"
+
+  # --- The leaderboard.
+  flt.all:               "全部"
+  flt.applied:           "筛选 ({n})"
+  flt.category:          "类别"
+  flt.clear:             "清除筛选"
+  flt.empty:             "没有服务符合这些筛选。"
+  flt.emptyAction:       "清除筛选可查看全部 {total} 项。"
+  flt.region:            "地区"
+  flt.regionHint:        "范围为次国家级时可用"
+  flt.results:           "{n} 条结果"
+  flt.scope:             "范围"
+  flt.searchLabel:       "搜索"
+  flt.searchPlaceholder: "搜索服务、类别、地区"
+  flt.status:            "状态"
+  flt.title:             "筛选"
+  lb.caption:            "按可用率、再按错误率排序的服务——最佳在前。"
+  lb.col.availability:   "可用率"
+  lb.col.errorRate:      "错误率"
+  lb.col.rank:           "排名"
+  lb.col.service:        "服务"
+  lb.col.status:         "状态"
+  lb.col.trend:          "30 天趋势"
+  lb.col.volume:         "流量"
+  lb.eyebrow:            "服务对比"
+  lb.movement.down:      "下降 {n}"
+  lb.movement.same:      "排名未变"
+  lb.movement.up:        "上升 {n}"
+  lb.openRow:            "打开 {name} 的详情"
+  lb.showing:            "显示 {total} 中的 {shown}"
+  lb.sortHint:           "按{col}排序"
+  lb.title:              "服务排行榜"
+
+  # --- Measurements and their framing.
+  metric.availability:  "可用率"
+  metric.errorRate:     "错误率"
+  metric.latencyP50:    "响应时间 (p50)"
+  metric.noReference:   "无参考基准"
+  metric.target:        "目标 {v}"
+  metric.trend.falling: "下降"
+  metric.trend.rising:  "上升"
+  metric.trend.steady:  "持平"
+  metric.volume:        "成功请求"
+  metric.volumeFraming: "{total} 中 {success} · {pct}%"
+  metric.volumeOf:      "{total} 中 {success}"
+
+  # --- Task categories.
+  cat.agriculture: "农业"
+  cat.business:    "企业与执照"
+  cat.education:   "教育学习"
+  cat.employment:  "就业与技能"
+  cat.health:      "医疗健康"
+  cat.identity:    "身份与证件"
+  cat.money:       "资金与税务"
+  cat.records:     "土地与民事登记"
+  cat.transport:   "交通出行"
+  cat.welfare:     "福利与养老金"
+
+  # --- Regions.
+  reg.national: "全国"
+
+  # --- The service drawer.
+  dr.category:           "类别"
+  dr.close:              "关闭"
+  dr.currentStatus:      "当前状态"
+  dr.datatable:          "显示数据表"
+  dr.errors.code:        "代码"
+  dr.errors.count:       "数量"
+  dr.errors.gloss:       "含义"
+  dr.errors.share:       "占比"
+  dr.errors.title:       "按类型的错误"
+  dr.errors.trend:       "趋势"
+  dr.governedBy:         "状态原因"
+  dr.incidents.duration: "持续 {d}"
+  dr.incidents.empty:    "近 90 天无事件。"
+  dr.incidents.ongoing:  "进行中"
+  dr.incidents.title:    "事件时间线"
+  dr.metrics:            "指标"
+  dr.obligation:         "服务提供方须知"
+  dr.provider:           "提供方"
+  dr.region:             "地区"
+  dr.spark:              "近 90 天可用率"
+  dr.summary:            "简明说明"
+  dr.tab.errors:         "错误"
+  dr.tab.incidents:      "事件"
+  dr.tab.overview:       "概览"
+  dr.tab.traffic:        "流量"
+  dr.traffic.corr:       "流量与错误率"
+  dr.traffic.peak:       "峰值 {v} · {d}"
+  dr.traffic.title:      "近 90 天请求量"
+  dr.traffic.trough:     "谷值 {v} · {d}"
+
+  # --- Incident stages and notes.
+  inc.acknowledged:              "已确认"
+  inc.mitigated:                 "已缓解"
+  inc.opened:                    "已开启"
+  inc.resolved:                  "已解决"
+  incident.note.dbFailover:      "数据库故障转移导致短暂不可用。"
+  incident.note.errorSpike:      "上游服务的 5xx 错误突然激增。"
+  incident.note.latencyDegraded: "响应时间已超出目标值。"
+  incident.note.partialRegion:   "错误仅限于部分地区。"
+  incident.note.rateLimited:     "流量激增期间请求被限流。"
+  incident.note.upstreamTimeout: "上游依赖在高负载下超时。"
+
+  # --- What each error code means.
+  err.400:     "请求无效 — 请求格式有误。"
+  err.401:     "未授权 — 凭证缺失或无效。"
+  err.429:     "请求过多 — 调用方已被限流。"
+  err.500:     "服务器错误 — 服务未能处理该请求。"
+  err.503:     "服务不可用 — 暂时过载或已停止。"
+  err.504:     "网关超时 — 上游系统响应过慢。"
+  err.timeout: "超时 — 未在允许时间内响应。"
+
+  # --- Maintenance windows.
+  maint.scheduled: "计划维护"

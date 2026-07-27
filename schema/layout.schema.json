@@ -1,0 +1,290 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Which sections exist, in what order, with which widgets bound to which data. Validated at startup against the widget registry and your own domain.yaml.",
+  "properties": {
+    "drawer": {
+      "additionalProperties": false,
+      "properties": {
+        "tabs": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "grid": {
+                "additionalProperties": false,
+                "properties": {
+                  "gap": {
+                    "type": "string"
+                  },
+                  "minColWidth": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "id": {
+                "description": "First tab is the one opened when no tab is named.",
+                "type": "string"
+              },
+              "titleTermId": {
+                "type": "string"
+              },
+              "widgets": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "bind": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "days": {
+                          "type": "integer"
+                        },
+                        "field": {
+                          "type": "string"
+                        },
+                        "metric": {
+                          "type": "string"
+                        },
+                        "overlay": {
+                          "type": "string"
+                        },
+                        "source": {
+                          "enum": [
+                            "services.filtered",
+                            "services.scoped",
+                            "services.all",
+                            "aggregate.statusCounts",
+                            "aggregate.coverage",
+                            "aggregate.signals",
+                            "aggregate.updatedAt",
+                            "service.current",
+                            "service.metric",
+                            "service.history",
+                            "service.errorBreakdown",
+                            "service.incidents",
+                            "config.thresholdProse",
+                            "config.metrics",
+                            "config.categories",
+                            "config.regions",
+                            "config.periods",
+                            "config.statuses"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "options": {
+                      "additionalProperties": {},
+                      "type": "object"
+                    },
+                    "repeatOver": {
+                      "enum": [
+                        "config.metrics.leaderboard",
+                        "config.metrics.rendered",
+                        "config.statuses",
+                        "config.categories",
+                        "config.periods",
+                        "config.regions"
+                      ],
+                      "type": "string"
+                    },
+                    "type": {
+                      "enum": [
+                        "bar-chart",
+                        "bar-list",
+                        "coverage",
+                        "cta-button",
+                        "data-table",
+                        "disclosure",
+                        "filter-bar",
+                        "heading",
+                        "leaderboard-table",
+                        "legend",
+                        "segmented-bar",
+                        "signal-cards",
+                        "sparkline",
+                        "stat-tile",
+                        "status-summary",
+                        "timeline",
+                        "timestamp"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "pages": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "sections": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "grid": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "gap": {
+                      "type": "string"
+                    },
+                    "minColWidth": {
+                      "description": "Narrowest a column may be before the grid reflows. Empty means one full-width column.",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                },
+                "heading": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "class": {
+                      "type": "string"
+                    },
+                    "eyebrowTermId": {
+                      "type": "string"
+                    },
+                    "level": {
+                      "type": "integer"
+                    },
+                    "scoped": {
+                      "description": "Append the current scope to the title term, so one heading reads differently per scope.",
+                      "type": "boolean"
+                    },
+                    "titleTermId": {
+                      "type": "string"
+                    }
+                  },
+                  "type": [
+                    "object",
+                    "null"
+                  ]
+                },
+                "id": {
+                  "description": "Becomes a DOM id and a fragment route, so it must be unique across the layout.",
+                  "type": "string"
+                },
+                "swap": {
+                  "description": "Fragment route that re-renders just this band. Empty means the section never swaps on its own.",
+                  "type": "string"
+                },
+                "widgets": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "bind": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "days": {
+                            "description": "Override the reader's selected window. Leave unset to follow the period control.",
+                            "type": "integer"
+                          },
+                          "field": {
+                            "type": "string"
+                          },
+                          "metric": {
+                            "type": "string"
+                          },
+                          "overlay": {
+                            "type": "string"
+                          },
+                          "source": {
+                            "enum": [
+                              "services.filtered",
+                              "services.scoped",
+                              "services.all",
+                              "aggregate.statusCounts",
+                              "aggregate.coverage",
+                              "aggregate.signals",
+                              "aggregate.updatedAt",
+                              "service.current",
+                              "service.metric",
+                              "service.history",
+                              "service.errorBreakdown",
+                              "service.incidents",
+                              "config.thresholdProse",
+                              "config.metrics",
+                              "config.categories",
+                              "config.regions",
+                              "config.periods",
+                              "config.statuses"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "options": {
+                        "additionalProperties": {},
+                        "description": "Settings for this widget type. Unknown options are rejected at startup; run `make validate` to see what each accepts.",
+                        "type": "object"
+                      },
+                      "repeatOver": {
+                        "description": "Render once per item of a configured collection, so adding a metric to domain.yaml adds a tile without touching the layout.",
+                        "enum": [
+                          "config.metrics.leaderboard",
+                          "config.metrics.rendered",
+                          "config.statuses",
+                          "config.categories",
+                          "config.periods",
+                          "config.regions"
+                        ],
+                        "type": "string"
+                      },
+                      "type": {
+                        "enum": [
+                          "bar-chart",
+                          "bar-list",
+                          "coverage",
+                          "cta-button",
+                          "data-table",
+                          "disclosure",
+                          "filter-bar",
+                          "heading",
+                          "leaderboard-table",
+                          "legend",
+                          "segmented-bar",
+                          "signal-cards",
+                          "sparkline",
+                          "stat-tile",
+                          "status-summary",
+                          "timeline",
+                          "timestamp"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    }
+  },
+  "title": "Dashboard layout",
+  "type": "object"
+}

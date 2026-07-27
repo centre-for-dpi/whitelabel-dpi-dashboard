@@ -1,0 +1,207 @@
+# yaml-language-server: $schema=../schema/layout.schema.json
+#
+# THE PAGE.
+#
+# Which sections exist, in what order, with which widgets bound to which data —
+# all of it is here. Rearranging the dashboard, dropping a section, adding a
+# metric column or reordering the drawer tabs is an edit to this file. No Go, no
+# templates.
+#
+# The whole layout is validated at startup against the widget registry and
+# against your own domain.yaml, and every problem is reported with the line that
+# caused it. A mistyped widget type stops the binary rather than rendering as a
+# blank panel nobody notices for a month.
+#
+# Two things are worth knowing before you edit:
+#
+#   Sections are the HTMX swap unit. `swap` names the fragment route that
+#   re-renders just that band, which is why narrowing a filter replaces the
+#   leaderboard and leaves the rest of the page — and the reader's scroll
+#   position — alone.
+#
+#   Bind sources are a closed set, not an expression language. Run
+#   `make validate` after an edit and any unknown source is listed along with
+#   everything that is available.
+
+pages:
+  - id: home
+    path: /
+    sections:
+      # -------------------------------------------------------------------
+      # THE VERDICT
+      #
+      # One question, answered before anything else: is this working right
+      # now? Status is deliberately NOT windowed — an average over ninety days
+      # cannot answer "right now", and a verdict bar that tried would be
+      # answering a question nobody asked.
+      # -------------------------------------------------------------------
+      - id: verdict
+        swap: /fragments/verdict
+        grid: { gap: 18px }
+        widgets:
+          - type: heading
+            options:
+              termId: verdict.h1
+              scoped: true # reads differently in the national and state views
+              level: 1
+              class: serif
+              id: verdict-title
+
+          - type: status-summary
+            bind: { source: aggregate.statusCounts }
+            options:
+              allWellTermId: verdict.allClear
+
+          - type: segmented-bar
+            bind: { source: aggregate.statusCounts }
+            options:
+              labelTermId: verdict.barLabel
+              # Below this width the bar becomes a row of slivers; the legend
+              # below says the same thing in text and does not.
+              hideBelow: 480px
+
+          - type: legend
+            bind: { source: aggregate.statusCounts }
+
+          - type: cta-button
+            options:
+              termId: verdict.findService
+              target: "#leaderboard"
+              iconKey: ui.arrow
+
+          - type: timestamp
+            bind: { source: aggregate.updatedAt }
+            options:
+              termId: verdict.updated
+              # Data quietly going stale is the failure a status dashboard can
+              # least afford, so say so after fifteen minutes.
+              staleAfter: 900
+
+          - type: coverage
+            bind: { source: aggregate.coverage }
+            options:
+              termId: verdict.coverage
+
+          # The published rules, with the live threshold numbers filled in from
+          # domain.yaml — so the rule shown is provably the rule applied.
+          - type: disclosure
+            bind: { source: config.thresholdProse }
+            options:
+              summaryTermId: legend.title
+
+      # -------------------------------------------------------------------
+      # SIGNALS
+      #
+      # What changed and why. Each card prints the literal rule that produced
+      # it: a dashboard that says "this needs attention" has to say why.
+      # -------------------------------------------------------------------
+      - id: signals
+        swap: /fragments/signals
+        grid: { minColWidth: 240px, gap: 14px }
+        widgets:
+          - type: signal-cards
+            bind: { source: aggregate.signals }
+            options:
+              actionTermId: sig.viewAffected
+
+      # -------------------------------------------------------------------
+      # THE LEADERBOARD
+      #
+      # Everything here follows the reader's selected period. Rank is computed
+      # from performance across that window, and every figure beside it is read
+      # over the same window — so the ordering and the numbers agree. Switching
+      # to 7 days genuinely re-orders the board.
+      # -------------------------------------------------------------------
+      - id: leaderboard
+        swap: /fragments/leaderboard
+        heading:
+          eyebrowTermId: lb.eyebrow
+          titleTermId: lb.title
+          level: 2
+          class: serif
+        widgets:
+          - type: filter-bar
+            options:
+              searchTermId: flt.search
+              resultTermId: flt.results
+              showRegions: true
+
+          - type: leaderboard-table
+            bind: { source: services.filtered }
+            options:
+              # Add a metric to domain.yaml and name it here to gain a column.
+              # Anything that is not rank, name or status must be a metric id
+              # the deployment actually declares.
+              columns: [rank, name, status, metric.availability, metric.errorRate]
+              captionTermId: lb.caption
+              emptyTermId: flt.empty
+              showingTermId: lb.showing
+              mobileCards: true
+
+# -----------------------------------------------------------------------------
+# THE DRAWER
+#
+# One service in depth. The first tab is what opens when no tab is named.
+# -----------------------------------------------------------------------------
+drawer:
+  tabs:
+    - id: overview
+      titleTermId: dr.tab.overview
+      grid: { minColWidth: 150px, gap: 12px }
+      widgets:
+        # One tile per metric, so adding a metric to domain.yaml adds a tile
+        # without touching this file.
+        - type: stat-tile
+          repeatOver: config.metrics.rendered
+          bind: { source: service.metric }
+
+        - type: sparkline
+          bind: { source: service.history, field: availability }
+          options:
+            summaryTermId: dr.spark.summary
+
+    - id: errors
+      titleTermId: dr.tab.errors
+      widgets:
+        - type: bar-list
+          bind: { source: service.errorBreakdown }
+          options: { limit: 7 }
+
+        # Every chart has a table behind it. A line on a screen is not
+        # accessible to a screen reader, not copyable, and not checkable.
+        - type: data-table
+          bind: { source: service.errorBreakdown }
+          options:
+            summaryTermId: dr.err.table
+
+    - id: traffic
+      titleTermId: dr.tab.traffic
+      widgets:
+        - type: bar-chart
+          bind:
+            source: service.history
+            field: volume
+            overlay: errorRate
+            # Fixed at thirty days regardless of the period control: daily bars
+            # over ninety days are unreadable at this width.
+            days: 30
+          options:
+            peakTermId: dr.traffic.peak
+            lowTermId: dr.traffic.trough
+            overlayTermId: metric.errorRate
+
+        - type: data-table
+          bind: { source: service.history, days: 30 }
+          options:
+            summaryTermId: dr.traffic.table
+            every: 5
+
+    - id: incidents
+      titleTermId: dr.tab.incidents
+      widgets:
+        - type: timeline
+          bind: { source: service.incidents }
+          options:
+            emptyTermId: dr.inc.none
+            emptyIconKey: ui.check
+            ongoingTermId: dr.inc.ongoing

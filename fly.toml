@@ -1,0 +1,36 @@
+# Deploy to Fly.io: `fly launch --copy-config`
+#
+# The dashboard starts on generated demonstration data, so the deploy is live
+# before any integration work.
+
+app = "dpi-dashboard"
+primary_region = "bom"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  DPI_ADDR = ":8080"
+  DPI_LOG_FORMAT = "json"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  # Zero, so a status page is never the thing that is down. A dashboard that
+  # cold-starts on the request telling you about an outage is the wrong trade.
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "3s"
+    grace_period = "10s"
+    method = "GET"
+    # Readiness rather than liveness: a machine with no data yet should not
+    # take traffic.
+    path = "/readyz"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

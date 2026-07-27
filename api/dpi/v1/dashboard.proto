@@ -1,0 +1,164 @@
+syntax = "proto3";
+
+// Package dpi.v1 is the wire contract for the white-label DPI dashboard.
+//
+// This file describes what the dashboard EMITS: the read API (GET /api/v1/services).
+// What deployments SEND is described in ingest.proto.
+//
+// Compatibility policy: field numbers are permanent. Adding fields is safe;
+// renumbering, retyping, or removing a field is a breaking change and is
+// blocked in CI by `buf breaking`. Every message is served both as binary
+// protobuf and as canonical protojson, negotiated on Content-Type, so
+// integrators are never required to adopt protobuf tooling.
+package dpi.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/centre-for-dpi/whitelabel-dpi-dashboard/internal/gen/dpi/v1;dpiv1";
+
+// Status is a fixed vocabulary, not a config-extensible one: the threshold
+// evaluation rules are structurally tied to these five outcomes. Config
+// controls each status's label, glyph, colour and thresholds — but adding a
+// sixth status is a contract change, which is exactly the kind of change that
+// deserves a version bump.
+enum Status {
+  STATUS_UNSPECIFIED = 0;
+  STATUS_OPERATIONAL = 1;
+  STATUS_PARTIAL = 2;
+  STATUS_MAJOR = 3;
+  STATUS_UNKNOWN = 4;
+  STATUS_MAINTENANCE = 5;
+}
+
+enum TrendDirection {
+  TREND_DIRECTION_UNSPECIFIED = 0;
+  TREND_DIRECTION_FLAT = 1;
+  TREND_DIRECTION_UP = 2;
+  TREND_DIRECTION_DOWN = 3;
+}
+
+enum ErrorClass {
+  ERROR_CLASS_UNSPECIFIED = 0;
+  ERROR_CLASS_SERVER = 1;   // 5xx
+  ERROR_CLASS_CLIENT = 2;   // 4xx
+  ERROR_CLASS_NETWORK = 3;  // transport-level: timeout, reset, DNS
+}
+
+message Volume {
+  int64 total = 1;
+  int64 success = 2;
+}
+
+message Metrics {
+  // Percent in [0,100]. Absent means "not reported" and yields STATUS_UNKNOWN
+  // rather than being coerced to zero — the distinction is load-bearing.
+  optional double availability = 1;
+
+  // Percent in [0,100].
+  double error_rate = 2;
+
+  int32 latency_p50_ms = 3;
+
+  // Age of the underlying observation. Exceeding the configured
+  // staleSecondsAbove threshold yields STATUS_UNKNOWN.
+  int64 stale_seconds = 4;
+
+  Volume volume = 5;
+}
+
+message Maintenance {
+  bool active = 1;
+  google.protobuf.Timestamp until = 2;
+  // Term id resolved against the active locale, e.g. "maint.scheduled".
+  string reason_term_id = 3;
+}
+
+// HistoryPoint is one sealed daily bucket. `day` is UTC midnight.
+message HistoryPoint {
+  google.protobuf.Timestamp day = 1;
+  optional double availability = 2;
+  double error_rate = 3;
+  int32 latency_p50_ms = 4;
+  int64 volume = 5;
+  // How many raw samples were folded into this bucket. Zero for buckets
+  // supplied directly by an upstream rather than rolled up locally.
+  int32 samples = 6;
+}
+
+message IncidentEvent {
+  // Free-form so deployments can model their own lifecycle. The value is
+  // resolved for display as the term id "inc.<type>", so adding a stage means
+  // adding a locale key — not changing this contract. Well-known values:
+  // "opened", "acknowledged", "mitigated", "resolved".
+  string type = 1;
+  google.protobuf.Timestamp at = 2;
+}
+
+message Incident {
+  string id = 1;
+  string service_id = 2;
+  // Only STATUS_MAJOR and STATUS_PARTIAL are meaningful here.
+  Status severity = 3;
+  google.protobuf.Timestamp opened_at = 4;
+  // Absent while the incident is open.
+  google.protobuf.Timestamp closed_at = 5;
+  bool open = 6;
+  string note_term_id = 7;
+  repeated IncidentEvent events = 8;
+}
+
+message ErrorBucket {
+  // Transport-level identifier as reported, e.g. "500", "429", "timeout".
+  string code = 1;
+  // Term id for the human explanation, e.g. "err.500".
+  string term_id = 2;
+  ErrorClass class = 3;
+  int64 count = 4;
+  // Percent of this service's total errors, in [0,100].
+  double share = 5;
+  TrendDirection trend = 6;
+}
+
+message Trend {
+  double delta = 1;
+  TrendDirection direction = 2;
+  int32 period_days = 3;
+}
+
+message Service {
+  string id = 1;
+  string key = 2;
+  string name_term_id = 3;
+  string desc_term_id = 4;
+  string category_id = 5;
+  string region_id = 6;
+  string provider_id = 7;
+  // Config-declared vocabulary (domain.scopes), so deliberately a string
+  // rather than an enum. Ships as "national" / "state".
+  string scope = 8;
+
+  // DERIVED — output only. Always recomputed from `metrics` against the
+  // published thresholds, so the rule shown on screen is provably the rule
+  // that was applied. Ignored if present on ingest.
+  Status status = 9;
+
+  Metrics metrics = 10;
+  Maintenance maintenance = 11;
+  repeated HistoryPoint history = 12;
+  repeated Incident incidents = 13;
+  repeated ErrorBucket errors = 14;
+
+  // DERIVED — output only. Keyed by metric field: "availability", "errorRate",
+  // "latencyP50", "volume".
+  map<string, Trend> trends = 15;
+
+  // DERIVED — output only. Rank change since the previous snapshot.
+  int32 rank_movement = 16;
+
+  google.protobuf.Timestamp observed_at = 17;
+}
+
+message ListServicesResponse {
+  repeated Service services = 1;
+  google.protobuf.Timestamp generated_at = 2;
+}

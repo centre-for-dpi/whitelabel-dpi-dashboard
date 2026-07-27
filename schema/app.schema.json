@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Process-level configuration: how to serve, where to store, how to log.",
+  "properties": {
+    "client": {
+      "additionalProperties": false,
+      "properties": {
+        "runtime": {
+          "description": "Which browser-side runtime the page loads. Only \"vanilla\" is implemented.",
+          "enum": [
+            "vanilla",
+            "alpine"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "log": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "enum": [
+            "text",
+            "json"
+          ],
+          "type": "string"
+        },
+        "level": {
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "server": {
+      "additionalProperties": false,
+      "properties": {
+        "addr": {
+          "description": "Listen address, e.g. \":8080\".",
+          "type": "string"
+        },
+        "baseURL": {
+          "description": "Absolute base for generated links. Empty derives it per request.",
+          "type": "string"
+        },
+        "idleTimeout": {
+          "pattern": "^-?([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "type": "string"
+        },
+        "readTimeout": {
+          "pattern": "^-?([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "type": "string"
+        },
+        "shutdownGrace": {
+          "description": "How long in-flight requests get to finish after SIGTERM.",
+          "pattern": "^-?([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "type": "string"
+        },
+        "writeTimeout": {
+          "pattern": "^-?([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "storage": {
+      "additionalProperties": false,
+      "properties": {
+        "connMaxLifetime": {
+          "pattern": "^-?([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "type": "string"
+        },
+        "driver": {
+          "description": "All database drivers are pure Go, so CGO_ENABLED=0 builds still work. \"memory\" keeps nothing across restarts.",
+          "enum": [
+            "sqlite",
+            "postgres",
+            "mysql",
+            "mariadb",
+            "memory"
+          ],
+          "type": "string"
+        },
+        "dsn": {
+          "description": "Connection string. Required for postgres, mysql and mariadb.",
+          "type": "string"
+        },
+        "history": {
+          "additionalProperties": false,
+          "properties": {
+            "rawSampleRetentionHours": {
+              "description": "How long raw per-poll samples are kept before rollup discards them.",
+              "type": "integer"
+            },
+            "retentionDays": {
+              "description": "How far back the charts can look.",
+              "type": "integer"
+            },
+            "rollupIntervalMinutes": {
+              "description": "How often raw samples are folded into daily buckets.",
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        },
+        "maxIdleConns": {
+          "type": "integer"
+        },
+        "maxOpenConns": {
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "title": "Dashboard application configuration",
+  "type": "object"
+}

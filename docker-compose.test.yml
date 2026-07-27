@@ -1,0 +1,55 @@
+# Databases for the store contract suite.
+#
+# `make test-db` brings these up and runs the identical suite against all of
+# them. Nothing here is for production: the passwords are in plain text because
+# these containers hold nothing, are reachable only from localhost, and are
+# thrown away by `make test-db-down`.
+#
+# Each waits on a healthcheck, so `make test-db` does not race a server that has
+# accepted the port but not yet finished initialising — which fails as a
+# connection error that looks like a bug in the store.
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: dpi
+      POSTGRES_PASSWORD: dpi
+      POSTGRES_DB: dpi_test
+    ports: ["55432:5432"]
+    tmpfs: [/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dpi -d dpi_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: dpi
+      MYSQL_DATABASE: dpi_test
+      MYSQL_USER: dpi
+      MYSQL_PASSWORD: dpi
+    ports: ["53306:3306"]
+    tmpfs: [/var/lib/mysql]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-udpi", "-pdpi"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+
+  mariadb:
+    image: mariadb:11.4
+    environment:
+      MARIADB_ROOT_PASSWORD: dpi
+      MARIADB_DATABASE: dpi_test
+      MARIADB_USER: dpi
+      MARIADB_PASSWORD: dpi
+    ports: ["53307:3306"]
+    tmpfs: [/var/lib/mysql]
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 3s
+      timeout: 3s
+      retries: 40

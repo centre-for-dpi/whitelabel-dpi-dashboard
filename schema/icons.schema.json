@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Semantic icons. Templates reference icons by role, never by glyph, so the whole set can be swapped without touching markup.",
+  "properties": {
+    "icons": {
+      "additionalProperties": {
+        "additionalProperties": false,
+        "properties": {
+          "glyph": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "svg": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "description": "Keyed by role, e.g. \"status.major\". Each entry sets exactly one of glyph or svg.",
+      "type": "object"
+    }
+  },
+  "title": "Dashboard icon set",
+  "type": "object"
+}

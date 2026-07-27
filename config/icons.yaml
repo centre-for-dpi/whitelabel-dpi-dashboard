@@ -1,0 +1,70 @@
+# yaml-language-server: $schema=../schema/icons.schema.json
+#
+# The semantic icon set.
+#
+# Templates reference icons by ROLE — icon "status.major", never the character
+# "✕" — so a deployment can swap the whole set without touching markup. No
+# template contains a glyph.
+#
+# Each entry sets exactly one of:
+#   glyph  a text character, rendered in the page font. Costs nothing to load
+#          and inherits colour automatically, which is why the shipped set uses
+#          it throughout.
+#   svg    inline SVG markup, for a brand mark or anything a character cannot
+#          express. Use fill="currentColor" so it follows the theme.
+#
+# `label` is the accessible name, used where the icon carries meaning on its
+# own rather than sitting beside text that already says it.
+
+icons:
+  # --- brand ---------------------------------------------------------------
+  brand.mark: { glyph: "◐", label: Dashboard }
+
+  # --- status --------------------------------------------------------------
+  # The five outcomes. Shapes differ as well as colours, so the status is still
+  # readable in monochrome and to readers who cannot distinguish the hues.
+  status.operational: { glyph: "●", label: Operational }
+  status.partial: { glyph: "◐", label: Partial outage }
+  status.major: { glyph: "✕", label: Major outage }
+  status.unknown: { glyph: "?", label: Unknown }
+  status.maintenance: { glyph: "⚙", label: Under maintenance }
+
+  # --- categories ----------------------------------------------------------
+  cat.identity: { glyph: "◈", label: Identity }
+  cat.money: { glyph: "₹", label: Money and tax }
+  cat.health: { glyph: "✚", label: Health }
+  cat.education: { glyph: "◇", label: Education }
+  cat.transport: { glyph: "⛢", label: Transport }
+  cat.employment: { glyph: "⬢", label: Employment }
+  cat.business: { glyph: "▤", label: Business }
+  cat.welfare: { glyph: "❖", label: Welfare }
+  cat.agriculture: { glyph: "❀", label: Agriculture }
+  cat.records: { glyph: "▦", label: Records }
+
+  # --- trends and movement -------------------------------------------------
+  # Direction only. Whether a rise is good news depends on the metric, so the
+  # colour comes from the metric's `direction` in domain.yaml, not from here.
+  trend.up: { glyph: "▲", label: Rising }
+  trend.down: { glyph: "▼", label: Falling }
+  trend.flat: { glyph: "▬", label: Unchanged }
+  rank.up: { glyph: "▲", label: Moved up }
+  rank.down: { glyph: "▼", label: Moved down }
+  rank.same: { glyph: "–", label: No change }
+
+  # --- interface -----------------------------------------------------------
+  ui.close: { glyph: "✕", label: Close }
+  ui.chevronUp: { glyph: "▲", label: Collapse }
+  ui.chevronDown: { glyph: "▼", label: Expand }
+  ui.caret: { glyph: "▾", label: Show details }
+  ui.arrow: { glyph: "→", label: Go }
+  ui.external: { glyph: "↗", label: Opens in a new tab }
+  ui.check: { glyph: "✓", label: All clear }
+  ui.themeDark: { glyph: "☾", label: Switch to dark theme }
+  ui.themeLight: { glyph: "☀", label: Switch to light theme }
+  ui.sortAsc: { glyph: "▲", label: Sorted ascending }
+  ui.sortDesc: { glyph: "▼", label: Sorted descending }
+
+  # --- incidents and charts ------------------------------------------------
+  incident.ongoing: { glyph: "●", label: Ongoing }
+  chart.bar: { glyph: "▮", label: Traffic }
+  chart.line: { glyph: "┄", label: Error rate }

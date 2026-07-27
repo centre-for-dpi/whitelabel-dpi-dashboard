@@ -1,0 +1,241 @@
+# yaml-language-server: $schema=../../schema/locale.schema.json
+#
+# Russian — Русский.
+#
+# Every term falls back to en.yaml key by key, so this file needs to carry
+# only what differs. Anything absent renders in English rather than as a raw
+# term id, which is what makes a partial translation genuinely useful.
+#
+# Translated here: 175 of 299 terms — the entire interface.
+# Left in English: 124 names of Indian services, providers and
+# states. Those are proper nouns, and they belong to the *example* domain
+# config that a deployment replaces wholesale — translating "Aadhaar" or
+# "Maharashtra" here would be inventing a rendering nobody asked for, and
+# would be thrown away by the first real deployment anyway.
+#
+# Numbers, dates and plural categories are not configured here. They come
+# from CLDR via the locale code above, which knows more cases than a config
+# block would: grouping, digit shapes and which plural forms this language
+# actually has.
+#
+# Russian has four plural categories, and all four are reachable from
+# the counts this dashboard shows.
+
+locale: ru
+name: Русский
+direction: ltr
+
+date:
+  short: "2 Jan"
+  full: "2 Jan 2006, 15:04"
+
+terms:
+
+  # --- Terms the Go implementation introduced that the original prototype did
+  # not have: the accessible table behind each chart, and a few control labels.
+  chrome.apply:     "Применить"
+  dr.why:           "Почему такой статус:"
+  dr.day:           "День"
+  dr.err.code:      "Код"
+  dr.err.meaning:   "Что это значит"
+  dr.err.count:     "Запросы"
+  dr.err.share:     "Доля"
+  dr.err.table:     "Показать эти данные таблицей"
+  dr.traffic.table: "Показать эти данные таблицей"
+  dr.spark.summary: "Доступность за последние {days} дн., от {min} до {max}."
+  verdict.barLabel: "Доля услуг в каждом состоянии"
+  lb.col.name:      "Услуга"
+  lb.rank.up:       "выше на {n}"
+  lb.rank.down:     "ниже на {n}"
+  lb.rank.same:     "позиция не изменилась"
+  metric.trend:     "{delta} ({days} дн.)"
+
+  # --- How long ago, and for how long. Written as plurals so that CLDR picks
+  # the form; a translator writes only the arms their language uses.
+  time.ago.second: "{n, plural, =0{только что} one{# секунду назад} few{# секунды назад} many{# секунд назад} other{# секунды назад}}"
+  time.ago.minute: "{n, plural, one{# минуту назад} few{# минуты назад} many{# минут назад} other{# минуты назад}}"
+  time.ago.hour:   "{n, plural, one{# час назад} few{# часа назад} many{# часов назад} other{# часа назад}}"
+  time.ago.day:    "{n, plural, one{# день назад} few{# дня назад} many{# дней назад} other{# дня назад}}"
+  time.for.second: "{n, plural, one{# секунда} few{# секунды} many{# секунд} other{# секунды}}"
+  time.for.minute: "{n, plural, one{# минута} few{# минуты} many{# минут} other{# минуты}}"
+  time.for.hour:   "{n, plural, one{# час} few{# часа} many{# часов} other{# часа}}"
+  time.for.day:    "{n, plural, one{# день} few{# дня} many{# дней} other{# дня}}"
+
+  # --- The dashboard's own name and strapline.
+  brand.tagline:  "Состояние госуслуг простым языком"
+  brand.wordmark: "Статус服务"
+
+  # --- The header: scope, period, language and theme controls.
+  chrome.locale.label:   "Язык"
+  chrome.period.label:   "Период"
+  chrome.scope.label:    "Охват"
+  chrome.scope.national: "Национальный"
+  chrome.scope.state:    "Субнациональный"
+  chrome.skip:           "К основному содержимому"
+  chrome.theme.label:    "Тема"
+  period.24h:            "24 часа"
+  period.30d:            "30 дней"
+  period.7d:             "7 дней"
+  period.90d:            "90 дней"
+  theme.dark:            "Тёмная"
+  theme.light:           "Светлая"
+
+  # --- The question at the top of the page, and its answer.
+  legend.title:         "Как определяется статус"
+  verdict.allClear:     "Все подключённые услуги работают."
+  verdict.coverage:     "{onboarded} из {total} национальных и региональных услуг подключено"
+  verdict.findService:  "Найти услугу"
+  verdict.h1.national:  "Работают ли национальные сервисы обмена данными сейчас?"
+  verdict.h1.state:     "Работают ли субнациональные сервисы обмена данными сейчас?"
+  verdict.kicker1:      "Доступность — это состоявшийся приём, выданная лицензия, выплаченная пенсия."
+  verdict.kicker1.lead: "Доступность"
+  verdict.kicker2:      "Сбой здесь означает очередь где-то там."
+  verdict.kicker2.word: "Сбой"
+  verdict.kicker3:      "Каждая ошибка — это человек, который пришёл за помощью и не получил её."
+  verdict.kicker3.word: "ошибка"
+  verdict.segment:      "{count} {label}"
+  verdict.source:       "Охват по каталогу API Setu"
+  verdict.updated:      "Обновлено {rel}"
+
+  # --- The five outcomes.
+  status.maintenance: "На обслуживании"
+  status.major:       "Крупный сбой"
+  status.operational: "Работает"
+  status.partial:     "Частичный сбой"
+  status.unknown:     "Неизвестно"
+
+  # --- The published rules. Each receives the live threshold values, so the sentence on screen always quotes the numbers actually in force.
+  rule.maintenance: "На обслуживании = сейчас активно плановое окно обслуживания."
+  rule.major:       "Крупный сбой = доступность ниже {majorAvail}% или доля ошибок выше {majorErr}%."
+  rule.operational: "Работает = доступность не ниже {partialAvail}% и ошибки не выше {partialErr}%."
+  rule.partial:     "Частичный сбой = доступность ниже {partialAvail}% или доля ошибок выше {partialErr}%."
+  rule.unknown:     "Неизвестно = нет данных или данные старше {staleMinutes} минут."
+
+  # --- Findings, and the rule each one applied.
+  sig.belowTarget.rule:      "Правило: доступность ниже цели каждый из последних {days} дней."
+  sig.belowTarget.title:     "{count, plural, one{# услуга ниже цели} few{# услуги ниже цели} many{# услуг ниже цели} other{# услуги ниже цели}}"
+  sig.empty:                 "За последние 30 дней ни одна услуга не нарушила цель."
+  sig.errorRising.rule:      "Правило: средняя доля ошибок выше, чем 30 дней назад, в {min}+ категориях."
+  sig.errorRising.title:     "Рост доли ошибок в {count} категориях"
+  sig.eyebrow:               "Требует внимания"
+  sig.longestIncident.rule:  "Правило: открытый инцидент с самым ранним началом."
+  sig.longestIncident.title: "Самый долгий открытый инцидент: {duration}"
+  sig.maintenance.rule:      "Правило: сейчас активно окно обслуживания."
+  sig.maintenance.title:     "{count, plural, one{# услуга на обслуживании} few{# услуги на обслуживании} many{# услуг на обслуживании} other{# услуги на обслуживании}}"
+  sig.ruleLabel:             "правило"
+  sig.viewAffected:          "Показать затронутые"
+
+  # --- The leaderboard.
+  flt.all:               "Все"
+  flt.applied:           "Фильтры ({n})"
+  flt.category:          "Категория"
+  flt.clear:             "Сбросить фильтры"
+  flt.empty:             "Нет услуг по этим фильтрам."
+  flt.emptyAction:       "Сбросьте фильтры, чтобы увидеть все {total}."
+  flt.region:            "Регион"
+  flt.regionHint:        "Доступно, когда охват — субнациональный"
+  flt.results:           "{n, plural, one{# результат} few{# результата} many{# результатов} other{# результата}}"
+  flt.scope:             "Охват"
+  flt.searchLabel:       "Поиск"
+  flt.searchPlaceholder: "Поиск услуг, категорий, регионов"
+  flt.status:            "Статус"
+  flt.title:             "Фильтры"
+  lb.caption:            "Услуги по доступности, затем по доле ошибок — лучшие первыми."
+  lb.col.availability:   "Доступность"
+  lb.col.errorRate:      "Ошибки"
+  lb.col.rank:           "Место"
+  lb.col.service:        "Услуга"
+  lb.col.status:         "Статус"
+  lb.col.trend:          "Тренд 30 дн"
+  lb.col.volume:         "Трафик"
+  lb.eyebrow:            "Сравнить услуги"
+  lb.movement.down:      "ниже на {n}"
+  lb.movement.same:      "позиция не изменилась"
+  lb.movement.up:        "выше на {n}"
+  lb.openRow:            "Открыть детали: {name}"
+  lb.showing:            "Показано {shown} из {total}"
+  lb.sortHint:           "Сортировать по: {col}"
+  lb.title:              "Рейтинг услуг"
+
+  # --- Measurements and their framing.
+  metric.availability:  "Доступность"
+  metric.errorRate:     "Доля ошибок"
+  metric.latencyP50:    "Отклик (p50)"
+  metric.noReference:   "нет ориентира"
+  metric.target:        "цель {v}"
+  metric.trend.falling: "снижается"
+  metric.trend.rising:  "растёт"
+  metric.trend.steady:  "стабильно"
+  metric.volume:        "Успешные запросы"
+  metric.volumeFraming: "{success} из {total} · {pct}%"
+  metric.volumeOf:      "{success} из {total}"
+
+  # --- Task categories.
+  cat.agriculture: "Сельское хозяйство"
+  cat.business:    "Бизнес и лицензии"
+  cat.education:   "Образование"
+  cat.employment:  "Работа и навыки"
+  cat.health:      "Здоровье"
+  cat.identity:    "Личность и документы"
+  cat.money:       "Деньги и налоги"
+  cat.records:     "Земля и записи"
+  cat.transport:   "Транспорт"
+  cat.welfare:     "Соцпомощь и пенсии"
+
+  # --- Regions.
+  reg.national: "Национальный"
+
+  # --- The service drawer.
+  dr.category:           "Категория"
+  dr.close:              "Закрыть"
+  dr.currentStatus:      "Текущий статус"
+  dr.datatable:          "Показать таблицу"
+  dr.errors.code:        "Код"
+  dr.errors.count:       "Кол-во"
+  dr.errors.gloss:       "Значение"
+  dr.errors.share:       "Доля"
+  dr.errors.title:       "Ошибки по типам"
+  dr.errors.trend:       "Тренд"
+  dr.governedBy:         "Почему такой статус"
+  dr.incidents.duration: "в течение {d}"
+  dr.incidents.empty:    "Инцидентов за 90 дней нет."
+  dr.incidents.ongoing:  "Идёт"
+  dr.incidents.title:    "Хронология инцидентов"
+  dr.metrics:            "Метрики"
+  dr.obligation:         "Для поставщика"
+  dr.provider:           "Поставщик"
+  dr.region:             "Регион"
+  dr.spark:              "Доступность, 90 дней"
+  dr.summary:            "Простыми словами"
+  dr.tab.errors:         "Ошибки"
+  dr.tab.incidents:      "Инциденты"
+  dr.tab.overview:       "Обзор"
+  dr.tab.traffic:        "Трафик"
+  dr.traffic.corr:       "Трафик и доля ошибок"
+  dr.traffic.peak:       "Пик {v} · {d}"
+  dr.traffic.title:      "Объём запросов, 90 дней"
+  dr.traffic.trough:     "Минимум {v} · {d}"
+
+  # --- Incident stages and notes.
+  inc.acknowledged:              "Принят"
+  inc.mitigated:                 "Смягчён"
+  inc.opened:                    "Открыт"
+  inc.resolved:                  "Решён"
+  incident.note.dbFailover:      "Переключение базы данных вызвало кратковременную недоступность."
+  incident.note.errorSpike:      "Резкий рост ошибок 5xx от вышестоящей службы."
+  incident.note.latencyDegraded: "Время отклика превысило целевое."
+  incident.note.partialRegion:   "Ошибки затронули лишь часть регионов."
+  incident.note.rateLimited:     "Запросы ограничены по частоте во время всплеска трафика."
+  incident.note.upstreamTimeout: "Вышестоящая зависимость не отвечала под нагрузкой."
+
+  # --- What each error code means.
+  err.400:     "Неверный запрос — запрос был составлен некорректно."
+  err.401:     "Не авторизовано — учётные данные отсутствуют или недействительны."
+  err.429:     "Слишком много запросов — вызывающая сторона ограничена по частоте."
+  err.500:     "Ошибка сервера — служба не смогла обработать запрос."
+  err.503:     "Служба недоступна — временно перегружена или остановлена."
+  err.504:     "Тайм-аут шлюза — вышестоящая система отвечала слишком медленно."
+  err.timeout: "Тайм-аут — ответа не поступило за отведённое время."
+
+  # --- Maintenance windows.
+  maint.scheduled: "Плановое обслуживание"

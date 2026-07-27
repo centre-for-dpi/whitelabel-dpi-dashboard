@@ -1,0 +1,246 @@
+# yaml-language-server: $schema=../schema/domain.schema.json
+#
+# THE DOMAIN CONTRACT.
+#
+# Everything subject-specific lives here as data: what is measured, how it is
+# grouped, and what counts as working. Swap this file and a locale bundle and
+# the same binary reports on a different country, a different sector, or
+# something that is not government at all. No Go code and no template hardcodes
+# a noun from this file.
+#
+# The shipped content describes Indian public services drawn from the API Setu
+# directory. It is an EXAMPLE — it is exactly what a deployment replaces.
+
+h1TermId: verdict.h1 # resolved per scope as verdict.h1.<scope>
+dataSourceTermId: verdict.source
+dataSourceHref: https://directory.apisetu.gov.in/
+
+# The denominator of the coverage line: "104 of 812 services onboarded".
+onboardedDenominator: 812
+
+scopes: [national, state]
+defaultScope: national
+
+# Selectable comparison windows. `days` is the lookback used for trend deltas
+# and is data rather than a parsed suffix, so a deployment can add "quarter" or
+# "sinceLaunch" without a code change.
+periods:
+  - { id: 24h, termId: period.24h, days: 1 }
+  - { id: 7d, termId: period.7d, days: 7 }
+  - { id: 30d, termId: period.30d, days: 30 }
+  - { id: 90d, termId: period.90d, days: 89 }
+defaultPeriod: 30d
+
+# ---------------------------------------------------------------------------
+# TAXONOMY
+#
+# Categories are demand-side: what the citizen is trying to do, not which
+# ministry owns the system. Providers carry the supply-side view for anyone who
+# needs it.
+# ---------------------------------------------------------------------------
+taxonomy:
+  categories:
+    - { id: cat.identity, termId: cat.identity, iconKey: cat.identity }
+    - { id: cat.money, termId: cat.money, iconKey: cat.money }
+    - { id: cat.health, termId: cat.health, iconKey: cat.health }
+    - { id: cat.education, termId: cat.education, iconKey: cat.education }
+    - { id: cat.transport, termId: cat.transport, iconKey: cat.transport }
+    - { id: cat.employment, termId: cat.employment, iconKey: cat.employment }
+    - { id: cat.business, termId: cat.business, iconKey: cat.business }
+    - { id: cat.welfare, termId: cat.welfare, iconKey: cat.welfare }
+    - { id: cat.agriculture, termId: cat.agriculture, iconKey: cat.agriculture }
+    - { id: cat.records, termId: cat.records, iconKey: cat.records }
+
+  regions:
+    - { id: reg.national, termId: reg.national, scope: national }
+    - { id: reg.mh, termId: reg.mh, scope: state }
+    - { id: reg.up, termId: reg.up, scope: state }
+    - { id: reg.ka, termId: reg.ka, scope: state }
+    - { id: reg.tn, termId: reg.tn, scope: state }
+    - { id: reg.dl, termId: reg.dl, scope: state }
+    - { id: reg.gj, termId: reg.gj, scope: state }
+    - { id: reg.wb, termId: reg.wb, scope: state }
+    - { id: reg.rj, termId: reg.rj, scope: state }
+    - { id: reg.kl, termId: reg.kl, scope: state }
+    - { id: reg.ts, termId: reg.ts, scope: state }
+    - { id: reg.mp, termId: reg.mp, scope: state }
+    - { id: reg.br, termId: reg.br, scope: state }
+
+  providers:
+    - { id: prov.uidai, termId: prov.uidai }
+    - { id: prov.meity, termId: prov.meity }
+    - { id: prov.itd, termId: prov.itd }
+    - { id: prov.mea, termId: prov.mea }
+    - { id: prov.morth, termId: prov.morth }
+    - { id: prov.eci, termId: prov.eci }
+    - { id: prov.nha, termId: prov.nha }
+    - { id: prov.cbse, termId: prov.cbse }
+    - { id: prov.ugc, termId: prov.ugc }
+    - { id: prov.gstn, termId: prov.gstn }
+    - { id: prov.epfo, termId: prov.epfo }
+    - { id: prov.nic, termId: prov.nic }
+    - { id: prov.mca, termId: prov.mca }
+    - { id: prov.fssai, termId: prov.fssai }
+    - { id: prov.agri, termId: prov.agri }
+    - { id: prov.nsdc, termId: prov.nsdc }
+    - { id: prov.moe, termId: prov.moe }
+    - { id: prov.pfrda, termId: prov.pfrda }
+    - { id: prov.nhai, termId: prov.nhai }
+    - { id: prov.state, termId: prov.state }
+
+# ---------------------------------------------------------------------------
+# METRICS
+#
+# `field` names which observation supplies the value, and is explicit rather
+# than inferred from `id` so a deployment can rename a metric for its audience
+# without breaking the binding.
+#
+# A metric shown in the leaderboard must have either a target or a framing:
+# without one it renders a bare number with nothing to compare it against.
+# ---------------------------------------------------------------------------
+metrics:
+  - id: metric.availability
+    termId: metric.availability
+    field: availability
+    unit: percent
+    precision: 2
+    target: 99.5
+    direction: higher-is-better
+    showInLeaderboard: true
+
+  - id: metric.errorRate
+    termId: metric.errorRate
+    field: errorRate
+    unit: percent
+    precision: 2
+    target: 1.0
+    direction: lower-is-better
+    showInLeaderboard: true
+
+  - id: metric.latencyP50
+    termId: metric.latencyP50
+    field: latencyP50
+    unit: millisecond
+    precision: 0
+    target: 300
+    direction: lower-is-better
+    showInLeaderboard: false
+
+  # Traffic has no target — more requests is neither good nor bad. It earns its
+  # place by framing the success count: "2,900,000 of 2,920,000 succeeded".
+  - id: metric.volume
+    termId: metric.volume
+    field: volume
+    unit: count
+    precision: 0
+    direction: neutral
+    framing: denominator
+    denominatorOf: metric.availability
+    showInLeaderboard: false
+
+# ---------------------------------------------------------------------------
+# THRESHOLDS
+#
+# These numbers are the single source of truth. The status evaluator and the
+# on-screen prose both read them, so the rule the dashboard publishes and the
+# rule it applied cannot drift apart.
+# ---------------------------------------------------------------------------
+thresholds:
+  # First match wins. Maintenance and staleness are checked before any metric,
+  # because a planned window or a missing reading is a better explanation than
+  # a number that was never really observed.
+  evaluationOrder: [maintenance, unknown, major, partial, operational]
+
+  values:
+    majorAvailBelow: 99.0
+    majorErrAbove: 2.0
+    partialAvailBelow: 99.5
+    partialErrAbove: 1.0
+    # An observation older than this is treated as no observation at all.
+    staleSecondsAbove: 900
+
+  # Term ids for the published prose. Each receives the values above as ICU
+  # parameters, so the sentence on screen always quotes the live numbers.
+  prose:
+    major: rule.major
+    partial: rule.partial
+    operational: rule.operational
+    unknown: rule.unknown
+    maintenance: rule.maintenance
+
+# ---------------------------------------------------------------------------
+# STATUS MODEL
+#
+# The set of five statuses is fixed — the evaluation rules are tied to them —
+# but every label, icon, ordering and severity below is yours to choose.
+# ---------------------------------------------------------------------------
+statusModel:
+  # Display order in the legend and the stacked bar.
+  order: [operational, partial, major, unknown, maintenance]
+
+  # Higher sorts first in the default ranking: worst news at the top.
+  severity: { major: 4, partial: 3, unknown: 2, maintenance: 1, operational: 0 }
+
+  iconKey:
+    operational: status.operational
+    partial: status.partial
+    major: status.major
+    unknown: status.unknown
+    maintenance: status.maintenance
+
+  labelTermId:
+    operational: status.operational
+    partial: status.partial
+    major: status.major
+    unknown: status.unknown
+    maintenance: status.maintenance
+
+# ---------------------------------------------------------------------------
+# SIGNALS
+#
+# Each rule is evaluated over the same dataset — there is no blended score and
+# no ranking model. Every card prints the literal rule it applied, which is why
+# ruleTermId is required.
+# ---------------------------------------------------------------------------
+signals:
+  - id: sig.belowTarget
+    kind: belowTargetDays
+    titleTermId: sig.belowTarget.title
+    ruleTermId: sig.belowTarget.rule
+    iconKey: status.partial
+    tone: partial
+    days: 7
+    filter:
+      status: [partial, major]
+
+  - id: sig.errorRising
+    kind: errorRisingCategories
+    titleTermId: sig.errorRising.title
+    ruleTermId: sig.errorRising.rule
+    iconKey: trend.up
+    tone: major
+    minCategories: 3
+
+  - id: sig.longestIncident
+    kind: longestOpenIncident
+    titleTermId: sig.longestIncident.title
+    ruleTermId: sig.longestIncident.rule
+    iconKey: status.major
+    tone: major
+
+  - id: sig.maintenance
+    kind: maintenanceActive
+    titleTermId: sig.maintenance.title
+    ruleTermId: sig.maintenance.rule
+    iconKey: status.maintenance
+    tone: maintenance
+    filter:
+      status: [maintenance]
+
+# Shown when no signal fired. Configured rather than hardcoded for the same
+# reason every other card is: "nothing to report" is a statement the deployment
+# makes, in its own words.
+signalsEmpty:
+  termId: sig.empty
+  iconKey: ui.check
+  tone: ok

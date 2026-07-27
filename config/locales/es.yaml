@@ -1,0 +1,238 @@
+# yaml-language-server: $schema=../../schema/locale.schema.json
+#
+# Spanish — Español.
+#
+# Every term falls back to en.yaml key by key, so this file needs to carry
+# only what differs. Anything absent renders in English rather than as a raw
+# term id, which is what makes a partial translation genuinely useful.
+#
+# Translated here: 175 of 299 terms — the entire interface.
+# Left in English: 124 names of Indian services, providers and
+# states. Those are proper nouns, and they belong to the *example* domain
+# config that a deployment replaces wholesale — translating "Aadhaar" or
+# "Maharashtra" here would be inventing a rendering nobody asked for, and
+# would be thrown away by the first real deployment anyway.
+#
+# Numbers, dates and plural categories are not configured here. They come
+# from CLDR via the locale code above, which knows more cases than a config
+# block would: grouping, digit shapes and which plural forms this language
+# actually has.
+
+locale: es
+name: Español
+direction: ltr
+
+date:
+  short: "2 ene"
+  full: "2 ene 2006, 15:04"
+
+terms:
+
+  # --- Terms the Go implementation introduced that the original prototype did
+  # not have: the accessible table behind each chart, and a few control labels.
+  chrome.apply:     "Aplicar"
+  dr.why:           "Por qué este estado:"
+  dr.day:           "Día"
+  dr.err.code:      "Código"
+  dr.err.meaning:   "Qué significa"
+  dr.err.count:     "Solicitudes"
+  dr.err.share:     "Proporción"
+  dr.err.table:     "Mostrar estas cifras como tabla"
+  dr.traffic.table: "Mostrar estas cifras como tabla"
+  dr.spark.summary: "Disponibilidad de los últimos {days} días, entre {min} y {max}."
+  verdict.barLabel: "Proporción de servicios en cada estado"
+  lb.col.name:      "Servicio"
+  lb.rank.up:       "sube {n}"
+  lb.rank.down:     "baja {n}"
+  lb.rank.same:     "sin cambio de posición"
+  metric.trend:     "{delta} ({days} d)"
+
+  # --- How long ago, and for how long. Written as plurals so that CLDR picks
+  # the form; a translator writes only the arms their language uses.
+  time.ago.second: "{n, plural, =0{ahora mismo} one{hace # segundo} other{hace # segundos}}"
+  time.ago.minute: "{n, plural, one{hace # minuto} other{hace # minutos}}"
+  time.ago.hour:   "{n, plural, one{hace # hora} other{hace # horas}}"
+  time.ago.day:    "{n, plural, one{hace # día} other{hace # días}}"
+  time.for.second: "{n, plural, one{# segundo} other{# segundos}}"
+  time.for.minute: "{n, plural, one{# minuto} other{# minutos}}"
+  time.for.hour:   "{n, plural, one{# hora} other{# horas}}"
+  time.for.day:    "{n, plural, one{# día} other{# días}}"
+
+  # --- The dashboard's own name and strapline.
+  brand.tagline:  "Salud de los servicios públicos, en lenguaje claro"
+  brand.wordmark: "Estado de Servicios"
+
+  # --- The header: scope, period, language and theme controls.
+  chrome.locale.label:   "Idioma"
+  chrome.period.label:   "Periodo"
+  chrome.scope.label:    "Ámbito"
+  chrome.scope.national: "Nacional"
+  chrome.scope.state:    "Subnacional"
+  chrome.skip:           "Saltar al contenido"
+  chrome.theme.label:    "Tema"
+  period.24h:            "24 horas"
+  period.30d:            "30 días"
+  period.7d:             "7 días"
+  period.90d:            "90 días"
+  theme.dark:            "Oscuro"
+  theme.light:           "Claro"
+
+  # --- The question at the top of the page, and its answer.
+  legend.title:         "Cómo se decide el estado"
+  verdict.allClear:     "Todos los servicios incorporados están operativos."
+  verdict.coverage:     "{onboarded} de {total} servicios nacionales y estatales incorporados"
+  verdict.findService:  "Buscar un servicio"
+  verdict.h1.national:  "¿Funcionan ahora los servicios nacionales de intercambio de datos?"
+  verdict.h1.state:     "¿Funcionan ahora los servicios subnacionales de intercambio de datos?"
+  verdict.kicker1:      "Disponibilidad es una cita cumplida, una licencia emitida, una pensión pagada."
+  verdict.kicker1.lead: "Disponibilidad"
+  verdict.kicker2:      "Una interrupción aquí significa una fila en algún lugar."
+  verdict.kicker2.word: "interrupción"
+  verdict.kicker3:      "Cada error es alguien que vino a pedir ayuda y no la recibió."
+  verdict.kicker3.word: "error"
+  verdict.segment:      "{count} {label}"
+  verdict.source:       "Cobertura del directorio API Setu"
+  verdict.updated:      "Actualizado {rel}"
+
+  # --- The five outcomes.
+  status.maintenance: "En mantenimiento"
+  status.major:       "Interrupción grave"
+  status.operational: "Operativo"
+  status.partial:     "Interrupción parcial"
+  status.unknown:     "Desconocido"
+
+  # --- The published rules. Each receives the live threshold values, so the sentence on screen always quotes the numbers actually in force.
+  rule.maintenance: "En mantenimiento = hay una ventana de mantenimiento activa ahora."
+  rule.major:       "Interrupción grave = disponibilidad por debajo de {majorAvail}% o tasa de error por encima de {majorErr}%."
+  rule.operational: "Operativo = disponibilidad igual o mayor a {partialAvail}% y error igual o menor a {partialErr}%."
+  rule.partial:     "Interrupción parcial = disponibilidad por debajo de {partialAvail}% o tasa de error por encima de {partialErr}%."
+  rule.unknown:     "Desconocido = sin lectura, o datos con más de {staleMinutes} minutos."
+
+  # --- Findings, and the rule each one applied.
+  sig.belowTarget.rule:      "Regla: disponibilidad bajo su objetivo cada uno de los últimos {days} días."
+  sig.belowTarget.title:     "{count, plural, one {# servicio por debajo del objetivo} other {# servicios por debajo del objetivo}}"
+  sig.empty:                 "Ningún servicio ha incumplido su objetivo en los últimos 30 días."
+  sig.errorRising.rule:      "Regla: error medio por categoría mayor que hace 30 días, en {min}+ categorías."
+  sig.errorRising.title:     "Tasa de error en aumento en {count} categorías"
+  sig.eyebrow:               "Qué requiere atención"
+  sig.longestIncident.rule:  "Regla: el incidente abierto con inicio más temprano."
+  sig.longestIncident.title: "Incidente abierto más largo: {duration}"
+  sig.maintenance.rule:      "Regla: hay una ventana de mantenimiento activa ahora."
+  sig.maintenance.title:     "{count, plural, one {# servicio en mantenimiento} other {# servicios en mantenimiento}}"
+  sig.ruleLabel:             "la regla"
+  sig.viewAffected:          "Ver afectados"
+
+  # --- The leaderboard.
+  flt.all:               "Todos"
+  flt.applied:           "Filtros ({n})"
+  flt.category:          "Categoría"
+  flt.clear:             "Borrar filtros"
+  flt.empty:             "Ningún servicio coincide con estos filtros."
+  flt.emptyAction:       "Borra los filtros para ver los {total}."
+  flt.region:            "Región"
+  flt.regionHint:        "Disponible cuando el ámbito es subnacional"
+  flt.results:           "{n, plural, one {# resultado} other {# resultados}}"
+  flt.scope:             "Ámbito"
+  flt.searchLabel:       "Buscar"
+  flt.searchPlaceholder: "Buscar servicios, categorías, regiones"
+  flt.status:            "Estado"
+  flt.title:             "Filtros"
+  lb.caption:            "Servicios ordenados por disponibilidad y luego por error — los mejores primero."
+  lb.col.availability:   "Disponibilidad"
+  lb.col.errorRate:      "Error"
+  lb.col.rank:           "Puesto"
+  lb.col.service:        "Servicio"
+  lb.col.status:         "Estado"
+  lb.col.trend:          "Tendencia 30 días"
+  lb.col.volume:         "Tráfico"
+  lb.eyebrow:            "Comparar servicios"
+  lb.movement.down:      "baja {n}"
+  lb.movement.same:      "sin cambio de posición"
+  lb.movement.up:        "sube {n}"
+  lb.openRow:            "Abrir detalles de {name}"
+  lb.showing:            "Mostrando {shown} de {total}"
+  lb.sortHint:           "Ordenar por {col}"
+  lb.title:              "Tabla de servicios"
+
+  # --- Measurements and their framing.
+  metric.availability:  "Disponibilidad"
+  metric.errorRate:     "Tasa de error"
+  metric.latencyP50:    "Tiempo de respuesta (p50)"
+  metric.noReference:   "sin marco de referencia"
+  metric.target:        "objetivo {v}"
+  metric.trend.falling: "a la baja"
+  metric.trend.rising:  "al alza"
+  metric.trend.steady:  "estable"
+  metric.volume:        "Solicitudes correctas"
+  metric.volumeFraming: "{success} de {total} · {pct}%"
+  metric.volumeOf:      "{success} de {total}"
+
+  # --- Task categories.
+  cat.agriculture: "Agricultura"
+  cat.business:    "Negocios y licencias"
+  cat.education:   "Educación"
+  cat.employment:  "Empleo y competencias"
+  cat.health:      "Salud"
+  cat.identity:    "Identidad y documentos"
+  cat.money:       "Dinero e impuestos"
+  cat.records:     "Tierras y registros civiles"
+  cat.transport:   "Transporte"
+  cat.welfare:     "Bienestar y pensiones"
+
+  # --- Regions.
+  reg.national: "Nacional"
+
+  # --- The service drawer.
+  dr.category:           "Categoría"
+  dr.close:              "Cerrar"
+  dr.currentStatus:      "Estado actual"
+  dr.datatable:          "Mostrar tabla de datos"
+  dr.errors.code:        "Código"
+  dr.errors.count:       "Recuento"
+  dr.errors.gloss:       "Significado"
+  dr.errors.share:       "Proporción"
+  dr.errors.title:       "Errores por tipo"
+  dr.errors.trend:       "Tendencia"
+  dr.governedBy:         "Por qué este estado"
+  dr.incidents.duration: "durante {d}"
+  dr.incidents.empty:    "Sin incidentes en los últimos 90 días."
+  dr.incidents.ongoing:  "En curso"
+  dr.incidents.title:    "Cronología de incidentes"
+  dr.metrics:            "Métricas"
+  dr.obligation:         "Para el proveedor"
+  dr.provider:           "Proveedor"
+  dr.region:             "Región"
+  dr.spark:              "Disponibilidad, últimos 90 días"
+  dr.summary:            "En palabras sencillas"
+  dr.tab.errors:         "Errores"
+  dr.tab.incidents:      "Incidentes"
+  dr.tab.overview:       "Resumen"
+  dr.tab.traffic:        "Tráfico"
+  dr.traffic.corr:       "Tráfico vs tasa de error"
+  dr.traffic.peak:       "Máximo {v} · {d}"
+  dr.traffic.title:      "Volumen de solicitudes, últimos 90 días"
+  dr.traffic.trough:     "Mínimo {v} · {d}"
+
+  # --- Incident stages and notes.
+  inc.acknowledged:              "Reconocido"
+  inc.mitigated:                 "Mitigado"
+  inc.opened:                    "Abierto"
+  inc.resolved:                  "Resuelto"
+  incident.note.dbFailover:      "Una conmutación de la base de datos causó una breve indisponibilidad."
+  incident.note.errorSpike:      "Aumento repentino de errores 5xx del servicio superior."
+  incident.note.latencyDegraded: "Los tiempos de respuesta superaron el objetivo."
+  incident.note.partialRegion:   "Errores limitados a un subconjunto de regiones."
+  incident.note.rateLimited:     "Solicitudes limitadas durante un pico de tráfico."
+  incident.note.upstreamTimeout: "Una dependencia superior agotaba el tiempo bajo carga."
+
+  # --- What each error code means.
+  err.400:     "Solicitud incorrecta — la solicitud estaba mal formada."
+  err.401:     "No autorizado — credenciales ausentes o no válidas."
+  err.429:     "Demasiadas solicitudes — se limitó la tasa del solicitante."
+  err.500:     "Error del servidor — el servicio no pudo atender la solicitud."
+  err.503:     "Servicio no disponible — sobrecargado o caído temporalmente."
+  err.504:     "Tiempo de espera de la pasarela — un sistema superior tardó demasiado."
+  err.timeout: "Tiempo agotado — sin respuesta dentro del plazo permitido."
+
+  # --- Maintenance windows.
+  maint.scheduled: "Mantenimiento programado"

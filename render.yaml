@@ -1,0 +1,23 @@
+# Deploy to Render — https://render.com/deploy
+#
+# The dashboard starts on generated demonstration data, so the deploy is live
+# and worth looking at before any integration work. Switching to your own API
+# is an edit to config/sources.yaml and a redeploy.
+
+services:
+  - type: web
+    name: dpi-dashboard
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /healthz
+    envVars:
+      - key: DPI_ADDR
+        value: :10000 # Render routes to $PORT, which is 10000 on its free plan
+      - key: DPI_LOG_FORMAT
+        value: json
+      # Uncomment to feed the dashboard from your own service.
+      # - key: UPSTREAM_URL
+      #   sync: false
+      # - key: UPSTREAM_TOKEN
+      #   sync: false

@@ -1,0 +1,275 @@
+# yaml-language-server: $schema=../../schema/locale.schema.json
+#
+# Hindi — हिन्दी.
+#
+# Every term falls back to en.yaml key by key, so this file needs to carry
+# only what differs. Anything absent renders in English rather than as a raw
+# term id, which is what makes a partial translation genuinely useful.
+#
+# Translated here: 207 of 299 terms — the entire interface.
+# Left in English: 92 names of Indian services, providers and
+# states. Those are proper nouns, and they belong to the *example* domain
+# config that a deployment replaces wholesale — translating "Aadhaar" or
+# "Maharashtra" here would be inventing a rendering nobody asked for, and
+# would be thrown away by the first real deployment anyway.
+#
+# Numbers, dates and plural categories are not configured here. They come
+# from CLDR via the locale code above, which knows more cases than a config
+# block would: grouping, digit shapes and which plural forms this language
+# actually has.
+#
+# Hindi is the one locale the prototype also translated service and
+# provider names into, so those are carried over here.
+
+locale: hi
+name: हिन्दी
+direction: ltr
+
+date:
+  short: "2 Jan"
+  full: "2 Jan 2006, 15:04"
+
+terms:
+
+  # --- Terms the Go implementation introduced that the original prototype did
+  # not have: the accessible table behind each chart, and a few control labels.
+  chrome.apply:     "लागू करें"
+  dr.why:           "यह स्थिति क्यों:"
+  dr.day:           "दिन"
+  dr.err.code:      "कोड"
+  dr.err.meaning:   "इसका अर्थ"
+  dr.err.count:     "अनुरोध"
+  dr.err.share:     "हिस्सा"
+  dr.err.table:     "इन आँकड़ों को तालिका के रूप में दिखाएँ"
+  dr.traffic.table: "इन आँकड़ों को तालिका के रूप में दिखाएँ"
+  dr.spark.summary: "पिछले {days} दिनों की उपलब्धता, {min} से {max} के बीच।"
+  verdict.barLabel: "प्रत्येक स्थिति में सेवाओं का अनुपात"
+  lb.col.name:      "सेवा"
+  lb.rank.up:       "{n} ऊपर"
+  lb.rank.down:     "{n} नीचे"
+  lb.rank.same:     "क्रम में कोई बदलाव नहीं"
+  metric.trend:     "{delta} ({days}द)"
+
+  # --- How long ago, and for how long. Written as plurals so that CLDR picks
+  # the form; a translator writes only the arms their language uses.
+  time.ago.second: "{n, plural, =0{अभी अभी} one{# सेकंड पहले} other{# सेकंड पहले}}"
+  time.ago.minute: "{n, plural, one{# मिनट पहले} other{# मिनट पहले}}"
+  time.ago.hour:   "{n, plural, one{# घंटा पहले} other{# घंटे पहले}}"
+  time.ago.day:    "{n, plural, one{# दिन पहले} other{# दिन पहले}}"
+  time.for.second: "{n, plural, one{# सेकंड} other{# सेकंड}}"
+  time.for.minute: "{n, plural, one{# मिनट} other{# मिनट}}"
+  time.for.hour:   "{n, plural, one{# घंटा} other{# घंटे}}"
+  time.for.day:    "{n, plural, one{# दिन} other{# दिन}}"
+
+  # --- The dashboard's own name and strapline.
+  brand.tagline:  "सरल भाषा में सार्वजनिक सेवाओं की स्थिति"
+  brand.wordmark: "सेवा स्थिति"
+
+  # --- The header: scope, period, language and theme controls.
+  chrome.locale.label:   "भाषा"
+  chrome.period.label:   "अवधि"
+  chrome.scope.label:    "दायरा"
+  chrome.scope.national: "राष्ट्रीय"
+  chrome.scope.state:    "उप-राष्ट्रीय"
+  chrome.skip:           "मुख्य सामग्री पर जाएँ"
+  chrome.theme.label:    "थीम"
+  period.24h:            "24 घंटे"
+  period.30d:            "30 दिन"
+  period.7d:             "7 दिन"
+  period.90d:            "90 दिन"
+  theme.dark:            "गहरा"
+  theme.light:           "उजला"
+
+  # --- The question at the top of the page, and its answer.
+  legend.title:         "स्थिति कैसे तय होती है"
+  verdict.allClear:     "सभी जुड़ी सेवाएँ चालू हैं।"
+  verdict.coverage:     "{total} राष्ट्रीय व राज्य सेवाओं में से {onboarded} जोड़ी गईं"
+  verdict.findService:  "सेवा खोजें"
+  verdict.h1.national:  "क्या राष्ट्रीय डेटा साझाकरण सेवाएँ अभी काम कर रही हैं?"
+  verdict.h1.state:     "क्या राज्य-स्तरीय डेटा साझाकरण सेवाएँ अभी काम कर रही हैं?"
+  verdict.kicker1:      "अपटाइम यानी तय मुलाक़ात, जारी लाइसेंस, चुकाई गई पेंशन।"
+  verdict.kicker1.lead: "अपटाइम"
+  verdict.kicker2:      "यहाँ की रुकावट का मतलब है कहीं लगी एक कतार।"
+  verdict.kicker2.word: "रुकावट"
+  verdict.kicker3:      "हर त्रुटि वह व्यक्ति है जो मदद के लिए आया और खाली लौटा।"
+  verdict.kicker3.word: "त्रुटि"
+  verdict.segment:      "{count} {label}"
+  verdict.source:       "कवरेज API Setu निर्देशिका से लिया गया"
+  verdict.updated:      "{rel} अपडेट किया गया"
+
+  # --- The five outcomes.
+  status.maintenance: "रखरखाव जारी"
+  status.major:       "बड़ी रुकावट"
+  status.operational: "चालू"
+  status.partial:     "आंशिक रुकावट"
+  status.unknown:     "अज्ञात"
+
+  # --- The published rules. Each receives the live threshold values, so the sentence on screen always quotes the numbers actually in force.
+  rule.maintenance: "रखरखाव जारी = अभी नियोजित रखरखाव विंडो सक्रिय है।"
+  rule.major:       "बड़ी रुकावट = उपलब्धता {majorAvail}% से कम या त्रुटि दर {majorErr}% से अधिक।"
+  rule.operational: "चालू = उपलब्धता {partialAvail}% या अधिक और त्रुटि दर {partialErr}% या कम।"
+  rule.partial:     "आंशिक रुकावट = उपलब्धता {partialAvail}% से कम या त्रुटि दर {partialErr}% से अधिक।"
+  rule.unknown:     "अज्ञात = कोई रीडिंग नहीं, या डेटा {staleMinutes} मिनट से पुराना।"
+
+  # --- Findings, and the rule each one applied.
+  sig.belowTarget.rule:      "नियम: पिछले {days} दिनों में हर दिन उपलब्धता लक्ष्य से नीचे।"
+  sig.belowTarget.title:     "{count, plural, one {# सेवा लक्ष्य से नीचे} other {# सेवाएँ लक्ष्य से नीचे}}"
+  sig.empty:                 "पिछले 30 दिनों में किसी सेवा ने लक्ष्य नहीं तोड़ा।"
+  sig.errorRising.rule:      "नियम: {min}+ श्रेणियों में औसत त्रुटि दर 30 दिन पहले से अधिक।"
+  sig.errorRising.title:     "{count, plural, one {# श्रेणी में त्रुटि दर बढ़ी} other {# श्रेणियों में त्रुटि दर बढ़ी}}"
+  sig.eyebrow:               "किस पर ध्यान दें"
+  sig.longestIncident.rule:  "नियम: सबसे पहले शुरू हुई, अभी खुली घटना।"
+  sig.longestIncident.title: "सबसे लंबी खुली घटना: {duration}"
+  sig.maintenance.rule:      "नियम: अभी नियोजित रखरखाव विंडो सक्रिय।"
+  sig.maintenance.title:     "{count, plural, one {# सेवा रखरखाव में} other {# सेवाएँ रखरखाव में}}"
+  sig.ruleLabel:             "नियम"
+  sig.viewAffected:          "प्रभावित देखें"
+
+  # --- The leaderboard.
+  flt.all:               "सभी"
+  flt.applied:           "फ़िल्टर ({n})"
+  flt.category:          "श्रेणी"
+  flt.clear:             "फ़िल्टर हटाएँ"
+  flt.empty:             "इन फ़िल्टरों से कोई सेवा मेल नहीं खाती।"
+  flt.emptyAction:       "सभी {total} देखने के लिए फ़िल्टर हटाएँ।"
+  flt.region:            "क्षेत्र"
+  flt.regionHint:        "क्षेत्र चुनने पर उपलब्ध"
+  flt.results:           "{n, plural, one {# परिणाम} other {# परिणाम}}"
+  flt.scope:             "दायरा"
+  flt.searchLabel:       "खोजें"
+  flt.searchPlaceholder: "सेवाएँ, श्रेणियाँ, क्षेत्र खोजें"
+  flt.status:            "स्थिति"
+  flt.title:             "फ़िल्टर"
+  lb.caption:            "उपलब्धता, फिर त्रुटि दर के क्रम में — सर्वश्रेष्ठ पहले।"
+  lb.col.availability:   "उपलब्धता"
+  lb.col.errorRate:      "त्रुटि दर"
+  lb.col.rank:           "क्रम"
+  lb.col.service:        "सेवा"
+  lb.col.status:         "स्थिति"
+  lb.col.trend:          "30-दिन रुझान"
+  lb.col.volume:         "ट्रैफ़िक"
+  lb.eyebrow:            "सेवाओं की तुलना"
+  lb.movement.down:      "{n} नीचे"
+  lb.movement.same:      "क्रम में कोई बदलाव नहीं"
+  lb.movement.up:        "{n} ऊपर"
+  lb.openRow:            "{name} का विवरण खोलें"
+  lb.showing:            "{total} में से {shown} दिखाए"
+  lb.sortHint:           "{col} के अनुसार क्रमबद्ध करें"
+  lb.title:              "सेवा लीडरबोर्ड"
+
+  # --- Measurements and their framing.
+  metric.availability:  "उपलब्धता"
+  metric.errorRate:     "त्रुटि दर"
+  metric.latencyP50:    "प्रतिक्रिया समय (p50)"
+  metric.noReference:   "कोई संदर्भ उपलब्ध नहीं"
+  metric.target:        "लक्ष्य {v}"
+  metric.trend.falling: "घट रहा है"
+  metric.trend.rising:  "बढ़ रहा है"
+  metric.trend.steady:  "स्थिर"
+  metric.volume:        "सफल अनुरोध"
+  metric.volumeFraming: "{total} में से {success} · {pct}%"
+  metric.volumeOf:      "{total} में से {success}"
+
+  # --- Task categories.
+  cat.agriculture: "कृषि"
+  cat.business:    "व्यवसाय और लाइसेंस"
+  cat.education:   "शिक्षा"
+  cat.employment:  "रोज़गार और कौशल"
+  cat.health:      "स्वास्थ्य"
+  cat.identity:    "पहचान और दस्तावेज़"
+  cat.money:       "पैसा और कर"
+  cat.records:     "भूमि व नागरिक अभिलेख"
+  cat.transport:   "परिवहन"
+  cat.welfare:     "कल्याण और पेंशन"
+
+  # --- Regions.
+  reg.br:       "बिहार"
+  reg.dl:       "दिल्ली"
+  reg.gj:       "गुजरात"
+  reg.ka:       "कर्नाटक"
+  reg.kl:       "केरल"
+  reg.mh:       "महाराष्ट्र"
+  reg.mp:       "मध्य प्रदेश"
+  reg.national: "राष्ट्रीय"
+  reg.rj:       "राजस्थान"
+  reg.tn:       "तमिलनाडु"
+  reg.ts:       "तेलंगाना"
+  reg.up:       "उत्तर प्रदेश"
+  reg.wb:       "पश्चिम बंगाल"
+
+  # --- The service drawer.
+  dr.category:           "श्रेणी"
+  dr.close:              "बंद करें"
+  dr.currentStatus:      "वर्तमान स्थिति"
+  dr.datatable:          "डेटा तालिका दिखाएँ"
+  dr.errors.code:        "कोड"
+  dr.errors.count:       "संख्या"
+  dr.errors.gloss:       "अर्थ"
+  dr.errors.share:       "हिस्सा"
+  dr.errors.title:       "प्रकार अनुसार त्रुटियाँ"
+  dr.errors.trend:       "रुझान"
+  dr.governedBy:         "यह स्थिति क्यों"
+  dr.incidents.duration: "{d} तक"
+  dr.incidents.empty:    "पिछले 90 दिनों में कोई घटना नहीं।"
+  dr.incidents.ongoing:  "जारी"
+  dr.incidents.title:    "घटना समयरेखा"
+  dr.metrics:            "मापदंड"
+  dr.obligation:         "प्रदाता के लिए"
+  dr.provider:           "प्रदाता"
+  dr.region:             "क्षेत्र"
+  dr.spark:              "उपलब्धता, पिछले 90 दिन"
+  dr.summary:            "सरल शब्दों में"
+  dr.tab.errors:         "त्रुटियाँ"
+  dr.tab.incidents:      "घटनाएँ"
+  dr.tab.overview:       "अवलोकन"
+  dr.tab.traffic:        "ट्रैफ़िक"
+  dr.traffic.corr:       "ट्रैफ़िक बनाम त्रुटि दर"
+  dr.traffic.peak:       "उच्चतम {v} · {d}"
+  dr.traffic.title:      "अनुरोध मात्रा, पिछले 90 दिन"
+  dr.traffic.trough:     "न्यूनतम {v} · {d}"
+
+  # --- Incident stages and notes.
+  inc.acknowledged:              "स्वीकृत"
+  inc.mitigated:                 "कम की गई"
+  inc.opened:                    "खुली"
+  inc.resolved:                  "हल"
+  incident.note.dbFailover:      "डेटाबेस फेलओवर से थोड़ी देर सेवा अनुपलब्ध रही।"
+  incident.note.errorSpike:      "ऊपरी सेवा से 5xx त्रुटियों में अचानक उछाल।"
+  incident.note.latencyDegraded: "प्रतिक्रिया समय लक्ष्य से अधिक हो गया।"
+  incident.note.partialRegion:   "त्रुटियाँ कुछ ही क्षेत्रों तक सीमित रहीं।"
+  incident.note.rateLimited:     "ट्रैफ़िक बढ़ने पर अनुरोधों की दर सीमित की गई।"
+  incident.note.upstreamTimeout: "भार के कारण ऊपरी निर्भरता का समय समाप्त हो रहा था।"
+
+  # --- What each error code means.
+  err.400:     "गलत अनुरोध — अनुरोध का प्रारूप त्रुटिपूर्ण था।"
+  err.401:     "अनधिकृत — प्रमाण-पत्र अनुपस्थित या अमान्य।"
+  err.429:     "बहुत अधिक अनुरोध — कॉल करने वाले की दर सीमित की गई।"
+  err.500:     "सर्वर त्रुटि — सेवा अनुरोध को संभाल नहीं सकी।"
+  err.503:     "सेवा अनुपलब्ध — अस्थायी रूप से अतिभारित या बंद।"
+  err.504:     "गेटवे समय-समाप्ति — कोई ऊपरी प्रणाली बहुत धीमी थी।"
+  err.timeout: "समय-समाप्ति — निर्धारित समय में कोई उत्तर नहीं।"
+
+  # --- Maintenance windows.
+  maint.scheduled: "नियोजित रखरखाव"
+
+  # --- Service names and descriptions. This is the block a deployment replaces wholesale; everything above it is reusable.
+  svc.aadhaar.desc:    "आधार संख्या से पहचान की पुष्टि करें"
+  svc.aadhaar.name:    "आधार सत्यापन"
+  svc.cowin.desc:      "अपना CoWIN टीकाकरण प्रमाणपत्र डाउनलोड करें"
+  svc.cowin.name:      "टीकाकरण प्रमाणपत्र"
+  svc.digilocker.desc: "आधिकारिक दस्तावेज़ डिजिटल रूप से पाएँ और साझा करें"
+  svc.digilocker.name: "डिजिलॉकर दस्तावेज़"
+  svc.dl.desc:         "ड्राइविंग लाइसेंस सत्यापित करें"
+  svc.dl.name:         "ड्राइविंग लाइसेंस सत्यापन"
+  svc.epfo.desc:       "अपना EPF बैलेंस व पासबुक देखें"
+  svc.epfo.name:       "भविष्य निधि पासबुक"
+  svc.gstFile.desc:    "वस्तु व सेवा कर रिटर्न दाखिल करें"
+  svc.gstFile.name:    "GST रिटर्न दाखिल"
+  svc.pan.desc:        "कर और KYC के लिए पैन जाँचें"
+  svc.pan.name:        "पैन सत्यापन"
+  svc.passport.desc:   "पासपोर्ट आवेदन व अपॉइंटमेंट ट्रैक करें"
+  svc.passport.name:   "पासपोर्ट आवेदन स्थिति"
+  svc.pmkisan.desc:    "किसान आय सहायता भुगतान जाँचें"
+  svc.pmkisan.name:    "पीएम-किसान स्थिति"
+  svc.ration.desc:     "सार्वजनिक वितरण पात्रता जाँचें"
+  svc.ration.name:     "राशन कार्ड स्थिति"

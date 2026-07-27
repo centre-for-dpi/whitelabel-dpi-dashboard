@@ -1,0 +1,341 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "What is measured, how it is grouped, and what counts as working. Swap this file and a locale bundle to retarget the dashboard.",
+  "properties": {
+    "dataSourceHref": {
+      "type": "string"
+    },
+    "dataSourceTermId": {
+      "type": "string"
+    },
+    "defaultPeriod": {
+      "type": "string"
+    },
+    "defaultScope": {
+      "type": "string"
+    },
+    "h1TermId": {
+      "type": "string"
+    },
+    "metrics": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "denominatorOf": {
+            "type": "string"
+          },
+          "direction": {
+            "description": "Which way is good. Decides whether a rising trend is coloured as improvement or regression.",
+            "enum": [
+              "higher-is-better",
+              "lower-is-better",
+              "neutral"
+            ],
+            "type": "string"
+          },
+          "field": {
+            "description": "Which observation supplies the value. Explicit so a metric can be renamed for its audience without breaking the binding.",
+            "enum": [
+              "availability",
+              "errorRate",
+              "latencyP50",
+              "volume"
+            ],
+            "type": "string"
+          },
+          "framing": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "precision": {
+            "type": "integer"
+          },
+          "showInLeaderboard": {
+            "type": "boolean"
+          },
+          "target": {
+            "description": "The value this metric is held to. Null means no target; a metric shown in the leaderboard needs either a target or a framing.",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "termId": {
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "percent",
+              "millisecond",
+              "count"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "onboardedDenominator": {
+      "description": "The denominator of the coverage line: \"104 of 812 services onboarded\".",
+      "type": "integer"
+    },
+    "periods": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "days": {
+            "description": "Lookback in days used for trend deltas.",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "termId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "scopes": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "signals": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "days": {
+            "type": "integer"
+          },
+          "filter": {
+            "additionalProperties": false,
+            "properties": {
+              "category": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "status": {
+                "items": {
+                  "enum": [
+                    "operational",
+                    "partial",
+                    "major",
+                    "unknown",
+                    "maintenance"
+                  ],
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "iconKey": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "belowTargetDays",
+              "errorRisingCategories",
+              "longestOpenIncident",
+              "maintenanceActive"
+            ],
+            "type": "string"
+          },
+          "minCategories": {
+            "type": "integer"
+          },
+          "ruleTermId": {
+            "description": "Every signal card prints the rule it applied, so this is required.",
+            "type": "string"
+          },
+          "titleTermId": {
+            "type": "string"
+          },
+          "tone": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "signalsEmpty": {
+      "additionalProperties": false,
+      "properties": {
+        "iconKey": {
+          "type": "string"
+        },
+        "termId": {
+          "type": "string"
+        },
+        "tone": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "statusModel": {
+      "additionalProperties": false,
+      "properties": {
+        "iconKey": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "labelTermId": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "order": {
+          "items": {
+            "enum": [
+              "operational",
+              "partial",
+              "major",
+              "unknown",
+              "maintenance"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "severity": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "Higher sorts first in the default ranking: worst news at the top.",
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "taxonomy": {
+      "additionalProperties": false,
+      "properties": {
+        "categories": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "iconKey": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "termId": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "providers": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "termId": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "regions": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "scope": {
+                "type": "string"
+              },
+              "termId": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "thresholds": {
+      "additionalProperties": false,
+      "properties": {
+        "evaluationOrder": {
+          "description": "First match wins. Maintenance and staleness come first: a planned window or a missing reading explains more than a number that was never observed.",
+          "items": {
+            "enum": [
+              "operational",
+              "partial",
+              "major",
+              "unknown",
+              "maintenance"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "prose": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Term ids for the published rule text. Each receives the threshold values as ICU parameters, so the sentence on screen quotes the live numbers.",
+          "type": "object"
+        },
+        "values": {
+          "additionalProperties": false,
+          "properties": {
+            "majorAvailBelow": {
+              "type": "number"
+            },
+            "majorErrAbove": {
+              "type": "number"
+            },
+            "partialAvailBelow": {
+              "type": "number"
+            },
+            "partialErrAbove": {
+              "type": "number"
+            },
+            "staleSecondsAbove": {
+              "description": "An observation older than this is treated as no observation at all.",
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "title": "Dashboard domain contract",
+  "type": "object"
+}
