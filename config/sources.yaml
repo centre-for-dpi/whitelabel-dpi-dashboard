@@ -1,0 +1,168 @@
+# yaml-language-server: $schema=../schema/sources.schema.json
+#
+# WHERE THE DATA COMES FROM.
+#
+# Three drivers, one of which is active at a time. See examples/README.md for
+# the two wire formats side by side.
+#
+#   seed   Generated demonstration data. What a fresh install runs, so the
+#          dashboard shows something before you have integrated anything.
+#   pull   The dashboard polls your HTTP endpoint on a timer. Everything about
+#          the integration — URL, auth, interval, field mapping — is below.
+#          No Go changes.
+#   push   Your collector POSTs to /api/v1/ingest. Use this when your systems
+#          are on a private network the dashboard cannot reach.
+#
+# Switching is one line. The rest of this file is the pull configuration, kept
+# here and commented so it is ready to edit when you need it.
+
+driver: seed
+
+# ---------------------------------------------------------------------------
+# SEED
+# ---------------------------------------------------------------------------
+seed:
+  # The catalogue the demonstration data is generated from. It is example data,
+  # which is why it lives under examples/ rather than config/.
+  catalogue: examples/seed-catalogue.yaml
+
+# ---------------------------------------------------------------------------
+# PULL
+#
+# The example below is a complete, working mapping for the fixture in
+# examples/upstream/services.json. That fixture is deliberately shaped like
+# somebody else's API — ratios rather than percentages, IDENTITY rather than
+# cat.identity, its own field names — so every line of the mapping does real
+# work, and you can see what yours will need to do.
+# ---------------------------------------------------------------------------
+pull:
+  endpoints:
+    - id: primary
+
+      # Point this at your own service. Everything below it describes how to
+      # read what it returns.
+      url: "${UPSTREAM_URL:-http://127.0.0.1:8080/__example/upstream/services}"
+
+      intervalSeconds: 60
+      timeoutSeconds: 10
+
+      # Secrets always come from the environment. A token written into a config
+      # file ends up in a git history.
+      #
+      # auth:
+      #   type: bearer          # none | bearer | header | basic
+      #   envVar: UPSTREAM_TOKEN
+      auth:
+        type: none
+
+      # headers:
+      #   x-tenant: my-department
+
+      # Where the list of services is in the response. Omit it if the response
+      # is itself an array.
+      itemsPath: $.data.services
+
+      # Your field names on the right, the dashboard's on the left.
+      #
+      # Only `id` is required. Anything you leave out simply is not reported,
+      # and the dashboard degrades honestly rather than inventing a value: no
+      # availability means the status reads "unknown", not "down".
+      map:
+        id: $.serviceId
+        name: $.displayName
+        description: $.summary
+        categoryId: $.category
+        regionId: $.region
+        providerId: $.operator
+        scope: $.tier
+
+        metrics.availability: $.sla.uptimePct
+        metrics.errorRate: $.sla.errorPct
+        metrics.latencyP50: $.latency.p50Ms
+        metrics.volume.total: $.requests.total
+        metrics.volume.success: $.requests.succeeded
+        metrics.staleSeconds: $.observedAgeSecs
+
+        maintenance.active: $.maintenance.inProgress
+        maintenance.until: $.maintenance.endsAt
+        maintenance.reason: $.maintenance.reason
+
+      # Applied after reading, in order. This is where units and vocabularies
+      # are reconciled without any code.
+      transform:
+        # The single most common integration mistake: a collector reporting
+        # 0.9991 and a dashboard rendering it as 0.99%.
+        metrics.availability:
+          - { fn: ratioToPercent }
+          - { fn: clampPercent } # a rounding artefact of 100.4% is not real
+        metrics.errorRate:
+          - { fn: ratioToPercent }
+
+        # The daily series needs the same conversions. Transforming only the
+        # current reading would make the windowed leaderboard figures disagree
+        # with the instantaneous ones.
+        history.availability:
+          - { fn: ratioToPercent }
+          - { fn: clampPercent }
+        history.errorRate:
+          - { fn: ratioToPercent }
+
+        # Their vocabulary to yours. An unmapped value passes through as
+        # itself, so a new category appearing upstream surfaces as a validation
+        # error naming it rather than vanishing from the dashboard.
+        categoryId:
+          - fn: enumMap
+            table:
+              IDENTITY: cat.identity
+              MONEY: cat.money
+              HEALTH: cat.health
+              EDUCATION: cat.education
+              TRANSPORT: cat.transport
+              EMPLOYMENT: cat.employment
+              BUSINESS: cat.business
+              WELFARE: cat.welfare
+              AGRICULTURE: cat.agriculture
+              RECORDS: cat.records
+
+        regionId:
+          - fn: enumMap
+            table:
+              NATIONAL: reg.national
+              MH: reg.mh
+              UP: reg.up
+              KA: reg.ka
+              TN: reg.tn
+              DL: reg.dl
+              GJ: reg.gj
+              WB: reg.wb
+              RJ: reg.rj
+              KL: reg.kl
+              TS: reg.ts
+              MP: reg.mp
+              BR: reg.br
+          # An upstream that only serves one region need not send the field.
+          - { fn: default, value: reg.national }
+
+        scope:
+          - { fn: lowercase }
+          - { fn: default, value: national }
+
+      # Optional. Supply this and the charts are populated from the first
+      # request; omit it and the dashboard rolls up its own daily buckets from
+      # successive polls, filling in over the following days.
+      history:
+        path: $.daily[*]
+        date: $.ts
+        availability: $.uptime
+        errorRate: $.errPct
+        latencyP50: $.p50Ms
+        volume: $.count
+
+# ---------------------------------------------------------------------------
+# PUSH
+# ---------------------------------------------------------------------------
+push:
+  # The bearer token collectors must present. From the environment, never here.
+  tokenEnvVar: DPI_INGEST_TOKEN
+  # Caps the request body, so a runaway collector cannot exhaust memory.
+  maxBodyBytes: 33554432

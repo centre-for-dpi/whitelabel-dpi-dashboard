@@ -1,0 +1,738 @@
+{
+  "generatedAt": "2026-07-27T12:00:00Z",
+  "data": {
+    "services": [
+      {
+        "serviceId": "aadhaar",
+        "displayName": "Aadhaar",
+        "summary": "Example service record for Aadhaar.",
+        "category": "IDENTITY",
+        "region": "NATIONAL",
+        "operator": "UIDAI",
+        "tier": "NATIONAL",
+        "sla": {
+          "uptimePct": 0.9992,
+          "errorPct": 0.0062
+        },
+        "latency": {
+          "p50Ms": 264
+        },
+        "requests": {
+          "total": 2480492,
+          "succeeded": 2465112
+        },
+        "observedAgeSecs": 195,
+        "daily": [
+          {
+            "ts": "2026-07-14",
+            "uptime": 0.9989,
+            "errPct": 0.0055,
+            "count": 2102166,
+            "p50Ms": 294
+          },
+          {
+            "ts": "2026-07-15",
+            "uptime": 0.9999,
+            "errPct": 0.0075,
+            "count": 2213837,
+            "p50Ms": 303
+          },
+          {
+            "ts": "2026-07-16",
+            "uptime": 0.9992,
+            "errPct": 0.007,
+            "count": 2048017,
+            "p50Ms": 245
+          },
+          {
+            "ts": "2026-07-17",
+            "uptime": 0.9986,
+            "errPct": 0.0071,
+            "count": 3044098,
+            "p50Ms": 248
+          },
+          {
+            "ts": "2026-07-18",
+            "uptime": 0.9987,
+            "errPct": 0.0086,
+            "count": 2388175,
+            "p50Ms": 240
+          },
+          {
+            "ts": "2026-07-19",
+            "uptime": 0.998,
+            "errPct": 0.0048,
+            "count": 3028995,
+            "p50Ms": 302
+          },
+          {
+            "ts": "2026-07-20",
+            "uptime": 0.9999,
+            "errPct": 0.0065,
+            "count": 3206337,
+            "p50Ms": 262
+          },
+          {
+            "ts": "2026-07-21",
+            "uptime": 0.9999,
+            "errPct": 0.0081,
+            "count": 2135525,
+            "p50Ms": 256
+          },
+          {
+            "ts": "2026-07-22",
+            "uptime": 0.9993,
+            "errPct": 0.0059,
+            "count": 2211353,
+            "p50Ms": 227
+          },
+          {
+            "ts": "2026-07-23",
+            "uptime": 0.9976,
+            "errPct": 0.0078,
+            "count": 2780109,
+            "p50Ms": 298
+          },
+          {
+            "ts": "2026-07-24",
+            "uptime": 0.9999,
+            "errPct": 0.0042,
+            "count": 2871949,
+            "p50Ms": 307
+          },
+          {
+            "ts": "2026-07-25",
+            "uptime": 0.998,
+            "errPct": 0.0041,
+            "count": 2523213,
+            "p50Ms": 303
+          },
+          {
+            "ts": "2026-07-26",
+            "uptime": 0.9995,
+            "errPct": 0.0053,
+            "count": 2420742,
+            "p50Ms": 241
+          },
+          {
+            "ts": "2026-07-27",
+            "uptime": 0.9999,
+            "errPct": 0.0076,
+            "count": 2477400,
+            "p50Ms": 243
+          }
+        ]
+      },
+      {
+        "serviceId": "passport",
+        "displayName": "Passport",
+        "summary": "Example service record for Passport.",
+        "category": "IDENTITY",
+        "region": "NATIONAL",
+        "operator": "MEA",
+        "tier": "NATIONAL",
+        "sla": {
+          "uptimePct": 0.9914,
+          "errorPct": 0.0078
+        },
+        "latency": {
+          "p50Ms": 327
+        },
+        "requests": {
+          "total": 151244,
+          "succeeded": 150064
+        },
+        "observedAgeSecs": 68,
+        "daily": [
+          {
+            "ts": "2026-07-14",
+            "uptime": 0.9904,
+            "errPct": 0.0099,
+            "count": 142923,
+            "p50Ms": 357
+          },
+          {
+            "ts": "2026-07-15",
+            "uptime": 0.9901,
+            "errPct": 0.0086,
+            "count": 156113,
+            "p50Ms": 374
+          },
+          {
+            "ts": "2026-07-16",
+            "uptime": 0.9926,
+            "errPct": 0.0063,
+            "count": 132566,
+            "p50Ms": 279
+          },
+          {
+            "ts": "2026-07-17",
+            "uptime": 0.9906,
+            "errPct": 0.0055,
+            "count": 171321,
+            "p50Ms": 361
+          },
+          {
+            "ts": "2026-07-18",
+            "uptime": 0.9927,
+            "errPct": 0.008,
+            "count": 136759,
+            "p50Ms": 297
+          },
+          {
+            "ts": "2026-07-19",
+            "uptime": 0.9924,
+            "errPct": 0.0065,
+            "count": 168594,
+            "p50Ms": 361
+          },
+          {
+            "ts": "2026-07-20",
+            "uptime": 0.9906,
+            "errPct": 0.0079,
+            "count": 138742,
+            "p50Ms": 282
+          },
+          {
+            "ts": "2026-07-21",
+            "uptime": 0.99,
+            "errPct": 0.0063,
+            "count": 133252,
+            "p50Ms": 280
+          },
+          {
+            "ts": "2026-07-22",
+            "uptime": 0.9919,
+            "errPct": 0.008,
+            "count": 129707,
+            "p50Ms": 355
+          },
+          {
+            "ts": "2026-07-23",
+            "uptime": 0.9924,
+            "errPct": 0.0101,
+            "count": 132740,
+            "p50Ms": 313
+          },
+          {
+            "ts": "2026-07-24",
+            "uptime": 0.992,
+            "errPct": 0.0098,
+            "count": 132424,
+            "p50Ms": 363
+          },
+          {
+            "ts": "2026-07-25",
+            "uptime": 0.9897,
+            "errPct": 0.009,
+            "count": 176808,
+            "p50Ms": 327
+          },
+          {
+            "ts": "2026-07-26",
+            "uptime": 0.9747,
+            "errPct": 0.024,
+            "count": 153924,
+            "p50Ms": 311
+          },
+          {
+            "ts": "2026-07-27",
+            "uptime": 0.9681,
+            "errPct": 0.0257,
+            "count": 130988,
+            "p50Ms": 364
+          }
+        ]
+      },
+      {
+        "serviceId": "gstFile",
+        "displayName": "Gst File",
+        "summary": "Example service record for Gst File.",
+        "category": "MONEY",
+        "region": "NATIONAL",
+        "operator": "GSTN",
+        "tier": "NATIONAL",
+        "sla": {
+          "uptimePct": 0.9825,
+          "errorPct": 0.0318
+        },
+        "latency": {
+          "p50Ms": 614
+        },
+        "requests": {
+          "total": 811840,
+          "succeeded": 786023
+        },
+        "observedAgeSecs": 223,
+        "daily": [
+          {
+            "ts": "2026-07-14",
+            "uptime": 0.9832,
+            "errPct": 0.0293,
+            "count": 917677,
+            "p50Ms": 698
+          },
+          {
+            "ts": "2026-07-15",
+            "uptime": 0.9831,
+            "errPct": 0.0294,
+            "count": 1061593,
+            "p50Ms": 625
+          },
+          {
+            "ts": "2026-07-16",
+            "uptime": 0.9834,
+            "errPct": 0.0309,
+            "count": 913467,
+            "p50Ms": 534
+          },
+          {
+            "ts": "2026-07-17",
+            "uptime": 0.9809,
+            "errPct": 0.033,
+            "count": 906346,
+            "p50Ms": 564
+          },
+          {
+            "ts": "2026-07-18",
+            "uptime": 0.9818,
+            "errPct": 0.0333,
+            "count": 1032165,
+            "p50Ms": 533
+          },
+          {
+            "ts": "2026-07-19",
+            "uptime": 0.9833,
+            "errPct": 0.0351,
+            "count": 944407,
+            "p50Ms": 711
+          },
+          {
+            "ts": "2026-07-20",
+            "uptime": 0.9816,
+            "errPct": 0.0319,
+            "count": 769698,
+            "p50Ms": 610
+          },
+          {
+            "ts": "2026-07-21",
+            "uptime": 0.9805,
+            "errPct": 0.0351,
+            "count": 950191,
+            "p50Ms": 573
+          },
+          {
+            "ts": "2026-07-22",
+            "uptime": 0.9822,
+            "errPct": 0.0307,
+            "count": 776185,
+            "p50Ms": 591
+          },
+          {
+            "ts": "2026-07-23",
+            "uptime": 0.9831,
+            "errPct": 0.0346,
+            "count": 803405,
+            "p50Ms": 542
+          },
+          {
+            "ts": "2026-07-24",
+            "uptime": 0.9814,
+            "errPct": 0.0347,
+            "count": 876814,
+            "p50Ms": 634
+          },
+          {
+            "ts": "2026-07-25",
+            "uptime": 0.9808,
+            "errPct": 0.0344,
+            "count": 983119,
+            "p50Ms": 672
+          },
+          {
+            "ts": "2026-07-26",
+            "uptime": 0.9631,
+            "errPct": 0.045,
+            "count": 926636,
+            "p50Ms": 545
+          },
+          {
+            "ts": "2026-07-27",
+            "uptime": 0.9716,
+            "errPct": 0.0543,
+            "count": 714544,
+            "p50Ms": 686
+          }
+        ]
+      },
+      {
+        "serviceId": "propTax__kl",
+        "displayName": "Prop Tax",
+        "summary": "Example service record for Prop Tax.",
+        "category": "MONEY",
+        "region": "KL",
+        "operator": "STATE",
+        "tier": "STATE",
+        "sla": {
+          "uptimePct": 0.9968,
+          "errorPct": 0.0062
+        },
+        "latency": {
+          "p50Ms": 207
+        },
+        "requests": {
+          "total": 99973,
+          "succeeded": 99353
+        },
+        "observedAgeSecs": 193,
+        "maintenance": {
+          "inProgress": true,
+          "endsAt": "2026-07-27T15:26:37Z",
+          "reason": "maint.scheduled"
+        },
+        "daily": [
+          {
+            "ts": "2026-07-14",
+            "uptime": 0.9982,
+            "errPct": 0.0048,
+            "count": 100971,
+            "p50Ms": 244
+          },
+          {
+            "ts": "2026-07-15",
+            "uptime": 0.9978,
+            "errPct": 0.0096,
+            "count": 92594,
+            "p50Ms": 246
+          },
+          {
+            "ts": "2026-07-16",
+            "uptime": 0.9973,
+            "errPct": 0.0073,
+            "count": 87524,
+            "p50Ms": 209
+          },
+          {
+            "ts": "2026-07-17",
+            "uptime": 0.9964,
+            "errPct": 0.0062,
+            "count": 102181,
+            "p50Ms": 210
+          },
+          {
+            "ts": "2026-07-18",
+            "uptime": 0.9959,
+            "errPct": 0.0045,
+            "count": 109115,
+            "p50Ms": 242
+          },
+          {
+            "ts": "2026-07-19",
+            "uptime": 0.996,
+            "errPct": 0.0073,
+            "count": 111474,
+            "p50Ms": 184
+          },
+          {
+            "ts": "2026-07-20",
+            "uptime": 0.9971,
+            "errPct": 0.0073,
+            "count": 127082,
+            "p50Ms": 237
+          },
+          {
+            "ts": "2026-07-21",
+            "uptime": 0.9985,
+            "errPct": 0.0085,
+            "count": 97439,
+            "p50Ms": 193
+          },
+          {
+            "ts": "2026-07-22",
+            "uptime": 0.9977,
+            "errPct": 0.0093,
+            "count": 95886,
+            "p50Ms": 195
+          },
+          {
+            "ts": "2026-07-23",
+            "uptime": 0.9969,
+            "errPct": 0.0074,
+            "count": 114508,
+            "p50Ms": 190
+          },
+          {
+            "ts": "2026-07-24",
+            "uptime": 0.9964,
+            "errPct": 0.0064,
+            "count": 98545,
+            "p50Ms": 230
+          },
+          {
+            "ts": "2026-07-25",
+            "uptime": 0.9965,
+            "errPct": 0.0065,
+            "count": 91784,
+            "p50Ms": 217
+          },
+          {
+            "ts": "2026-07-26",
+            "uptime": 0.9969,
+            "errPct": 0.0072,
+            "count": 101606,
+            "p50Ms": 209
+          },
+          {
+            "ts": "2026-07-27",
+            "uptime": 0.998,
+            "errPct": 0.0059,
+            "count": 96292,
+            "p50Ms": 248
+          }
+        ]
+      },
+      {
+        "serviceId": "propTax__ts",
+        "displayName": "Prop Tax",
+        "summary": "Example service record for Prop Tax.",
+        "category": "MONEY",
+        "region": "TS",
+        "operator": "STATE",
+        "tier": "STATE",
+        "sla": {
+          "uptimePct": null,
+          "errorPct": 0.0088
+        },
+        "latency": {
+          "p50Ms": 290
+        },
+        "requests": {
+          "total": 52963,
+          "succeeded": 50922
+        },
+        "observedAgeSecs": 2147,
+        "daily": [
+          {
+            "ts": "2026-07-14",
+            "uptime": null,
+            "errPct": 0.0122,
+            "count": 44101,
+            "p50Ms": 324
+          },
+          {
+            "ts": "2026-07-15",
+            "uptime": null,
+            "errPct": 0.0083,
+            "count": 63138,
+            "p50Ms": 253
+          },
+          {
+            "ts": "2026-07-16",
+            "uptime": null,
+            "errPct": 0.0074,
+            "count": 61184,
+            "p50Ms": 253
+          },
+          {
+            "ts": "2026-07-17",
+            "uptime": null,
+            "errPct": 0.0111,
+            "count": 69308,
+            "p50Ms": 298
+          },
+          {
+            "ts": "2026-07-18",
+            "uptime": null,
+            "errPct": 0.0101,
+            "count": 63593,
+            "p50Ms": 290
+          },
+          {
+            "ts": "2026-07-19",
+            "uptime": null,
+            "errPct": 0.0122,
+            "count": 59186,
+            "p50Ms": 297
+          },
+          {
+            "ts": "2026-07-20",
+            "uptime": null,
+            "errPct": 0.0093,
+            "count": 61292,
+            "p50Ms": 261
+          },
+          {
+            "ts": "2026-07-21",
+            "uptime": null,
+            "errPct": 0.008,
+            "count": 43577,
+            "p50Ms": 290
+          },
+          {
+            "ts": "2026-07-22",
+            "uptime": null,
+            "errPct": 0.0067,
+            "count": 60649,
+            "p50Ms": 293
+          },
+          {
+            "ts": "2026-07-23",
+            "uptime": null,
+            "errPct": 0.0118,
+            "count": 59057,
+            "p50Ms": 276
+          },
+          {
+            "ts": "2026-07-24",
+            "uptime": null,
+            "errPct": 0.0089,
+            "count": 62279,
+            "p50Ms": 297
+          },
+          {
+            "ts": "2026-07-25",
+            "uptime": null,
+            "errPct": 0.0099,
+            "count": 48252,
+            "p50Ms": 333
+          },
+          {
+            "ts": "2026-07-26",
+            "uptime": null,
+            "errPct": 0.0103,
+            "count": 60976,
+            "p50Ms": 285
+          },
+          {
+            "ts": "2026-07-27",
+            "uptime": null,
+            "errPct": 0.0109,
+            "count": 41239,
+            "p50Ms": 311
+          }
+        ]
+      },
+      {
+        "serviceId": "electricity__rj",
+        "displayName": "Electricity",
+        "summary": "Example service record for Electricity.",
+        "category": "MONEY",
+        "region": "RJ",
+        "operator": "STATE",
+        "tier": "STATE",
+        "sla": {
+          "uptimePct": 0.9971,
+          "errorPct": 0.0028
+        },
+        "latency": {
+          "p50Ms": 183
+        },
+        "requests": {
+          "total": 66821,
+          "succeeded": 66633
+        },
+        "observedAgeSecs": 176,
+        "daily": [
+          {
+            "ts": "2026-07-14",
+            "uptime": 0.9971,
+            "errPct": 0.0055,
+            "count": 62033,
+            "p50Ms": 183
+          },
+          {
+            "ts": "2026-07-15",
+            "uptime": 0.9975,
+            "errPct": 0.0011,
+            "count": 63052,
+            "p50Ms": 215
+          },
+          {
+            "ts": "2026-07-16",
+            "uptime": 0.9961,
+            "errPct": 0.0052,
+            "count": 81119,
+            "p50Ms": 155
+          },
+          {
+            "ts": "2026-07-17",
+            "uptime": 0.9988,
+            "errPct": 0.0048,
+            "count": 62645,
+            "p50Ms": 175
+          },
+          {
+            "ts": "2026-07-18",
+            "uptime": 0.9954,
+            "errPct": 0.0052,
+            "count": 80864,
+            "p50Ms": 180
+          },
+          {
+            "ts": "2026-07-19",
+            "uptime": 0.9971,
+            "errPct": 0.0052,
+            "count": 82826,
+            "p50Ms": 173
+          },
+          {
+            "ts": "2026-07-20",
+            "uptime": 0.9956,
+            "errPct": 0.0009,
+            "count": 65720,
+            "p50Ms": 186
+          },
+          {
+            "ts": "2026-07-21",
+            "uptime": 0.9982,
+            "errPct": 0.0036,
+            "count": 76278,
+            "p50Ms": 190
+          },
+          {
+            "ts": "2026-07-22",
+            "uptime": 0.9966,
+            "errPct": 0.0031,
+            "count": 78831,
+            "p50Ms": 216
+          },
+          {
+            "ts": "2026-07-23",
+            "uptime": 0.9967,
+            "errPct": 0.0037,
+            "count": 53127,
+            "p50Ms": 163
+          },
+          {
+            "ts": "2026-07-24",
+            "uptime": 0.9964,
+            "errPct": 0.0017,
+            "count": 56390,
+            "p50Ms": 197
+          },
+          {
+            "ts": "2026-07-25",
+            "uptime": 0.9958,
+            "errPct": 0.0007,
+            "count": 73063,
+            "p50Ms": 170
+          },
+          {
+            "ts": "2026-07-26",
+            "uptime": 0.9971,
+            "errPct": 0.0043,
+            "count": 78651,
+            "p50Ms": 176
+          },
+          {
+            "ts": "2026-07-27",
+            "uptime": 0.9964,
+            "errPct": 0.0047,
+            "count": 77048,
+            "p50Ms": 162
+          }
+        ]
+      }
+    ]
+  }
+}

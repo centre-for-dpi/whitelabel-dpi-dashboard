@@ -1,0 +1,103 @@
+{{define "widget/heading"}}
+<div class="w w-heading">{{template "heading-tag" .}}</div>
+{{end}}
+
+
+{{define "widget/status-summary"}}
+<p class="w w-summary{{if .AllWell}} is-clear{{end}}">{{.Text}}</p>
+{{end}}
+
+
+{{/* One bar, banded by status.
+     role="img" with a single label rather than a list of segments: a screen
+     reader announcing eleven separate percentages is worse than one sentence,
+     and the legend below carries the detail in text anyway. */}}
+{{define "widget/segmented-bar"}}
+{{if .Segments}}
+<div class="w w-bar" role="img" aria-label="{{.Label}}"
+     {{if .HideBelow}}data-hide-below="{{.HideBelow}}"{{end}}>
+  {{range .Segments}}
+  <span class="bar-seg" data-tone="{{.Tone}}"
+        style="--w:{{pct .Percent}}"
+        title="{{.Count}} {{.Label}}">
+    {{template "icon" .Icon}}
+    <span class="bar-count tnum">{{.Count}}</span>
+  </span>
+  {{end}}
+</div>
+{{end}}
+{{end}}
+
+
+{{define "widget/legend"}}
+<ul class="w w-legend">
+  {{range .Items}}
+  <li data-tone="{{.Tone}}">
+    <span class="dot" aria-hidden="true"></span>
+    <span class="tnum">{{.Count}}</span>
+    <span>{{.Label}}</span>
+  </li>
+  {{end}}
+</ul>
+{{end}}
+
+
+{{define "widget/coverage"}}
+<p class="w w-coverage muted">{{.Text}}</p>
+{{end}}
+
+
+{{/* The machine-readable time sits in datetime and the exact time in title, so
+     "4 minutes ago" stays readable without hiding when that actually was. */}}
+{{define "widget/timestamp"}}
+<p class="w w-timestamp muted{{if .Stale}} is-stale{{end}}">
+  <time datetime="{{.ISO}}" title="{{.Absolute}}">{{.Relative}}</time>
+</p>
+{{end}}
+
+
+{{define "widget/cta-button"}}
+<p class="w w-cta">
+  <a class="btn btn-primary" href="{{.Target}}" data-dpi-scroll-to>
+    {{.Label}} {{template "icon" .Icon}}
+  </a>
+</p>
+{{end}}
+
+
+{{/* The published rules, with the live numbers in them. A reader who disagrees
+     with a verdict can read exactly what produced it. */}}
+{{define "widget/disclosure"}}
+<details class="w w-disclosure"{{if .Open}} open{{end}}>
+  <summary>{{.Summary}}</summary>
+  <ul>
+    {{range .Items}}<li>{{.}}</li>{{end}}
+  </ul>
+</details>
+{{end}}
+
+
+{{define "widget/signal-cards"}}
+<div class="w w-signals">
+  {{range .Cards}}
+  <article class="card signal" data-tone="{{.Tone}}">
+    <span class="signal-icon" data-tone="{{.Tone}}">{{template "icon" .Icon}}</span>
+    <div class="signal-body">
+      <p class="signal-title">{{.Title}}</p>
+      {{if .Rule}}<p class="signal-rule muted">{{.Rule}}</p>{{end}}
+      {{if .ActionLabel}}
+        {{if .ServiceID}}
+        <a class="link" href="/service/{{.ServiceID}}{{query "tab" .ServiceTab}}"
+           hx-get="/fragments/service/{{.ServiceID}}{{query "tab" .ServiceTab}}"
+           hx-target="#drawer-host" hx-swap="innerHTML" hx-push-url="true">{{.ActionLabel}}</a>
+        {{else}}
+        <a class="link" href="/{{query "status" (join .FilterStatuses ",") "cat" (join .FilterCategories ",")}}#leaderboard"
+           hx-get="/fragments/leaderboard{{query "status" (join .FilterStatuses ",") "cat" (join .FilterCategories ",")}}"
+           hx-target="#leaderboard" hx-swap="outerHTML" hx-push-url="true">{{.ActionLabel}}</a>
+        {{end}}
+      {{end}}
+    </div>
+  </article>
+  {{end}}
+</div>
+{{end}}

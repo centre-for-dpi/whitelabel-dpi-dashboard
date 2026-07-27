@@ -1,0 +1,46 @@
+# The whole dashboard, one command: `docker compose up`.
+#
+# Nothing is mounted by default. Uncomment the volume to override any config
+# file from disk — the container falls back to what is embedded for everything
+# you do not supply, so a directory containing only brand.yaml is a valid
+# override.
+
+services:
+  dashboard:
+    build: .
+    image: ghcr.io/centre-for-dpi/whitelabel-dpi-dashboard:latest
+    ports:
+      - "8080:8080"
+    environment:
+      DPI_ADDR: ":8080"
+      DPI_LOG_FORMAT: json
+      # Feeding it from your own service:
+      # UPSTREAM_URL: https://status.example.gov/api/services
+      # UPSTREAM_TOKEN: ${UPSTREAM_TOKEN}
+      # Accepting pushed data instead:
+      # DPI_INGEST_TOKEN: ${DPI_INGEST_TOKEN}
+      #
+      # Storage defaults to memory, so this file works with no volume at all.
+      # History the dashboard rolls up itself is then lost on restart, which
+      # does not matter if your upstream serves its own history and matters a
+      # great deal if it does not. To keep it, uncomment these and the volume:
+      # DPI_STORAGE_DRIVER: sqlite
+      # DATABASE_URL: "file:/data/dpi.db?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)"
+      #
+      # Or point at a server you already run. Same binary, one key:
+      # DPI_STORAGE_DRIVER: postgres
+      # DATABASE_URL: ${DATABASE_URL}
+    # volumes:
+    #   # The container runs as 65534, so the volume must be writable by it.
+    #   - dpi-data:/data
+    #   - ./config:/config:ro
+    # command: ["-config", "/config"]
+    healthcheck:
+      test: ["CMD", "/dashboard", "-healthcheck"]
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+    restart: unless-stopped
+
+# volumes:
+#   dpi-data:

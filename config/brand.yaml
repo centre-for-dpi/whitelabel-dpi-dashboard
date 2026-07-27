@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=../schema/brand.schema.json
+#
+# The visible identity: what the dashboard calls itself and who it credits.
+#
+# Text is referenced by term id rather than written here, so that renaming the
+# dashboard is a locale edit and every language gets the change. If you do not
+# translate, a term id with no matching key falls through and renders as itself
+# — so you can put literal text here and it will work.
+
+wordmarkTermId: brand.wordmark
+taglineTermId: brand.tagline
+
+# Which entry in icons.yaml to render beside the wordmark.
+iconKey: brand.mark
+
+favicon: /assets/favicon.svg
+
+footer:
+  - termId: footer.cdpi
+    href: https://cdpi.dev/
+    external: true
+  - termId: footer.source
+    href: https://directory.apisetu.gov.in/
+    external: true

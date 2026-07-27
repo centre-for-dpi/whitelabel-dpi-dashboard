@@ -1,0 +1,181 @@
+{{define "widget/stat-tile"}}
+<div class="w card stat">
+  <p class="stat-label muted">{{.Label}}</p>
+  {{if .Cell.Unknown}}
+    <p class="stat-value is-unknown">—</p>
+    <p class="stat-note muted">{{.Cell.Note}}</p>
+  {{else}}
+    <p class="stat-value tnum">{{.Cell.Value}}</p>
+    {{if .Cell.Target}}<p class="stat-note muted">{{.Cell.Target}}</p>{{end}}
+    {{if .Frame}}<p class="stat-note muted">{{.Frame}}</p>{{end}}
+    {{if .Cell.Trend}}
+    <p class="cell-trend" data-tone="{{.Cell.TrendTone}}">
+      {{template "icon" .Cell.TrendIcon}} {{.Cell.Trend}}
+    </p>
+    {{end}}
+  {{end}}
+</div>
+{{end}}
+
+
+{{/* preserveAspectRatio="none" lets one fixed viewBox fill any width, which is
+     how the server can compute geometry without knowing the reader's screen.
+     vector-effect keeps the stroke a hairline through that stretch. */}}
+{{define "widget/sparkline"}}
+<figure class="w chart">
+  {{if .Empty}}
+    <figcaption class="muted">{{.Summary}}</figcaption>
+  {{else}}
+  <svg class="spark" viewBox="{{.ViewBox}}" preserveAspectRatio="none"
+       role="img" aria-label="{{.Summary}}"
+       data-dpi-chart data-points="{{.PointData}}">
+    <path class="spark-area" d="{{.Area}}"/>
+    <path class="spark-line" d="{{.Path}}" vector-effect="non-scaling-stroke"/>
+  </svg>
+  <figcaption class="chart-axis muted">
+    <span class="tnum">{{.MinLabel}}</span>
+    <span class="tnum">{{.MaxLabel}}</span>
+  </figcaption>
+  {{end}}
+</figure>
+{{end}}
+
+
+{{define "widget/bar-chart"}}
+<figure class="w chart">
+  {{if .Empty}}
+    <figcaption class="muted">{{.PeakText}}</figcaption>
+  {{else}}
+  <svg class="bars" viewBox="{{.ViewBox}}" preserveAspectRatio="none"
+       role="img" aria-label="{{.PeakText}}"
+       data-dpi-chart data-points="{{.PointData}}">
+    {{range .Bars}}<rect x="{{num .X}}" y="{{num .Y}}" width="{{num .W}}" height="{{num .H}}"/>{{end}}
+    <path class="overlay" d="{{.ErrPath}}" vector-effect="non-scaling-stroke"/>
+  </svg>
+  <figcaption class="chart-axis muted">
+    <span>{{.PeakText}}</span>
+    <span>{{.LowText}}</span>
+    {{if .OverlayLabel}}<span class="overlay-key">{{.OverlayLabel}}</span>{{end}}
+  </figcaption>
+  {{end}}
+</figure>
+{{end}}
+
+
+{{define "widget/bar-list"}}
+<div class="w w-barlist">
+  {{if .Empty}}
+    <p class="muted">—</p>
+  {{else}}
+  <ul>
+    {{range .Rows}}
+    <li>
+      <span class="bl-code" data-tone="{{.Tone}}">{{.Code}}</span>
+      <span class="bl-meaning muted">{{.Meaning}}</span>
+      <span class="bl-count tnum">{{.Count}} · {{.Share}}</span>
+      {{template "icon" .Trend}}
+      <span class="bl-track"><span class="bl-fill" data-tone="{{.Tone}}" style="--w:{{pct .Percent}}"></span></span>
+    </li>
+    {{end}}
+  </ul>
+  {{end}}
+</div>
+{{end}}
+
+
+{{define "widget/timeline"}}
+<div class="w w-timeline">
+  {{if .Empty}}
+    <p class="empty">{{template "icon" .EmptyIcon}} {{.EmptyText}}</p>
+  {{else}}
+    {{range .Incidents}}
+    <article class="card incident">
+      <header class="incident-head">
+        <span class="chip-static" data-tone="{{.Tone}}">
+          {{template "icon" .Icon}} {{.Severity}}
+        </span>
+        {{if .Open}}<span class="badge-open">●</span>{{end}}
+        <span class="muted">{{.Duration}}</span>
+      </header>
+      <p class="incident-note">{{.Note}}</p>
+      <ol class="stages">
+        {{range .Events}}
+        <li{{if .Last}} class="is-last"{{end}}>
+          <span class="stage-dot" aria-hidden="true"></span>
+          <span class="stage-label">{{.Label}}</span>
+          <time class="muted" datetime="{{.ISO}}">{{.When}}</time>
+        </li>
+        {{end}}
+      </ol>
+    </article>
+    {{end}}
+  {{end}}
+</div>
+{{end}}
+
+
+{{/* The numbers behind a chart, collapsed by default. Every chart has one:
+     a line on a screen is not accessible to a screen reader, not copyable, and
+     not checkable. */}}
+{{define "widget/data-table"}}
+<details class="w w-datatable">
+  <summary>{{.Summary}}</summary>
+  {{if .Empty}}
+    <p class="muted">—</p>
+  {{else}}
+  <table>
+    <thead><tr>{{range .Headers}}<th scope="col">{{.}}</th>{{end}}</tr></thead>
+    <tbody>
+      {{range .Rows}}<tr>{{range .}}<td class="tnum">{{.}}</td>{{end}}</tr>{{end}}
+    </tbody>
+  </table>
+  {{end}}
+</details>
+{{end}}
+
+
+{{/* The drawer.
+
+     A modal dialog, so the browser handles the focus trap, Escape and the
+     backdrop rather than 60 lines of JavaScript doing it worse. */}}
+{{define "drawer"}}
+<dialog class="drawer" id="drawer" data-dpi-drawer open aria-labelledby="drawer-title">
+  <article class="drawer-panel">
+    <header class="drawer-head">
+      <div class="drawer-head-row">
+        <span class="chip-static" data-tone="{{.StatusTone}}">
+          {{template "icon" .StatusIcon}} {{.StatusLabel}}
+        </span>
+        <a class="icon-btn" href="{{.CloseHref}}" data-dpi-drawer-close
+           aria-label="{{.CloseIcon.Label}}">{{template "icon" .CloseIcon}}</a>
+      </div>
+
+      <p class="muted">{{template "icon" .CategoryIcon}} {{.Category}} · {{.Region}}</p>
+      <h2 id="drawer-title" class="serif">{{.Name}}</h2>
+      <p class="muted">{{.Description}}</p>
+
+      {{/* Why this status, in the deployment's own published words. A reader
+           who disagrees with the verdict can see exactly what produced it. */}}
+      {{if .Rule}}
+      <p class="drawer-rule"><strong>{{.RuleLabel}}</strong> {{.Rule}}</p>
+      {{end}}
+
+      <nav class="tabs" role="tablist">
+        {{range .Tabs}}
+        <a class="tab{{if .Active}} is-active{{end}}" role="tab"
+           aria-selected="{{if .Active}}true{{else}}false{{end}}"
+           href="{{.Href}}"
+           hx-get="{{.FragmentHref}}" hx-target="#drawer-host"
+           hx-swap="innerHTML" hx-push-url="{{.Href}}">{{.Label}}</a>
+        {{end}}
+      </nav>
+    </header>
+
+    <div class="drawer-body" role="tabpanel">
+      <div class="grid"{{if .Grid.MinColWidth}} style="--min-col:{{css .Grid.MinColWidth}}"{{end}}>
+        {{range .Widgets}}{{.HTML}}{{end}}
+      </div>
+    </div>
+  </article>
+</dialog>
+{{end}}

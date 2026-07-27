@@ -1,0 +1,132 @@
+{{define "page"}}<!doctype html>
+<html lang="{{.Locale}}" dir="{{.Direction}}"{{if .Theme}} data-theme="{{.Theme}}"{{end}}>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Title}}</title>
+<meta name="description" content="{{.Tagline}}">
+{{if .Favicon}}<link rel="icon" href="{{.Favicon}}">{{end}}
+<link rel="stylesheet" href="/assets/theme.css?v={{.AssetVersion}}">
+<link rel="stylesheet" href="/assets/app.css?v={{.AssetVersion}}">
+<script src="/assets/htmx.min.js?v={{.AssetVersion}}" defer></script>
+<script src="/assets/app.js?v={{.AssetVersion}}" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">{{.SkipText}}</a>
+
+{{template "chrome" .}}
+
+<main id="main" class="shell">
+  {{range .Sections}}{{template "section" .}}{{end}}
+</main>
+
+{{template "footer" .}}
+
+{{/* The drawer arrives here from a fragment swap, so a page load carries no
+     markup for a panel nobody has opened. */}}
+<div id="drawer-host">{{if .Drawer}}{{template "drawer" .Drawer}}{{end}}</div>
+</body>
+</html>{{end}}
+
+
+{{define "chrome"}}
+<header class="chrome">
+  <div class="shell chrome-inner">
+    <a class="wordmark" href="/">
+      {{template "icon" .BrandIcon}}
+      <span>{{.Title}}</span>
+    </a>
+
+    <form class="controls" method="get" action="/" data-dpi-autosubmit>
+      {{/* Every control is a real form field with a real GET target, so the
+           whole page works with no JavaScript at all. HTMX upgrades it; it does
+           not enable it. */}}
+      {{range .Hidden}}<input type="hidden" name="{{.Name}}" value="{{.Value}}">{{end}}
+
+      <div class="segmented" role="group" aria-label="{{.ScopeLabel}}">
+        {{range .Scopes}}
+        <a class="segment{{if .Active}} is-active{{end}}"
+           href="{{.Href}}"
+           hx-get="{{.Href}}" hx-target="body" hx-push-url="true"
+           {{if .Active}}aria-current="true"{{end}}>{{.Label}}</a>
+        {{end}}
+      </div>
+
+      <label class="field">
+        <span class="field-label">{{.PeriodLabel}}</span>
+        <select name="period" data-dpi-submit>
+          {{range .Periods}}<option value="{{.Value}}"{{if .Active}} selected{{end}}>{{.Label}}</option>{{end}}
+        </select>
+      </label>
+
+      <label class="field">
+        <span class="field-label">{{.LocaleLabel}}</span>
+        <select name="lang" data-dpi-submit>
+          {{range .Locales}}<option value="{{.Value}}"{{if .Active}} selected{{end}}>{{.Label}}</option>{{end}}
+        </select>
+      </label>
+
+      <noscript><button class="btn" type="submit">{{.ApplyLabel}}</button></noscript>
+
+      <a class="icon-btn" href="{{.ThemeHref}}"
+         data-dpi-theme-toggle
+         title="{{.ThemeIcon.Label}}" aria-label="{{.ThemeIcon.Label}}">
+        {{template "icon" .ThemeIcon}}
+      </a>
+    </form>
+  </div>
+</header>
+{{end}}
+
+
+{{define "footer"}}
+<footer class="footer">
+  <div class="shell footer-inner">
+    {{range .Footer}}
+    <a href="{{.Href}}"{{if .External}} target="_blank" rel="noopener noreferrer"{{end}}>
+      {{.Label}}{{if .External}} {{template "icon" $.ExternalIcon}}{{end}}
+    </a>
+    {{end}}
+  </div>
+</footer>
+{{end}}
+
+
+{{define "section"}}
+<section id="{{.ID}}" class="band"{{if .Heading}} aria-labelledby="{{.ID}}-title"{{end}}>
+  {{if .Heading}}
+  <div class="band-head">
+    {{if .Heading.Eyebrow}}<p class="eyebrow">{{.Heading.Eyebrow}}</p>{{end}}
+    {{template "heading-tag" .Heading}}
+  </div>
+  {{end}}
+
+  <div class="grid"{{if .Grid.MinColWidth}} style="--min-col:{{css .Grid.MinColWidth}}"{{end}}{{if .Grid.Gap}} style="--gap:{{css .Grid.Gap}}"{{end}}>
+    {{range .Widgets}}{{.HTML}}{{end}}
+  </div>
+</section>
+{{end}}
+
+
+{{/* html/template will not let a tag name be a variable, so the levels are
+     spelled out. Six branches is a small price for markup that is structurally
+     correct rather than assembled from strings. */}}
+{{define "heading-tag"}}
+{{- if eq .Level 1}}<h1 id="{{.ID}}" class="{{.Class}}">{{.Title}}</h1>
+{{- else if eq .Level 3}}<h3 id="{{.ID}}" class="{{.Class}}">{{.Title}}</h3>
+{{- else if eq .Level 4}}<h4 id="{{.ID}}" class="{{.Class}}">{{.Title}}</h4>
+{{- else if eq .Level 5}}<h5 id="{{.ID}}" class="{{.Class}}">{{.Title}}</h5>
+{{- else if eq .Level 6}}<h6 id="{{.ID}}" class="{{.Class}}">{{.Title}}</h6>
+{{- else}}<h2 id="{{.ID}}" class="{{.Class}}">{{.Title}}</h2>
+{{- end}}
+{{end}}
+
+
+{{/* An icon is a glyph or inline SVG. It is aria-hidden unless it carries
+     meaning on its own, in which case the label is what a screen reader
+     announces instead of a character it would otherwise read aloud. */}}
+{{define "icon"}}
+{{- if .SVG}}<span class="icon" role="img" aria-label="{{.Label}}">{{svg .SVG}}</span>
+{{- else if .Glyph}}<span class="icon" aria-hidden="true">{{.Glyph}}</span>
+{{- end}}
+{{end}}

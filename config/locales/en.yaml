@@ -1,0 +1,376 @@
+# yaml-language-server: $schema=../../schema/locale.schema.json
+#
+# English — the base locale.
+#
+# Every other locale falls back to this one key by key, so a partial translation
+# is genuinely useful: whatever is translated appears translated, and the rest
+# appears in English rather than as a raw term id.
+#
+# A term id with no entry anywhere renders as itself. That is deliberate: a
+# deployment that does not translate can put literal text in its config files
+# and it will simply work.
+#
+# Braces are ICU message syntax. {count, plural, one{# service} other{# services}}
+# picks a form by number and substitutes it for #. Which forms a language needs
+# is decided by CLDR, not by this file — Arabic has six, Russian four, English
+# two — so translators write only the ones their language uses.
+
+locale: en
+name: English
+direction: ltr
+
+# There is no number format here, and no plural rule.
+#
+# Both come from CLDR via the locale code above, which is right about more cases
+# than a config block would be: Hindi groups as 29,00,000 rather than 2,900,000,
+# Arabic renders ٢٬٩٠٠٬٠٠٠ with the percent sign on the correct side, French and
+# Russian group with a narrow no-break space, and each language gets exactly the
+# plural categories it has.
+#
+# `pluralRule` does exist as an escape hatch, for a locale whose tag CLDR has no
+# rules for — a private-use tag, or a language x/text does not yet cover. Without
+# it such a locale gets "other" for every count, which reads as "1 services".
+# Setting it here would be redundant: English's plural rule is English's.
+
+date:
+  short: "2 Jan"
+  full: "2 Jan 2006, 15:04"
+
+terms:
+
+  # --- Terms the Go implementation introduced that the original prototype did
+  # not have: the accessible table behind each chart, and a few control labels.
+  chrome.apply: "Apply"
+  dr.why: "Why this status:"
+  dr.day: "Day"
+  dr.err.code: "Code"
+  dr.err.meaning: "What it means"
+  dr.err.count: "Requests"
+  dr.err.share: "Share"
+  dr.err.table: "Show these figures as a table"
+  dr.traffic.table: "Show these figures as a table"
+  dr.spark.summary: "Availability over the last {days} days, ranging from {min} to {max}."
+  verdict.barLabel: "Share of services in each state"
+  lb.col.name: "Service"
+  lb.rank.up: "up {n}"
+  lb.rank.down: "down {n}"
+  lb.rank.same: "no change in rank"
+  metric.trend: "{delta} ({days}d)"
+
+  # --- How long ago, and for how long. Written as plurals so that CLDR picks
+  # the form; a translator writes only the arms their language uses.
+  time.ago.second: "{n, plural, =0{just now} one{# second ago} other{# seconds ago}}"
+  time.ago.minute: "{n, plural, one{# minute ago} other{# minutes ago}}"
+  time.ago.hour: "{n, plural, one{# hour ago} other{# hours ago}}"
+  time.ago.day: "{n, plural, one{# day ago} other{# days ago}}"
+  time.for.second: "{n, plural, one{# second} other{# seconds}}"
+  time.for.minute: "{n, plural, one{# minute} other{# minutes}}"
+  time.for.hour: "{n, plural, one{# hour} other{# hours}}"
+  time.for.day: "{n, plural, one{# day} other{# days}}"
+
+  # --- The dashboard's own name and strapline.
+  brand.tagline: "Public service health, in plain language"
+  brand.wordmark: "DPI Implementation Dashboard"
+
+  # --- The header: scope, period, language and theme controls.
+  chrome.locale.label: "Language"
+  chrome.period.label: "Period"
+  chrome.scope.label: "Scope"
+  chrome.scope.national: "National"
+  chrome.scope.state: "Sub-national"
+  chrome.skip: "Skip to main content"
+  chrome.theme.label: "Theme"
+  period.24h: "24 hours"
+  period.30d: "30 days"
+  period.7d: "7 days"
+  period.90d: "90 days"
+  theme.dark: "Dark"
+  theme.light: "Light"
+
+  # --- The question at the top of the page, and its answer.
+  legend.title: "How status is decided"
+  verdict.allClear: "All onboarded services are operational."
+  verdict.coverage: "{onboarded} of {total} national & state services onboarded"
+  verdict.findService: "Find a service"
+  verdict.h1.national: "Are the national data sharing services working right now?"
+  verdict.h1.state: "Are the sub-national data sharing services working right now?"
+  verdict.kicker1: "Uptime is an appointment kept, a licence issued, a pension paid."
+  verdict.kicker1.lead: "Uptime"
+  verdict.kicker2: "An outage here means a queue somewhere."
+  verdict.kicker2.word: "outage"
+  verdict.kicker3: "Every error is someone who came for help and didn't get it."
+  verdict.kicker3.word: "error"
+  verdict.segment: "{count} {label}"
+  verdict.source: "Sample data. Source: API Setu"
+  verdict.updated: "Updated {rel}"
+
+  # --- The five outcomes.
+  status.maintenance: "Under maintenance"
+  status.major: "Major outage"
+  status.operational: "Operational"
+  status.partial: "Partial outage"
+  status.unknown: "Unknown"
+
+  # --- The published rules. Each receives the live threshold values, so the sentence on screen always quotes the numbers actually in force.
+  rule.maintenance: "Under maintenance = a planned maintenance window is active now."
+  rule.major: "Major outage = availability below {majorAvail}% or error rate above {majorErr}%."
+  rule.operational: "Operational = availability at or above {partialAvail}% and error rate at or below {partialErr}%."
+  rule.partial: "Partial outage = availability below {partialAvail}% or error rate above {partialErr}%."
+  rule.unknown: "Unknown = no reading, or last data older than {staleMinutes} minutes."
+
+  # --- Findings, and the rule each one applied.
+  sig.belowTarget.rule: "Rule: availability under its target on each of the last {days} days."
+  sig.belowTarget.title: "{count, plural, one {# service below target} other {# services below target}}"
+  sig.empty: "No services have breached target in the last 30 days."
+  sig.errorRising.rule: "Rule: category-average error rate higher than 30 days ago, in {min}+ task categories."
+  sig.errorRising.title: "Error rate rising in {count, plural, one {# category} other {# categories}}"
+  sig.eyebrow: "What needs attention"
+  sig.longestIncident.rule: "Rule: the currently-open incident with the earliest start time."
+  sig.longestIncident.title: "Longest open incident: {duration}"
+  sig.maintenance.rule: "Rule: a planned maintenance window is active right now."
+  sig.maintenance.title: "{count, plural, one {# service under maintenance} other {# services under maintenance}}"
+  sig.ruleLabel: "the rule"
+  sig.viewAffected: "View affected"
+
+  # --- The leaderboard.
+  flt.all: "All"
+  flt.applied: "Filters ({n})"
+  flt.category: "Category"
+  flt.clear: "Clear filters"
+  flt.empty: "No services match these filters."
+  flt.emptyAction: "Clear filters to see all {total}."
+  flt.region: "Region"
+  flt.regionHint: "Available when scope is State"
+  flt.results: "{n, plural, one {# result} other {# results}}"
+  flt.scope: "Scope"
+  flt.searchLabel: "Search"
+  flt.searchPlaceholder: "Search services, categories, regions"
+  flt.status: "Status"
+  flt.title: "Filters"
+  lb.caption: "Public services ranked by availability, then error rate — strongest first."
+  lb.col.availability: "Availability"
+  lb.col.errorRate: "Error rate"
+  lb.col.rank: "Rank"
+  lb.col.service: "Service"
+  lb.col.status: "Status"
+  lb.col.trend: "30-day trend"
+  lb.col.volume: "Traffic"
+  lb.eyebrow: "Compare services"
+  lb.movement.down: "down {n}"
+  lb.movement.same: "no change in rank"
+  lb.movement.up: "up {n}"
+  lb.openRow: "Open details for {name}"
+  lb.showing: "Showing {shown} of {total}"
+  lb.sortHint: "Sort by {col}"
+  lb.title: "Service leaderboard"
+
+  # --- Measurements and their framing.
+  metric.availability: "Availability"
+  metric.errorRate: "Error rate"
+  metric.latencyP50: "Response time (p50)"
+  metric.noReference: "no reference frame available"
+  metric.target: "target {v}"
+  metric.trend.falling: "falling"
+  metric.trend.rising: "rising"
+  metric.trend.steady: "steady"
+  metric.volume: "Successful requests"
+  metric.volumeFraming: "{success} of {total} · {pct}%"
+  metric.volumeOf: "{success} of {total}"
+
+  # --- Task categories.
+  cat.agriculture: "Agriculture"
+  cat.business: "Business & licences"
+  cat.education: "Education & learning"
+  cat.employment: "Jobs & skills"
+  cat.health: "Health"
+  cat.identity: "Identity & documents"
+  cat.money: "Money & taxes"
+  cat.records: "Land & civil records"
+  cat.transport: "Transport & driving"
+  cat.welfare: "Welfare & pensions"
+
+  # --- Regions.
+  reg.br: "Bihar"
+  reg.dl: "Delhi"
+  reg.gj: "Gujarat"
+  reg.ka: "Karnataka"
+  reg.kl: "Kerala"
+  reg.mh: "Maharashtra"
+  reg.mp: "Madhya Pradesh"
+  reg.national: "National"
+  reg.rj: "Rajasthan"
+  reg.tn: "Tamil Nadu"
+  reg.ts: "Telangana"
+  reg.up: "Uttar Pradesh"
+  reg.wb: "West Bengal"
+
+  # --- Operators.
+  prov.agri: "Ministry of Agriculture"
+  prov.cbse: "CBSE"
+  prov.eci: "Election Commission"
+  prov.epfo: "EPFO"
+  prov.fssai: "FSSAI"
+  prov.gstn: "GST Network"
+  prov.itd: "Income Tax Department"
+  prov.mca: "Ministry of Corporate Affairs"
+  prov.mea: "Ministry of External Affairs"
+  prov.meity: "Ministry of Electronics & IT"
+  prov.moe: "Ministry of Education"
+  prov.morth: "Ministry of Road Transport"
+  prov.nha: "National Health Authority"
+  prov.nhai: "NHAI"
+  prov.nic: "National Informatics Centre"
+  prov.nsdc: "National Skill Development Corp"
+  prov.pfrda: "PFRDA"
+  prov.state: "State government"
+  prov.ugc: "University Grants Commission"
+  prov.uidai: "UIDAI"
+
+  # --- The service drawer.
+  dr.category: "Category"
+  dr.close: "Close"
+  dr.currentStatus: "Current status"
+  dr.datatable: "Show data table"
+  dr.errors.code: "Code"
+  dr.errors.count: "Count"
+  dr.errors.gloss: "What it means"
+  dr.errors.share: "Share"
+  dr.errors.title: "Errors by type"
+  dr.errors.trend: "Trend"
+  dr.governedBy: "Why this status"
+  dr.incidents.duration: "over {d}"
+  dr.incidents.empty: "No incidents in the last 90 days."
+  dr.incidents.ongoing: "Ongoing"
+  dr.incidents.title: "Incident timeline"
+  dr.metrics: "Metrics"
+  dr.obligation: "For the provider"
+  dr.provider: "Provider"
+  dr.region: "Region"
+  dr.spark: "Availability, last 90 days"
+  dr.summary: "In plain words"
+  dr.tab.errors: "Errors"
+  dr.tab.incidents: "Incidents"
+  dr.tab.overview: "Overview"
+  dr.tab.traffic: "Traffic"
+  dr.traffic.corr: "Traffic vs error rate"
+  dr.traffic.peak: "Peak {v} · {d}"
+  dr.traffic.title: "Request volume, last 90 days"
+  dr.traffic.trough: "Low {v} · {d}"
+
+  # --- Incident stages and notes.
+  inc.acknowledged: "Acknowledged"
+  inc.mitigated: "Mitigated"
+  inc.opened: "Opened"
+  inc.resolved: "Resolved"
+  incident.note.dbFailover: "Database failover caused brief unavailability."
+  incident.note.errorSpike: "Sudden spike in 5xx errors from the upstream service."
+  incident.note.latencyDegraded: "Response times degraded beyond target."
+  incident.note.partialRegion: "Errors isolated to a subset of regions."
+  incident.note.rateLimited: "Requests rate-limited during a traffic surge."
+  incident.note.upstreamTimeout: "Upstream dependency timing out under load."
+
+  # --- What each error code means.
+  err.400: "Bad request — the request was malformed."
+  err.401: "Unauthorized — missing or invalid credentials."
+  err.429: "Too many requests — the caller was rate-limited."
+  err.500: "Server error — the service failed to handle the request."
+  err.503: "Service unavailable — temporarily overloaded or down."
+  err.504: "Gateway timeout — an upstream system was too slow."
+  err.timeout: "Timeout — no response within the allowed time."
+
+  # --- Maintenance windows.
+  maint.scheduled: "Scheduled maintenance"
+
+  # --- Service names and descriptions. This is the block a deployment replaces wholesale; everything above it is reusable.
+  svc.aadhaar.desc: "Confirm identity using an Aadhaar number"
+  svc.aadhaar.name: "Aadhaar verification"
+  svc.abc.desc: "Store and transfer your academic credits"
+  svc.abc.name: "Academic Bank of Credits"
+  svc.abha.desc: "Create and use a digital health account"
+  svc.abha.name: "Health ID (ABHA)"
+  svc.ayushman.desc: "Check health insurance scheme eligibility"
+  svc.ayushman.name: "Ayushman Bharat eligibility"
+  svc.bhulekh.desc: "View ownership and land-record extracts"
+  svc.bhulekh.name: "Land records (Bhulekh)"
+  svc.birthCert.desc: "Apply for or download a birth certificate"
+  svc.birthCert.name: "Birth certificate"
+  svc.casteCert.desc: "Apply for a caste category certificate"
+  svc.casteCert.name: "Caste certificate"
+  svc.cbse10.desc: "Look up CBSE Class 10 examination results"
+  svc.cbse10.name: "Class 10 board result"
+  svc.cbse12.desc: "Look up CBSE Class 12 examination results"
+  svc.cbse12.name: "Class 12 board result"
+  svc.cowin.desc: "Download your CoWIN vaccination certificate"
+  svc.cowin.name: "Vaccination certificate"
+  svc.deathCert.desc: "Apply for or download a death certificate"
+  svc.deathCert.name: "Death certificate"
+  svc.digilocker.desc: "Fetch and share official documents digitally"
+  svc.digilocker.name: "DigiLocker documents"
+  svc.diksha.desc: "Access school learning content and courses"
+  svc.diksha.name: "DIKSHA learning"
+  svc.dl.desc: "Verify a driving licence"
+  svc.dl.name: "Driving licence verification"
+  svc.domicile.desc: "Prove your residence for benefits"
+  svc.domicile.name: "Domicile certificate"
+  svc.echallan.desc: "Check and pay traffic violation fines"
+  svc.echallan.name: "Traffic fines (e-Challan)"
+  svc.electricity.desc: "View and pay your power bill"
+  svc.electricity.name: "Electricity bill"
+  svc.epfo.desc: "View your EPF balance and passbook"
+  svc.epfo.name: "Provident fund passbook"
+  svc.epic.desc: "Verify a voter identity card"
+  svc.epic.name: "Voter ID (EPIC) verification"
+  svc.fastag.desc: "Check FASTag balance and toll transactions"
+  svc.fastag.name: "FASTag toll account"
+  svc.form26as.desc: "View tax deducted and paid on your behalf"
+  svc.form26as.name: "Tax credit statement (26AS)"
+  svc.fssai.desc: "Verify an FSSAI food-business licence"
+  svc.fssai.name: "Food licence verification"
+  svc.gstFile.desc: "File goods and services tax returns"
+  svc.gstFile.name: "GST return filing"
+  svc.gstVerify.desc: "Verify a GST registration number"
+  svc.gstVerify.name: "GST taxpayer lookup"
+  svc.incomeCert.desc: "Apply for a certified income statement"
+  svc.incomeCert.name: "Income certificate"
+  svc.itr.desc: "File and check income tax returns"
+  svc.itr.name: "Income tax e-filing"
+  svc.kcc.desc: "Apply for and manage farm credit"
+  svc.kcc.name: "Kisan Credit Card"
+  svc.marriageCert.desc: "Register a marriage and get the certificate"
+  svc.marriageCert.name: "Marriage registration"
+  svc.mca.desc: "Look up registered company details"
+  svc.mca.name: "Company records (MCA)"
+  svc.myscheme.desc: "Find welfare schemes you qualify for"
+  svc.myscheme.name: "Scheme eligibility (myScheme)"
+  svc.nad.desc: "Verify degrees and academic awards"
+  svc.nad.name: "Academic certificates (NAD)"
+  svc.nsp.desc: "Track national scholarship applications"
+  svc.nsp.name: "Scholarship status (NSP)"
+  svc.pan.desc: "Check a Permanent Account Number for tax and KYC"
+  svc.pan.name: "PAN verification"
+  svc.passport.desc: "Track a passport application and appointment"
+  svc.passport.name: "Passport application status"
+  svc.pension.desc: "Manage your NPS retirement account"
+  svc.pension.name: "National Pension System"
+  svc.pmkisan.desc: "Check farmer income-support payments"
+  svc.pmkisan.name: "PM-KISAN beneficiary status"
+  svc.propReg.desc: "Register a property sale or deed"
+  svc.propReg.name: "Property registration"
+  svc.propTax.desc: "Pay municipal property tax"
+  svc.propTax.name: "Property tax payment"
+  svc.ration.desc: "Check public-distribution entitlements"
+  svc.ration.name: "Ration card status"
+  svc.skillCert.desc: "Verify a vocational skills certificate"
+  svc.skillCert.name: "Skill certificate"
+  svc.soilCard.desc: "Get soil nutrient advice for your farm"
+  svc.soilCard.name: "Soil Health Card"
+  svc.uan.desc: "Verify a provident-fund UAN"
+  svc.uan.name: "Universal Account Number"
+  svc.udyam.desc: "Register or verify a small business"
+  svc.udyam.name: "Udyam (MSME) registration"
+  svc.umang.desc: "Single-app access to many government services"
+  svc.umang.name: "UMANG services"
+  svc.vahan.desc: "Look up vehicle registration details"
+  svc.vahan.name: "Vehicle registration"
+  svc.waterBill.desc: "View and pay your water utility bill"
+  svc.waterBill.name: "Water bill"

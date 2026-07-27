@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Design tokens only. Declares values; adds no selectors. Values containing { } ; \u003c \u003e /* */ or newlines are rejected, since they would break out of the generated stylesheet.",
+  "properties": {
+    "dark": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Applied when the operating system asks for dark, unless the reader has chosen light.",
+      "type": "object"
+    },
+    "fonts": {
+      "additionalProperties": false,
+      "properties": {
+        "body": {
+          "additionalProperties": false,
+          "properties": {
+            "faces": {
+              "description": "Self-hosted faces to declare. Omit entirely to use only system fonts.",
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "display": {
+                    "type": "string"
+                  },
+                  "file": {
+                    "description": "File under /assets/fonts/. Set either this or url, not both.",
+                    "type": "string"
+                  },
+                  "style": {
+                    "type": "string"
+                  },
+                  "unicodeRange": {
+                    "type": "string"
+                  },
+                  "url": {
+                    "description": "Absolute URL. A strict Content-Security-Policy may block it.",
+                    "type": "string"
+                  },
+                  "weight": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "family": {
+              "type": "string"
+            },
+            "stack": {
+              "description": "CSS font stack. Templates reference var(--font-body), never a family name.",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "serif": {
+          "additionalProperties": false,
+          "properties": {
+            "faces": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "display": {
+                    "type": "string"
+                  },
+                  "file": {
+                    "type": "string"
+                  },
+                  "style": {
+                    "type": "string"
+                  },
+                  "unicodeRange": {
+                    "type": "string"
+                  },
+                  "url": {
+                    "type": "string"
+                  },
+                  "weight": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "family": {
+              "type": "string"
+            },
+            "stack": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "light": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Applied by default and whenever the reader has explicitly chosen light.",
+      "type": "object"
+    },
+    "tokens": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Values that do not change between light and dark, such as radii and easing.",
+      "type": "object"
+    }
+  },
+  "title": "Dashboard theme tokens",
+  "type": "object"
+}

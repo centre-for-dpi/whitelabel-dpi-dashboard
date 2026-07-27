@@ -1,0 +1,84 @@
+# yaml-language-server: $schema=../schema/app.schema.json
+#
+# Process-level configuration: how to serve, where to store, how to log.
+#
+# Every value here can be supplied from the environment with ${VAR} or
+# ${VAR:-fallback}. A ${VAR} with no fallback and no value in the environment is
+# a startup error rather than an empty string, because a config that parses but
+# points at nothing fails later, further from the cause, and usually in
+# production.
+
+server:
+  addr: "${DPI_ADDR:-:8080}"
+  readTimeout: 15s
+  writeTimeout: 30s
+  idleTimeout: 60s
+  # How long in-flight requests get to finish after SIGTERM. Container
+  # orchestrators typically send SIGKILL ten seconds later, so keep this under
+  # your platform's grace period.
+  shutdownGrace: 10s
+  # Absolute base for generated links. Leave empty to derive it per request,
+  # which is right unless the dashboard sits behind a path-rewriting proxy.
+  baseURL: "${DPI_BASE_URL:-}"
+
+client:
+  # Which browser-side runtime the page loads.
+  #
+  #   vanilla  the shipped app.js: ~150 lines, no framework, all handlers
+  #            delegated from document so they survive HTMX swaps.
+  #   alpine   reserved. The templates already emit the data-dpi-* attributes
+  #            Alpine directives would bind to, so adopting it is a config
+  #            change rather than a rewrite — but it is not implemented yet.
+  runtime: vanilla
+
+log:
+  level: "${DPI_LOG_LEVEL:-info}" # debug | info | warn | error
+  format: "${DPI_LOG_FORMAT:-text}" # text | json
+
+storage:
+  # sqlite | postgres | mysql | mariadb | memory
+  #
+  # All four database drivers are pure Go, so the binary still builds with
+  # CGO_ENABLED=0 and still runs on a scratch image whichever you pick.
+  #
+  # The default is `memory` so that a bare `docker run` with no volumes, and a
+  # platform deploy with no disk, both work with nothing to configure. What it
+  # costs is that history the dashboard rolled up itself is lost on restart.
+  #
+  # Switch as soon as you are serving real data. Which one matters less than
+  # that it is not this one:
+  #
+  #   DPI_STORAGE_DRIVER=sqlite DATABASE_URL='file:/data/dpi.db'  # one container
+  #   DPI_STORAGE_DRIVER=postgres DATABASE_URL="$DATABASE_URL"    # more than one
+  #
+  # If your upstream already serves ninety days of history on every poll, memory
+  # is a defensible permanent choice: there is nothing to lose on restart,
+  # because the next poll brings it all back.
+  driver: "${DPI_STORAGE_DRIVER:-memory}"
+
+  # Only read for the four database drivers; `memory` ignores it.
+  #
+  # It comes from the environment because it usually carries a password, and a
+  # password in a config file ends up in a git history. Point it at a mounted
+  # path for sqlite — a relative one resolves against the working directory,
+  # which is not writable in a scratch container.
+  #
+  #   sqlite      file:/data/dpi.db?_pragma=journal_mode(WAL)
+  #   postgres    postgres://user:pass@host:5432/dpi?sslmode=require
+  #   mysql       user:pass@tcp(host:3306)/dpi?parseTime=true
+  #   mariadb     same as mysql — the wire protocols are compatible
+  dsn: "${DATABASE_URL:-}"
+
+  maxOpenConns: 10
+  maxIdleConns: 5
+  connMaxLifetime: 30m
+
+  history:
+    # How far back the charts can look. The availability sparkline draws the
+    # whole window; the traffic chart draws the most recent 30 days.
+    retentionDays: 90
+    # Raw per-poll samples are kept only long enough to survive a missed rollup;
+    # the daily buckets are what the charts actually read.
+    rawSampleRetentionHours: 48
+    # How often raw samples are folded into daily buckets.
+    rollupIntervalMinutes: 15

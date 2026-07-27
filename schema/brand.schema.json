@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "The visible identity: what the dashboard calls itself and who it credits.",
+  "properties": {
+    "favicon": {
+      "type": "string"
+    },
+    "footer": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "external": {
+            "description": "Marks the link as leaving the site, which adds an indicator and rel=noopener.",
+            "type": "boolean"
+          },
+          "href": {
+            "type": "string"
+          },
+          "termId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "iconKey": {
+      "description": "Which entry in icons.yaml to render beside the wordmark.",
+      "type": "string"
+    },
+    "taglineTermId": {
+      "type": "string"
+    },
+    "wordmarkTermId": {
+      "description": "Term id for the dashboard's name. Untranslated text works too: an id with no matching key renders as itself.",
+      "type": "string"
+    }
+  },
+  "title": "Dashboard brand configuration",
+  "type": "object"
+}

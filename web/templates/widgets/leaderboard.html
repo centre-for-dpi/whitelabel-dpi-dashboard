@@ -1,0 +1,177 @@
+{{/* Search, chips and the region selector.
+
+     Everything is a real form control inside a real GET form. HTMX intercepts
+     it for a partial swap; without JavaScript the same form submits and the
+     same page comes back, narrowed. That is the whole progressive-enhancement
+     story in one element. */}}
+{{define "widget/filter-bar"}}
+<form class="w w-filters" method="get" action="/" data-dpi-filters
+      hx-get="/fragments/leaderboard" hx-target="#leaderboard" hx-swap="outerHTML"
+      hx-push-url="true" hx-trigger="submit, change from:select, input delay:250ms from:input[type=search]">
+
+  <button class="filter-toggle" type="button" data-dpi-disclosure="filter-body"
+          aria-expanded="false" aria-controls="filter-body">
+    {{.SearchLabel}}{{if .AppliedCount}} ({{.AppliedCount}}){{end}}
+  </button>
+
+  <div class="filter-body" id="filter-body">
+    <div class="filter-row">
+      <input class="search" type="search" name="q" value="{{.Search}}"
+             placeholder="{{.SearchLabel}}" aria-label="{{.SearchLabel}}">
+
+      {{if .Regions}}
+      <select name="region" aria-label="region"{{if not .RegionEnabled}} disabled{{end}}>
+        {{range .Regions}}<option value="{{.Value}}"{{if .Active}} selected{{end}}>{{.Label}}</option>{{end}}
+      </select>
+      {{end}}
+    </div>
+
+    {{/* Checkboxes rather than buttons: a filter is a state, not an action, and
+         a checkbox is what a keyboard and a screen reader already understand. */}}
+    <fieldset class="chips">
+      <legend class="sr-only">{{.StatusLegend}}</legend>
+      {{range .Statuses}}
+      <label class="chip" data-tone="{{.Tone}}">
+        <input type="checkbox" name="status" value="{{.Value}}"{{if .Active}} checked{{end}}>
+        {{template "icon" .Icon}}
+        <span>{{.Label}}</span>
+        <span class="chip-count tnum">{{.Count}}</span>
+      </label>
+      {{end}}
+    </fieldset>
+
+    <fieldset class="chips">
+      <legend class="sr-only">{{.CategoryLegend}}</legend>
+      {{range .Categories}}
+      <label class="chip chip-cat">
+        <input type="checkbox" name="cat" value="{{.Value}}"{{if .Active}} checked{{end}}>
+        {{template "icon" .Icon}}
+        <span>{{.Label}}</span>
+      </label>
+      {{end}}
+    </fieldset>
+
+    <div class="filter-foot">
+      <p class="muted" aria-live="polite">{{.ResultText}}</p>
+      <noscript><button class="btn" type="submit">{{.ApplyLabel}}</button></noscript>
+      {{if .ClearVisible}}
+      <a class="link" href="/" hx-get="/fragments/leaderboard" hx-target="#leaderboard"
+         hx-swap="outerHTML" hx-push-url="true">{{.ClearLabel}}</a>
+      {{end}}
+    </div>
+  </div>
+</form>
+{{end}}
+
+
+{{define "widget/leaderboard-table"}}
+<div class="w w-leaderboard">
+  <p class="lb-meta muted">
+    {{.ShowingText}}{{if .PeriodLabel}} · <span class="lb-period">{{.PeriodLabel}}</span>{{end}}
+  </p>
+
+  {{if .Empty}}
+  <p class="empty">{{.EmptyText}}</p>
+  {{else}}
+
+  <table class="lb">
+    {{if .Caption}}<caption class="sr-only">{{.Caption}}</caption>{{end}}
+    <thead>
+      <tr>
+        {{range .Columns}}
+        {{/* aria-sort is what tells a screen reader the table is sorted and
+             which way — the arrow alone says nothing to one. */}}
+        <th scope="col" data-align="{{.Align}}"
+            aria-sort="{{if .Sorted}}{{if eq .Dir "asc"}}ascending{{else}}descending{{end}}{{else}}none{{end}}">
+          <a class="th-sort" href="/?sort={{.Key}}&dir={{.NextDir}}"
+             hx-get="/fragments/leaderboard?sort={{.Key}}&dir={{.NextDir}}"
+             hx-target="#leaderboard" hx-swap="outerHTML" hx-push-url="true"
+             hx-include="[data-dpi-filters]">
+            {{.Label}}
+          </a>
+        </th>
+        {{end}}
+      </tr>
+    </thead>
+    <tbody>
+      {{range .Rows}}
+      {{/* The whole row is the target, since a reader aiming at a service
+           should not have to hit the name exactly. The name is still a real
+           link inside it, so keyboard and screen-reader users get a focusable
+           element rather than a row that only a mouse can reach. */}}
+      <tr class="lb-row" data-dpi-row-link="/service/{{.ID}}"
+          hx-get="/fragments/service/{{.ID}}" hx-target="#drawer-host"
+          hx-swap="innerHTML" hx-push-url="/service/{{.ID}}" hx-trigger="click">
+        {{range .Cells}}{{template "lb-cell" .}}{{end}}
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+
+  {{/* The same rows as cards, for a screen too narrow for a table. Both are in
+       the document and CSS chooses; swapping markup at a breakpoint would mean
+       the server guessing at a viewport it cannot see. */}}
+  <ul class="lb-cards">
+    {{range .Rows}}
+    <li>
+      <a class="card lb-card" href="/service/{{.ID}}"
+         hx-get="/fragments/service/{{.ID}}" hx-target="#drawer-host"
+         hx-swap="innerHTML" hx-push-url="true">
+        <span class="lb-card-rank tnum">{{.Rank}}</span>
+        <span class="lb-card-name">{{.Name}}</span>
+        <span class="chip-static" data-tone="{{.StatusTone}}">
+          {{template "icon" .StatusIcon}} {{.StatusLabel}}
+        </span>
+        {{if .Worst.Value}}<span class="tnum">{{.Worst.Value}}</span>{{end}}
+        {{if .Worst.Unknown}}<span class="muted">{{.Worst.Note}}</span>{{end}}
+      </a>
+    </li>
+    {{end}}
+  </ul>
+  {{end}}
+</div>
+{{end}}
+
+
+{{/* One cell, whatever kind the column declared. Iterating the cells rather
+     than assuming an order is what lets a deployment put availability before
+     the service name if that is what its readers want. */}}
+{{define "lb-cell"}}
+<td data-align="{{.Align}}">
+  {{if eq .Kind "rank"}}
+    <span class="tnum">{{.Rank}}</span>
+    <span class="rank-move" title="{{.RankMoveLabel}}" aria-label="{{.RankMoveLabel}}">
+      {{template "icon" .RankMove}}
+    </span>
+
+  {{else if eq .Kind "name"}}
+    <a class="lb-name" href="{{.Href}}">
+      <span class="lb-title">{{.Name}}</span>
+      <span class="lb-desc muted">{{.Description}}</span>
+      <span class="lb-meta-line muted">
+        {{template "icon" .CategoryIcon}} {{.Category}} · {{.Region}}
+      </span>
+    </a>
+
+  {{else if eq .Kind "status"}}
+    <span class="chip-static" data-tone="{{.StatusTone}}">
+      {{template "icon" .StatusIcon}} {{.StatusLabel}}
+    </span>
+
+  {{else}}
+    {{with .Cell}}
+      {{if .Unknown}}
+        <span class="muted">{{.Note}}</span>
+      {{else}}
+        <span class="cell-value tnum">{{.Value}}</span>
+        {{if .Target}}<span class="cell-target muted">{{.Target}}</span>{{end}}
+        {{if .Trend}}
+        <span class="cell-trend" data-tone="{{.TrendTone}}">
+          {{template "icon" .TrendIcon}} {{.Trend}}
+        </span>
+        {{end}}
+      {{end}}
+    {{end}}
+  {{end}}
+</td>
+{{end}}

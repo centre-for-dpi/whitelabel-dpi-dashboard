@@ -1,0 +1,109 @@
+# The catalogue the demo data is generated from.
+#
+# This is EXAMPLE data, not part of the domain contract — which is why it lives
+# under examples/ rather than config/. `make seed` turns it into
+# examples/upstream/services.json, in exactly the shape the pull driver expects,
+# and examples/push/payload.json, in exactly the shape the ingest API expects.
+#
+# The generator is seeded, so the same catalogue always produces the same
+# dashboard. Screenshots stay stable, tests stay meaningful, and two people
+# looking at the same demo see the same thing.
+#
+# Nothing here is required to run the dashboard against real data. It exists so
+# that a fresh deploy renders something immediately, and so that a team wiring
+# up their own API has a worked example of both wire formats to compare against.
+
+# Roughly how many services should land in each state. The rest are operational.
+#
+# These shape the generated metrics; they do not assign the status directly. The
+# generated numbers are run through the same threshold evaluator the dashboard
+# uses at runtime, so the demo demonstrates the real rule rather than a
+# decorative label.
+mix:
+  major: 10
+  partial: 26
+  maintenance: 5
+  unknown: 5
+
+# Real services vary hugely in traffic, and a chart where every service looks
+# equally busy teaches the reader nothing. Anything not listed gets a value
+# derived from defaultTraffic.
+traffic:
+  aadhaar: 2900000
+  digilocker: 1650000
+  fastag: 1200000
+  pan: 940000
+  gstFile: 780000
+  cowin: 610000
+  umang: 540000
+  itr: 520000
+  epfo: 470000
+  vahan: 410000
+  dl: 360000
+  echallan: 220000
+  abha: 190000
+  cbse10: 92000
+  cbse12: 88000
+defaultTraffic: 46000
+
+# Services marked stateInstances are expanded once per region below, which is
+# how the sub-national view gets populated.
+services:
+  - { key: aadhaar, category: cat.identity, provider: prov.uidai, scope: national }
+  - { key: digilocker, category: cat.identity, provider: prov.meity, scope: national }
+  - { key: pan, category: cat.identity, provider: prov.itd, scope: national }
+  - { key: passport, category: cat.identity, provider: prov.mea, scope: national }
+  - { key: epic, category: cat.identity, provider: prov.eci, scope: national }
+  - { key: umang, category: cat.identity, provider: prov.meity, scope: national }
+
+  - { key: itr, category: cat.money, provider: prov.itd, scope: national }
+  - { key: form26as, category: cat.money, provider: prov.itd, scope: national }
+  - { key: gstFile, category: cat.money, provider: prov.gstn, scope: national }
+  - { key: gstVerify, category: cat.money, provider: prov.gstn, scope: national }
+  - { key: propTax, category: cat.money, provider: prov.state, scope: state, stateInstances: true }
+  - { key: electricity, category: cat.money, provider: prov.state, scope: state, stateInstances: true }
+  - { key: waterBill, category: cat.money, provider: prov.state, scope: state, stateInstances: true }
+
+  - { key: cowin, category: cat.health, provider: prov.nha, scope: national }
+  - { key: abha, category: cat.health, provider: prov.nha, scope: national }
+  - { key: ayushman, category: cat.health, provider: prov.nha, scope: national }
+
+  - { key: cbse10, category: cat.education, provider: prov.cbse, scope: national }
+  - { key: cbse12, category: cat.education, provider: prov.cbse, scope: national }
+  - { key: abc, category: cat.education, provider: prov.ugc, scope: national }
+  - { key: diksha, category: cat.education, provider: prov.meity, scope: national }
+  - { key: nad, category: cat.education, provider: prov.ugc, scope: national }
+  - { key: nsp, category: cat.education, provider: prov.moe, scope: national }
+
+  - { key: dl, category: cat.transport, provider: prov.morth, scope: national }
+  - { key: vahan, category: cat.transport, provider: prov.morth, scope: national }
+  - { key: echallan, category: cat.transport, provider: prov.morth, scope: national }
+  - { key: fastag, category: cat.transport, provider: prov.nhai, scope: national }
+
+  - { key: epfo, category: cat.employment, provider: prov.epfo, scope: national }
+  - { key: uan, category: cat.employment, provider: prov.epfo, scope: national }
+  - { key: skillCert, category: cat.employment, provider: prov.nsdc, scope: national }
+
+  - { key: mca, category: cat.business, provider: prov.mca, scope: national }
+  - { key: fssai, category: cat.business, provider: prov.fssai, scope: national }
+  - { key: udyam, category: cat.business, provider: prov.meity, scope: national }
+
+  - { key: ration, category: cat.welfare, provider: prov.state, scope: state, stateInstances: true }
+  - { key: pension, category: cat.welfare, provider: prov.pfrda, scope: national }
+  - { key: myscheme, category: cat.welfare, provider: prov.meity, scope: national }
+  - { key: incomeCert, category: cat.welfare, provider: prov.nic, scope: state, stateInstances: true }
+  - { key: casteCert, category: cat.welfare, provider: prov.nic, scope: state, stateInstances: true }
+  - { key: domicile, category: cat.welfare, provider: prov.nic, scope: state, stateInstances: true }
+
+  - { key: pmkisan, category: cat.agriculture, provider: prov.agri, scope: national }
+  - { key: soilCard, category: cat.agriculture, provider: prov.agri, scope: national }
+  - { key: kcc, category: cat.agriculture, provider: prov.agri, scope: national }
+
+  - { key: bhulekh, category: cat.records, provider: prov.nic, scope: state, stateInstances: true }
+  - { key: propReg, category: cat.records, provider: prov.state, scope: state, stateInstances: true }
+  - { key: birthCert, category: cat.records, provider: prov.state, scope: state, stateInstances: true }
+  - { key: deathCert, category: cat.records, provider: prov.state, scope: state, stateInstances: true }
+  - { key: marriageCert, category: cat.records, provider: prov.state, scope: state, stateInstances: true }
+
+stateExpansion:
+  [reg.mh, reg.up, reg.ka, reg.tn, reg.dl, reg.gj, reg.wb, reg.rj, reg.kl, reg.ts, reg.mp, reg.br]

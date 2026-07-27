@@ -1,0 +1,238 @@
+# yaml-language-server: $schema=../../schema/locale.schema.json
+#
+# Swahili — Kiswahili.
+#
+# Every term falls back to en.yaml key by key, so this file needs to carry
+# only what differs. Anything absent renders in English rather than as a raw
+# term id, which is what makes a partial translation genuinely useful.
+#
+# Translated here: 175 of 299 terms — the entire interface.
+# Left in English: 124 names of Indian services, providers and
+# states. Those are proper nouns, and they belong to the *example* domain
+# config that a deployment replaces wholesale — translating "Aadhaar" or
+# "Maharashtra" here would be inventing a rendering nobody asked for, and
+# would be thrown away by the first real deployment anyway.
+#
+# Numbers, dates and plural categories are not configured here. They come
+# from CLDR via the locale code above, which knows more cases than a config
+# block would: grouping, digit shapes and which plural forms this language
+# actually has.
+
+locale: sw
+name: Kiswahili
+direction: ltr
+
+date:
+  short: "2 Jan"
+  full: "2 Jan 2006, 15:04"
+
+terms:
+
+  # --- Terms the Go implementation introduced that the original prototype did
+  # not have: the accessible table behind each chart, and a few control labels.
+  chrome.apply:     "Tumia"
+  dr.why:           "Kwa nini hali hii:"
+  dr.day:           "Siku"
+  dr.err.code:      "Msimbo"
+  dr.err.meaning:   "Maana yake"
+  dr.err.count:     "Maombi"
+  dr.err.share:     "Sehemu"
+  dr.err.table:     "Onyesha takwimu hizi kama jedwali"
+  dr.traffic.table: "Onyesha takwimu hizi kama jedwali"
+  dr.spark.summary: "Upatikanaji wa siku {days} zilizopita, kati ya {min} na {max}."
+  verdict.barLabel: "Sehemu ya huduma katika kila hali"
+  lb.col.name:      "Huduma"
+  lb.rank.up:       "juu {n}"
+  lb.rank.down:     "chini {n}"
+  lb.rank.same:     "nafasi haijabadilika"
+  metric.trend:     "{delta} (siku {days})"
+
+  # --- How long ago, and for how long. Written as plurals so that CLDR picks
+  # the form; a translator writes only the arms their language uses.
+  time.ago.second: "{n, plural, =0{sasa hivi} one{sekunde # iliyopita} other{sekunde # zilizopita}}"
+  time.ago.minute: "{n, plural, one{dakika # iliyopita} other{dakika # zilizopita}}"
+  time.ago.hour:   "{n, plural, one{saa # iliyopita} other{saa # zilizopita}}"
+  time.ago.day:    "{n, plural, one{siku # iliyopita} other{siku # zilizopita}}"
+  time.for.second: "{n, plural, one{sekunde #} other{sekunde #}}"
+  time.for.minute: "{n, plural, one{dakika #} other{dakika #}}"
+  time.for.hour:   "{n, plural, one{saa #} other{saa #}}"
+  time.for.day:    "{n, plural, one{siku #} other{siku #}}"
+
+  # --- The dashboard's own name and strapline.
+  brand.tagline:  "Afya ya huduma za umma, kwa lugha rahisi"
+  brand.wordmark: "Hali ya Huduma"
+
+  # --- The header: scope, period, language and theme controls.
+  chrome.locale.label:   "Lugha"
+  chrome.period.label:   "Kipindi"
+  chrome.scope.label:    "Wigo"
+  chrome.scope.national: "Kitaifa"
+  chrome.scope.state:    "Ngazi ya chini ya kitaifa"
+  chrome.skip:           "Rukia hadi maudhui"
+  chrome.theme.label:    "Mandhari"
+  period.24h:            "Saa 24"
+  period.30d:            "Siku 30"
+  period.7d:             "Siku 7"
+  period.90d:            "Siku 90"
+  theme.dark:            "Nyeusi"
+  theme.light:           "Nyeupe"
+
+  # --- The question at the top of the page, and its answer.
+  legend.title:         "Jinsi hali inavyoamuliwa"
+  verdict.allClear:     "Huduma zote zilizounganishwa zinafanya kazi."
+  verdict.coverage:     "Huduma {onboarded} kati ya {total} za kitaifa na jimbo zimeunganishwa"
+  verdict.findService:  "Tafuta huduma"
+  verdict.h1.national:  "Je, huduma za kitaifa za kushiriki data zinafanya kazi sasa?"
+  verdict.h1.state:     "Je, huduma za kijimbo za kushiriki data zinafanya kazi sasa?"
+  verdict.kicker1:      "Kufanya kazi ni miadi iliyotimizwa, leseni iliyotolewa, pensheni iliyolipwa."
+  verdict.kicker1.lead: "Kufanya kazi"
+  verdict.kicker2:      "Hitilafu hapa ina maana ya foleni mahali fulani."
+  verdict.kicker2.word: "Hitilafu"
+  verdict.kicker3:      "Kila kosa ni mtu aliyekuja kuomba msaada na hakupata."
+  verdict.kicker3.word: "kosa"
+  verdict.segment:      "{count} {label}"
+  verdict.source:       "Ufikiaji kutoka orodha ya API Setu"
+  verdict.updated:      "Imesasishwa {rel}"
+
+  # --- The five outcomes.
+  status.maintenance: "Inafanyiwa matengenezo"
+  status.major:       "Hitilafu kubwa"
+  status.operational: "Inafanya kazi"
+  status.partial:     "Hitilafu ya sehemu"
+  status.unknown:     "Haijulikani"
+
+  # --- The published rules. Each receives the live threshold values, so the sentence on screen always quotes the numbers actually in force.
+  rule.maintenance: "Matengenezo = dirisha la matengenezo lililopangwa liko hai sasa."
+  rule.major:       "Hitilafu kubwa = upatikanaji chini ya {majorAvail}% au kiwango cha makosa juu ya {majorErr}%."
+  rule.operational: "Inafanya kazi = upatikanaji {partialAvail}% au zaidi na makosa {partialErr}% au chini."
+  rule.partial:     "Hitilafu ya sehemu = upatikanaji chini ya {partialAvail}% au makosa juu ya {partialErr}%."
+  rule.unknown:     "Haijulikani = hakuna usomaji, au data kongwe zaidi ya dakika {staleMinutes}."
+
+  # --- Findings, and the rule each one applied.
+  sig.belowTarget.rule:      "Kanuni: upatikanaji chini ya lengo kila siku ya siku {days} zilizopita."
+  sig.belowTarget.title:     "{count, plural, one {Huduma # chini ya lengo} other {Huduma # chini ya lengo}}"
+  sig.empty:                 "Hakuna huduma iliyovunja lengo katika siku 30 zilizopita."
+  sig.errorRising.rule:      "Kanuni: wastani wa makosa juu kuliko siku 30 zilizopita, katika kategoria {min}+."
+  sig.errorRising.title:     "Makosa yanapanda katika kategoria {count}"
+  sig.eyebrow:               "Kinachohitaji uangalizi"
+  sig.longestIncident.rule:  "Kanuni: tukio wazi lenye mwanzo wa mapema zaidi."
+  sig.longestIncident.title: "Tukio wazi refu zaidi: {duration}"
+  sig.maintenance.rule:      "Kanuni: dirisha la matengenezo liko hai sasa."
+  sig.maintenance.title:     "{count, plural, one {Huduma # inafanyiwa matengenezo} other {Huduma # zinafanyiwa matengenezo}}"
+  sig.ruleLabel:             "kanuni"
+  sig.viewAffected:          "Ona zilizoathirika"
+
+  # --- The leaderboard.
+  flt.all:               "Zote"
+  flt.applied:           "Vichujio ({n})"
+  flt.category:          "Kategoria"
+  flt.clear:             "Futa vichujio"
+  flt.empty:             "Hakuna huduma inayolingana na vichujio hivi."
+  flt.emptyAction:       "Futa vichujio kuona zote {total}."
+  flt.region:            "Eneo"
+  flt.regionHint:        "Inapatikana wigo ukiwa wa chini ya kitaifa"
+  flt.results:           "{n, plural, one {Matokeo #} other {Matokeo #}}"
+  flt.scope:             "Wigo"
+  flt.searchLabel:       "Tafuta"
+  flt.searchPlaceholder: "Tafuta huduma, kategoria, maeneo"
+  flt.status:            "Hali"
+  flt.title:             "Vichujio"
+  lb.caption:            "Huduma zimepangwa kwa upatikanaji, kisha makosa — bora kwanza."
+  lb.col.availability:   "Upatikanaji"
+  lb.col.errorRate:      "Makosa"
+  lb.col.rank:           "Nafasi"
+  lb.col.service:        "Huduma"
+  lb.col.status:         "Hali"
+  lb.col.trend:          "Mwelekeo siku 30"
+  lb.col.volume:         "Trafiki"
+  lb.eyebrow:            "Linganisha huduma"
+  lb.movement.down:      "chini {n}"
+  lb.movement.same:      "nafasi haijabadilika"
+  lb.movement.up:        "juu {n}"
+  lb.openRow:            "Fungua maelezo ya {name}"
+  lb.showing:            "Inaonyesha {shown} kati ya {total}"
+  lb.sortHint:           "Panga kwa {col}"
+  lb.title:              "Ubao wa huduma"
+
+  # --- Measurements and their framing.
+  metric.availability:  "Upatikanaji"
+  metric.errorRate:     "Kiwango cha makosa"
+  metric.latencyP50:    "Muda wa jibu (p50)"
+  metric.noReference:   "hakuna rejeleo"
+  metric.target:        "lengo {v}"
+  metric.trend.falling: "inashuka"
+  metric.trend.rising:  "inapanda"
+  metric.trend.steady:  "thabiti"
+  metric.volume:        "Maombi yaliyofaulu"
+  metric.volumeFraming: "{success} kati ya {total} · {pct}%"
+  metric.volumeOf:      "{success} kati ya {total}"
+
+  # --- Task categories.
+  cat.agriculture: "Kilimo"
+  cat.business:    "Biashara na leseni"
+  cat.education:   "Elimu"
+  cat.employment:  "Ajira na ujuzi"
+  cat.health:      "Afya"
+  cat.identity:    "Utambulisho na hati"
+  cat.money:       "Fedha na kodi"
+  cat.records:     "Ardhi na kumbukumbu"
+  cat.transport:   "Usafiri"
+  cat.welfare:     "Ustawi na pensheni"
+
+  # --- Regions.
+  reg.national: "Kitaifa"
+
+  # --- The service drawer.
+  dr.category:           "Kategoria"
+  dr.close:              "Funga"
+  dr.currentStatus:      "Hali ya sasa"
+  dr.datatable:          "Onyesha jedwali"
+  dr.errors.code:        "Msimbo"
+  dr.errors.count:       "Idadi"
+  dr.errors.gloss:       "Maana"
+  dr.errors.share:       "Sehemu"
+  dr.errors.title:       "Makosa kwa aina"
+  dr.errors.trend:       "Mwelekeo"
+  dr.governedBy:         "Kwa nini hali hii"
+  dr.incidents.duration: "kwa muda wa {d}"
+  dr.incidents.empty:    "Hakuna matukio siku 90 zilizopita."
+  dr.incidents.ongoing:  "Linaendelea"
+  dr.incidents.title:    "Ratiba ya matukio"
+  dr.metrics:            "Vipimo"
+  dr.obligation:         "Kwa mtoa huduma"
+  dr.provider:           "Mtoa huduma"
+  dr.region:             "Eneo"
+  dr.spark:              "Upatikanaji, siku 90"
+  dr.summary:            "Kwa maneno rahisi"
+  dr.tab.errors:         "Makosa"
+  dr.tab.incidents:      "Matukio"
+  dr.tab.overview:       "Muhtasari"
+  dr.tab.traffic:        "Trafiki"
+  dr.traffic.corr:       "Trafiki dhidi ya makosa"
+  dr.traffic.peak:       "Kilele {v} · {d}"
+  dr.traffic.title:      "Kiasi cha maombi, siku 90"
+  dr.traffic.trough:     "Chini {v} · {d}"
+
+  # --- Incident stages and notes.
+  inc.acknowledged:              "Limetambuliwa"
+  inc.mitigated:                 "Limepunguzwa"
+  inc.opened:                    "Limefunguliwa"
+  inc.resolved:                  "Limetatuliwa"
+  incident.note.dbFailover:      "Kuhamisha hifadhidata kulisababisha kutopatikana kwa muda mfupi."
+  incident.note.errorSpike:      "Ongezeko la ghafla la hitilafu 5xx kutoka huduma ya juu."
+  incident.note.latencyDegraded: "Muda wa kujibu ulizidi lengo."
+  incident.note.partialRegion:   "Hitilafu zilihusu baadhi ya maeneo pekee."
+  incident.note.rateLimited:     "Maombi yalipunguzwa kasi wakati wa msongamano."
+  incident.note.upstreamTimeout: "Tegemezi la juu lilikuwa likiisha muda chini ya mzigo."
+
+  # --- What each error code means.
+  err.400:     "Ombi batili — ombi lilikuwa na muundo mbaya."
+  err.401:     "Hairuhusiwi — vitambulisho havipo au si sahihi."
+  err.429:     "Maombi mengi mno — mwombaji amewekewa kikomo cha kasi."
+  err.500:     "Hitilafu ya seva — huduma haikuweza kushughulikia ombi."
+  err.503:     "Huduma haipatikani — imelemewa au imesimama kwa muda."
+  err.504:     "Muda wa lango umeisha — mfumo wa juu ulikuwa wa polepole mno."
+  err.timeout: "Muda umeisha — hakuna jibu ndani ya muda uliopangwa."
+
+  # --- Maintenance windows.
+  maint.scheduled: "Matengenezo yaliyopangwa"

@@ -1,0 +1,242 @@
+# yaml-language-server: $schema=../../schema/locale.schema.json
+#
+# Arabic — العربية.
+#
+# Every term falls back to en.yaml key by key, so this file needs to carry
+# only what differs. Anything absent renders in English rather than as a raw
+# term id, which is what makes a partial translation genuinely useful.
+#
+# Translated here: 175 of 299 terms — the entire interface.
+# Left in English: 124 names of Indian services, providers and
+# states. Those are proper nouns, and they belong to the *example* domain
+# config that a deployment replaces wholesale — translating "Aadhaar" or
+# "Maharashtra" here would be inventing a rendering nobody asked for, and
+# would be thrown away by the first real deployment anyway.
+#
+# Numbers, dates and plural categories are not configured here. They come
+# from CLDR via the locale code above, which knows more cases than a config
+# block would: grouping, digit shapes and which plural forms this language
+# actually has.
+#
+# The only right-to-left locale shipped. `direction: rtl` is what puts
+# dir="rtl" on the document; the stylesheet uses logical properties
+# throughout, so nothing else has to change.
+
+locale: ar
+name: العربية
+direction: rtl
+
+date:
+  short: "2 Jan"
+  full: "2 Jan 2006, 15:04"
+
+terms:
+
+  # --- Terms the Go implementation introduced that the original prototype did
+  # not have: the accessible table behind each chart, and a few control labels.
+  chrome.apply:     "تطبيق"
+  dr.why:           "سبب هذه الحالة:"
+  dr.day:           "اليوم"
+  dr.err.code:      "الرمز"
+  dr.err.meaning:   "معناه"
+  dr.err.count:     "الطلبات"
+  dr.err.share:     "النسبة"
+  dr.err.table:     "عرض هذه الأرقام كجدول"
+  dr.traffic.table: "عرض هذه الأرقام كجدول"
+  dr.spark.summary: "التوفر خلال آخر {days} يومًا، بين {min} و{max}."
+  verdict.barLabel: "نسبة الخدمات في كل حالة"
+  lb.col.name:      "الخدمة"
+  lb.rank.up:       "صعود {n}"
+  lb.rank.down:     "هبوط {n}"
+  lb.rank.same:     "لا تغيّر في الترتيب"
+  metric.trend:     "{delta} ({days} ي)"
+
+  # --- How long ago, and for how long. Written as plurals so that CLDR picks
+  # the form; a translator writes only the arms their language uses.
+  time.ago.second: "{n, plural, =0{الآن} zero{قبل # ثانية} one{قبل ثانية واحدة} two{قبل ثانيتين} few{قبل # ثوانٍ} many{قبل # ثانية} other{قبل # ثانية}}"
+  time.ago.minute: "{n, plural, zero{قبل # دقيقة} one{قبل دقيقة واحدة} two{قبل دقيقتين} few{قبل # دقائق} many{قبل # دقيقة} other{قبل # دقيقة}}"
+  time.ago.hour:   "{n, plural, zero{قبل # ساعة} one{قبل ساعة واحدة} two{قبل ساعتين} few{قبل # ساعات} many{قبل # ساعة} other{قبل # ساعة}}"
+  time.ago.day:    "{n, plural, zero{قبل # يوم} one{قبل يوم واحد} two{قبل يومين} few{قبل # أيام} many{قبل # يومًا} other{قبل # يوم}}"
+  time.for.second: "{n, plural, zero{# ثانية} one{ثانية واحدة} two{ثانيتان} few{# ثوانٍ} many{# ثانية} other{# ثانية}}"
+  time.for.minute: "{n, plural, zero{# دقيقة} one{دقيقة واحدة} two{دقيقتان} few{# دقائق} many{# دقيقة} other{# دقيقة}}"
+  time.for.hour:   "{n, plural, zero{# ساعة} one{ساعة واحدة} two{ساعتان} few{# ساعات} many{# ساعة} other{# ساعة}}"
+  time.for.day:    "{n, plural, zero{# يوم} one{يوم واحد} two{يومان} few{# أيام} many{# يومًا} other{# يوم}}"
+
+  # --- The dashboard's own name and strapline.
+  brand.tagline:  "صحة الخدمات العامة بلغة واضحة"
+  brand.wordmark: "حالة الخدمات"
+
+  # --- The header: scope, period, language and theme controls.
+  chrome.locale.label:   "اللغة"
+  chrome.period.label:   "المدة"
+  chrome.scope.label:    "النطاق"
+  chrome.scope.national: "وطني"
+  chrome.scope.state:    "دون وطني"
+  chrome.skip:           "تخطَّ إلى المحتوى"
+  chrome.theme.label:    "السمة"
+  period.24h:            "٢٤ ساعة"
+  period.30d:            "٣٠ يومًا"
+  period.7d:             "٧ أيام"
+  period.90d:            "٩٠ يومًا"
+  theme.dark:            "داكن"
+  theme.light:           "فاتح"
+
+  # --- The question at the top of the page, and its answer.
+  legend.title:         "كيف تُحدَّد الحالة"
+  verdict.allClear:     "جميع الخدمات المُدرَجة تعمل."
+  verdict.coverage:     "{onboarded} من {total} خدمة وطنية وولائية مُدرَجة"
+  verdict.findService:  "ابحث عن خدمة"
+  verdict.h1.national:  "هل تعمل خدمات تبادل البيانات الوطنية الآن؟"
+  verdict.h1.state:     "هل تعمل خدمات تبادل البيانات دون الوطنية الآن؟"
+  verdict.kicker1:      "التشغيل يعني موعدًا تم، ورخصة صدرت، ومعاشًا صُرف."
+  verdict.kicker1.lead: "التشغيل"
+  verdict.kicker2:      "الانقطاع هنا يعني طابورًا في مكان ما."
+  verdict.kicker2.word: "الانقطاع"
+  verdict.kicker3:      "كل خطأ هو شخص جاء يطلب المساعدة ولم يجدها."
+  verdict.kicker3.word: "خطأ"
+  verdict.segment:      "{count} {label}"
+  verdict.source:       "التغطية من دليل API Setu"
+  verdict.updated:      "حُدِّث {rel}"
+
+  # --- The five outcomes.
+  status.maintenance: "قيد الصيانة"
+  status.major:       "انقطاع كبير"
+  status.operational: "يعمل"
+  status.partial:     "انقطاع جزئي"
+  status.unknown:     "غير معروف"
+
+  # --- The published rules. Each receives the live threshold values, so the sentence on screen always quotes the numbers actually in force.
+  rule.maintenance: "قيد الصيانة = نافذة صيانة مخطط لها نشطة الآن."
+  rule.major:       "انقطاع كبير = التوافر أقل من {majorAvail}٪ أو معدل الأخطاء أعلى من {majorErr}٪."
+  rule.operational: "يعمل = التوافر {partialAvail}٪ فأكثر ومعدل الأخطاء {partialErr}٪ فأقل."
+  rule.partial:     "انقطاع جزئي = التوافر أقل من {partialAvail}٪ أو معدل الأخطاء أعلى من {partialErr}٪."
+  rule.unknown:     "غير معروف = لا قراءة، أو البيانات أقدم من {staleMinutes} دقيقة."
+
+  # --- Findings, and the rule each one applied.
+  sig.belowTarget.rule:      "القاعدة: التوافر دون هدفه في كل يوم من آخر {days} أيام."
+  sig.belowTarget.title:     "{count, plural, zero{# خدمة دون الهدف} one{خدمة واحدة دون الهدف} two{خدمتان دون الهدف} few{# خدمات دون الهدف} many{# خدمة دون الهدف} other{# خدمة دون الهدف}}"
+  sig.empty:                 "لم تتجاوز أي خدمة هدفها في آخر 30 يومًا."
+  sig.errorRising.rule:      "القاعدة: متوسط الأخطاء أعلى من قبل 30 يومًا في {min}+ فئات."
+  sig.errorRising.title:     "ارتفاع معدل الأخطاء في {count} فئات"
+  sig.eyebrow:               "ما يحتاج انتباهًا"
+  sig.longestIncident.rule:  "القاعدة: الحادث المفتوح الأقدم بدايةً."
+  sig.longestIncident.title: "أطول حادث مفتوح: {duration}"
+  sig.maintenance.rule:      "القاعدة: نافذة صيانة نشطة الآن."
+  sig.maintenance.title:     "{count, plural, zero{# خدمة قيد الصيانة} one{خدمة واحدة قيد الصيانة} two{خدمتان قيد الصيانة} few{# خدمات قيد الصيانة} many{# خدمة قيد الصيانة} other{# خدمة قيد الصيانة}}"
+  sig.ruleLabel:             "القاعدة"
+  sig.viewAffected:          "عرض المتأثرة"
+
+  # --- The leaderboard.
+  flt.all:               "الكل"
+  flt.applied:           "المرشحات ({n})"
+  flt.category:          "الفئة"
+  flt.clear:             "مسح المرشحات"
+  flt.empty:             "لا خدمات تطابق هذه المرشحات."
+  flt.emptyAction:       "امسح المرشحات لرؤية كل الـ {total}."
+  flt.region:            "المنطقة"
+  flt.regionHint:        "متاح عند اختيار النطاق دون الوطني"
+  flt.results:           "{n, plural, zero{# نتيجة} one{نتيجة واحدة} two{نتيجتان} few{# نتائج} many{# نتيجة} other{# نتيجة}}"
+  flt.scope:             "النطاق"
+  flt.searchLabel:       "بحث"
+  flt.searchPlaceholder: "ابحث في الخدمات والفئات والمناطق"
+  flt.status:            "الحالة"
+  flt.title:             "المرشحات"
+  lb.caption:            "خدمات مرتبة حسب التوافر ثم معدل الأخطاء — الأفضل أولًا."
+  lb.col.availability:   "التوافر"
+  lb.col.errorRate:      "الأخطاء"
+  lb.col.rank:           "الترتيب"
+  lb.col.service:        "الخدمة"
+  lb.col.status:         "الحالة"
+  lb.col.trend:          "اتجاه 30 يومًا"
+  lb.col.volume:         "الحركة"
+  lb.eyebrow:            "قارن الخدمات"
+  lb.movement.down:      "هبوط {n}"
+  lb.movement.same:      "لا تغيّر في الترتيب"
+  lb.movement.up:        "صعود {n}"
+  lb.openRow:            "افتح تفاصيل {name}"
+  lb.showing:            "عرض {shown} من {total}"
+  lb.sortHint:           "الترتيب حسب {col}"
+  lb.title:              "لوحة الخدمات"
+
+  # --- Measurements and their framing.
+  metric.availability:  "التوافر"
+  metric.errorRate:     "معدل الأخطاء"
+  metric.latencyP50:    "زمن الاستجابة (p50)"
+  metric.noReference:   "لا يوجد إطار مرجعي"
+  metric.target:        "الهدف {v}"
+  metric.trend.falling: "في انخفاض"
+  metric.trend.rising:  "في ارتفاع"
+  metric.trend.steady:  "مستقر"
+  metric.volume:        "الطلبات الناجحة"
+  metric.volumeFraming: "{success} من {total} · {pct}٪"
+  metric.volumeOf:      "{success} من {total}"
+
+  # --- Task categories.
+  cat.agriculture: "الزراعة"
+  cat.business:    "الأعمال والتراخيص"
+  cat.education:   "التعليم"
+  cat.employment:  "العمل والمهارات"
+  cat.health:      "الصحة"
+  cat.identity:    "الهوية والوثائق"
+  cat.money:       "المال والضرائب"
+  cat.records:     "الأراضي والسجلات"
+  cat.transport:   "النقل"
+  cat.welfare:     "الرعاية والمعاشات"
+
+  # --- Regions.
+  reg.national: "وطني"
+
+  # --- The service drawer.
+  dr.category:           "الفئة"
+  dr.close:              "إغلاق"
+  dr.currentStatus:      "الحالة الحالية"
+  dr.datatable:          "عرض جدول البيانات"
+  dr.errors.code:        "الرمز"
+  dr.errors.count:       "العدد"
+  dr.errors.gloss:       "المعنى"
+  dr.errors.share:       "الحصة"
+  dr.errors.title:       "الأخطاء حسب النوع"
+  dr.errors.trend:       "الاتجاه"
+  dr.governedBy:         "سبب الحالة"
+  dr.incidents.duration: "على مدى {d}"
+  dr.incidents.empty:    "لا حوادث في آخر 90 يومًا."
+  dr.incidents.ongoing:  "جارٍ"
+  dr.incidents.title:    "الجدول الزمني للحوادث"
+  dr.metrics:            "المقاييس"
+  dr.obligation:         "على مقدّم الخدمة"
+  dr.provider:           "المزوّد"
+  dr.region:             "المنطقة"
+  dr.spark:              "التوافر، آخر 90 يومًا"
+  dr.summary:            "بكلمات بسيطة"
+  dr.tab.errors:         "الأخطاء"
+  dr.tab.incidents:      "الحوادث"
+  dr.tab.overview:       "نظرة عامة"
+  dr.tab.traffic:        "الحركة"
+  dr.traffic.corr:       "الحركة مقابل الأخطاء"
+  dr.traffic.peak:       "الذروة {v} · {d}"
+  dr.traffic.title:      "حجم الطلبات، آخر 90 يومًا"
+  dr.traffic.trough:     "الأدنى {v} · {d}"
+
+  # --- Incident stages and notes.
+  inc.acknowledged:              "أُقِرّ"
+  inc.mitigated:                 "خُفِّف"
+  inc.opened:                    "فُتح"
+  inc.resolved:                  "حُلّ"
+  incident.note.dbFailover:      "تسبّب تحويل قاعدة البيانات في انقطاع وجيز."
+  incident.note.errorSpike:      "ارتفاع مفاجئ في أخطاء 5xx من الخدمة الأعلى."
+  incident.note.latencyDegraded: "تدهورت أزمنة الاستجابة بما يتجاوز المستهدف."
+  incident.note.partialRegion:   "اقتصرت الأخطاء على مجموعة من المناطق."
+  incident.note.rateLimited:     "جرى تحديد معدّل الطلبات أثناء موجة حركة."
+  incident.note.upstreamTimeout: "انتهت مهلة تبعية أعلى تحت الحِمل."
+
+  # --- What each error code means.
+  err.400:     "طلب غير صالح — كان الطلب مُشوَّهًا."
+  err.401:     "غير مصرّح — بيانات اعتماد مفقودة أو غير صالحة."
+  err.429:     "طلبات كثيرة جدًا — جرى تحديد معدّل المتصل."
+  err.500:     "خطأ في الخادم — أخفقت الخدمة في معالجة الطلب."
+  err.503:     "الخدمة غير متاحة — مُحمَّلة بإفراط أو متوقفة مؤقتًا."
+  err.504:     "انتهت مهلة البوابة — كان نظام أعلى بطيئًا جدًا."
+  err.timeout: "انتهت المهلة — لا استجابة ضمن الوقت المسموح."
+
+  # --- Maintenance windows.
+  maint.scheduled: "صيانة مجدولة"

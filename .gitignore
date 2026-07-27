@@ -30,3 +30,17 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# Compiled dashboard binary
+/whitelabel-dpi-dashboard
+/dist/
+
+# Local runtime state: the SQLite database and rolled-up history. Deployments
+# point DATA_DIR elsewhere; this is only where `make run` puts it.
+/data/
+
+# Merged coverage output from `make cover`.
+/.coverage/
+
+# Generated protobuf Go is deliberately NOT ignored — it is committed so that a
+# clean clone builds and runs without buf or protoc installed.
