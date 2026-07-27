@@ -1,2 +1,3 @@
-# whitelabel-dpi-dashboard
-A whitelabel DPI Implementation dashboard
+# Whitelabel DPI Dashboard
+
+A whitelabel DPI Implementation Dashboard.
