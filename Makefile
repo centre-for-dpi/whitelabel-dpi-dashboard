@@ -111,6 +111,25 @@ compose: ## Bring the whole thing up with docker compose
 test: ## Run the test suite
 	$(GO) test ./...
 
+# --- accessibility ----------------------------------------------------------
+#
+# Three layers, in increasing cost and decreasing frequency:
+#
+#   1. Contrast, from theme.yaml, inside `make validate`. Pure computation over
+#      the palette, so a brand that breaks WCAG 1.4.3 or 1.4.11 cannot start.
+#   2. Structure, inside `make test`. Every rule decidable from the rendered
+#      HTML — names, aria references, heading order, unresolved term ids — over
+#      every route, fragment and locale. No browser, so it gates every commit.
+#   3. The rendered result, in `make a11y`. axe-core in headless Chrome, plus
+#      the keyboard, focus-containment and forced-colours assertions axe cannot
+#      make. Needs a Chrome binary, so it is a separate target.
+
+.PHONY: a11y
+a11y: ## Audit accessibility without a browser (layers 1 and 2)
+	@$(GO) run . -config config -validate >/dev/null
+	@echo "contrast: the shipped palette satisfies every obligation"
+	$(GO) test -run 'A11y|Accessible|TermID|Announcer|Auditor|Glyph|WCAG|Contrast' ./... ./internal/a11y/
+
 # --- storage backends -------------------------------------------------------
 
 # The DSNs match docker-compose.test.yml. They are exported rather than passed
