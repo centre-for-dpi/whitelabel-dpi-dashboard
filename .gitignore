@@ -44,3 +44,7 @@ go.work.sum
 
 # Generated protobuf Go is deliberately NOT ignored — it is committed so that a
 # clean clone builds and runs without buf or protoc installed.
+
+# Screenshots from `make a11y-report`. Evidence for a conformance claim, not
+# something to keep in the history — regenerate them.
+.a11y-shots/
