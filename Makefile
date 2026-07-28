@@ -124,11 +124,32 @@ test: ## Run the test suite
 #      the keyboard, focus-containment and forced-colours assertions axe cannot
 #      make. Needs a Chrome binary, so it is a separate target.
 
+A11YPORT ?= 8231
+
 .PHONY: a11y
 a11y: ## Audit accessibility without a browser (layers 1 and 2)
 	@$(GO) run . -config config -validate >/dev/null
 	@echo "contrast: the shipped palette satisfies every obligation"
-	$(GO) test -run 'A11y|Accessible|TermID|Announcer|Auditor|Glyph|WCAG|Contrast' ./... ./internal/a11y/
+	$(GO) test -run 'A11y|Accessible|TermID|Announcer|Auditor|Glyph|WCAG|Contrast|Script|Keyboard' ./... ./internal/a11y/
+
+# Starts a server, runs the browser suite against it, and stops it again — so the
+# target is one command with no setup, and a failure cannot leave a process
+# behind. The suite skips itself, rather than failing, when there is no Chrome.
+.PHONY: a11y-browser
+a11y-browser: ## Audit accessibility in headless Chrome across the full matrix (layer 3)
+	@$(GO) build -o /tmp/dpi-a11y-server . || exit 1
+	@/tmp/dpi-a11y-server -config config -addr :$(A11YPORT) & echo $$! > /tmp/dpi-a11y.pid; \
+	  trap 'kill $$(cat /tmp/dpi-a11y.pid) 2>/dev/null; rm -f /tmp/dpi-a11y.pid /tmp/dpi-a11y-server' EXIT; \
+	  for i in $$(seq 1 40); do \
+	    curl -fsS -o /dev/null http://127.0.0.1:$(A11YPORT)/healthz && break || sleep 0.25; \
+	  done; \
+	  cd test/a11y && $(GO) test -tags a11y -v -timeout 20m \
+	    -base http://127.0.0.1:$(A11YPORT) $(if $(SHOTS),-shots $(SHOTS),) ./...
+
+.PHONY: a11y-report
+a11y-report: ## Run the browser suite and write a screenshot per matrix cell
+	@$(MAKE) a11y-browser SHOTS=$(CURDIR)/.a11y-shots
+	@echo "screenshots: $(CURDIR)/.a11y-shots"
 
 # --- storage backends -------------------------------------------------------
 

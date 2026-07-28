@@ -160,7 +160,11 @@ select:disabled { opacity: .5; cursor: not-allowed; }
 .w-timestamp.is-stale time { color: var(--status-partial); font-weight: 600; }
 
 .w-disclosure { font-size: .86rem; max-width: 70ch; }
-.w-disclosure summary { cursor: pointer; color: var(--muted-fg); }
+/* WCAG 2.2 SC 2.5.8 asks for 24x24 CSS px. A summary is as wide as its
+ * container, so only the height is ever in question, and inline-flex plus a
+ * min-height is what gives a one-line label a 24px box. The same reasoning
+ * applies to every small control below. */
+.w-disclosure summary { cursor: pointer; color: var(--muted-fg); display: inline-flex; align-items: center; min-height: 24px; }
 .w-disclosure ul { margin: 10px 0 0; padding-inline-start: 18px; color: var(--muted-fg); }
 .w-disclosure li { margin-block: 4px; }
 
@@ -216,7 +220,7 @@ select:disabled { opacity: .5; cursor: not-allowed; }
 .lb th { font-size: .74rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted-fg); font-weight: 600; }
 [data-align="end"] { text-align: end; }
 [data-align="start"] { text-align: start; }
-.th-sort { display: inline-flex; gap: 6px; align-items: center; }
+.th-sort { display: inline-flex; gap: 6px; align-items: center; min-height: 24px; }
 .lb-row { cursor: pointer; }
 .lb-row:hover { background: var(--hover-bg, var(--border-subtle)); }
 
@@ -229,8 +233,12 @@ select:disabled { opacity: .5; cursor: not-allowed; }
 .rank-move { font-size: .7rem; color: var(--muted-fg); margin-inline-start: 4px; }
 
 .lb-cards { display: none; list-style: none; padding: 0; margin: 0; gap: 10px; }
-.lb-card { display: flex; align-items: center; gap: 10px; }
-.lb-card-name { flex: 1; font-weight: 600; }
+/* Wraps rather than overflows. At 320 CSS px — the floor SC 1.4.10 sets — a
+ * rank, a service name, a status chip and a figure do not fit on one line, and
+ * a nowrap row here is what pushed the whole document into horizontal
+ * scrolling. min-width:0 on the name is what lets it be the part that gives. */
+.lb-card { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.lb-card-name { flex: 1 1 auto; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
 
 .empty { padding: 24px; text-align: center; border: 1px dashed var(--border-strong); border-radius: var(--radius-lg); color: var(--muted-fg); }
 
@@ -308,12 +316,13 @@ html.js .drawer-panel {
 .stages li.is-last .stage-dot { background: var(--accent); }
 
 .w-datatable { margin-block-start: 12px; font-size: .8rem; }
-.w-datatable summary { cursor: pointer; color: var(--muted-fg); }
+.w-datatable summary { cursor: pointer; color: var(--muted-fg); display: inline-flex; align-items: center; min-height: 24px; }
 .w-datatable table { width: 100%; border-collapse: collapse; margin-block-start: 8px; }
 .w-datatable th, .w-datatable td { padding: 5px 8px; border-block-end: 1px solid var(--border-subtle); text-align: start; }
 
 .footer { border-block-start: 1px solid var(--border-subtle); padding-block: 20px; }
 .footer-inner { display: flex; gap: 18px; flex-wrap: wrap; font-size: .8rem; color: var(--muted-fg); }
+.footer-inner a { display: inline-flex; align-items: center; gap: 5px; min-height: 24px; }
 
 /* --- narrow screens -------------------------------------------------------- */
 
@@ -358,6 +367,12 @@ html.js .drawer-panel {
 
   /* Chips, cards and controls keep a visible boundary. */
   .chip, .card, .w-filters, .segmented, .icon-btn, .btn, .lb, .drawer { border: 1px solid CanvasText; }
+
+  /* The primary button paints its own background and its own foreground, so
+   * when the background is forced to Canvas and the foreground is not, the
+   * label disappears into it — 1.05:1. Naming both system colours is the only
+   * way to keep the pair legible whatever the reader's palette is. */
+  .btn, .btn-primary { background: ButtonFace; color: ButtonText; border-color: ButtonText; }
 
   /* A selected chip or segment is distinguished by the system's highlight,
    * which is the only pair guaranteed to be distinguishable. */

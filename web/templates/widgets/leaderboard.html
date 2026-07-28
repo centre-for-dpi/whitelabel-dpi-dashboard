@@ -16,7 +16,11 @@
 
   <div class="filter-body" id="filter-body">
     <div class="filter-row">
-      <input class="search" type="search" name="q" value="{{.Search}}"
+      {{/* The id is load-bearing, not decoration: htmx restores focus and
+           selection after a swap only for an element that has one, and this
+           input is replaced on every keystroke by its own debounced filter.
+           Without it, typing a word loses the caret partway through. */}}
+      <input id="lb-search" class="search" type="search" name="q" value="{{.Search}}"
              placeholder="{{.SearchLabel}}" aria-label="{{.SearchLabel}}">
 
       {{if .Regions}}
