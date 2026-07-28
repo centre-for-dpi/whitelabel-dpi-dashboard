@@ -696,3 +696,84 @@ func TestRejectsAComplementThatDeclaresItsOwnTarget(t *testing.T) {
 		t.Errorf("error does not explain that the target is derived: %v", err)
 	}
 }
+
+// A complement that names a metric with no target of its own has nothing to
+// derive from, and ResolvedTarget must say so rather than inventing a number.
+func TestResolvedTargetIsNilWhenThereIsNothingToDeriveFrom(t *testing.T) {
+	d := config.Domain{Metrics: []config.Metric{
+		{ID: "metric.volume", Unit: "count"}, // no target
+		{ID: "metric.share", Unit: "percent", ComplementOf: "metric.volume"},
+		{ID: "metric.orphan", Unit: "percent", ComplementOf: "metric.nonexistent"},
+	}}
+
+	for _, id := range []string{"metric.share", "metric.orphan"} {
+		var m config.Metric
+		for _, candidate := range d.Metrics {
+			if candidate.ID == id {
+				m = candidate
+			}
+		}
+		if got := d.ResolvedTarget(m); got != nil {
+			t.Errorf("%s: ResolvedTarget = %v, want nil", id, *got)
+		}
+	}
+
+	// A plain metric's own target passes through untouched.
+	target := 99.5
+	plain := config.Metric{ID: "metric.availability", Target: &target}
+	if got := d.ResolvedTarget(plain); got == nil || *got != 99.5 {
+		t.Errorf("ResolvedTarget of a plain metric = %v, want 99.5", got)
+	}
+}
+
+func TestComplementIsTheRemainderOfAHundred(t *testing.T) {
+	for _, tc := range []struct{ in, want float64 }{
+		{100, 0}, {99.5, 0.5}, {0, 100}, {50, 50},
+	} {
+		if got := config.Complement(tc.in); math.Abs(got-tc.want) > 1e-9 {
+			t.Errorf("Complement(%v) = %v, want %v", tc.in, got, tc.want)
+		}
+	}
+}
+
+func TestRejectsSelfComplementAndNonPercentComplement(t *testing.T) {
+	for name, metrics := range map[string]string{
+		"its own complement": `metrics:
+  - id: metric.availability
+    termId: metric.availability
+    field: availability
+    unit: percent
+    precision: 2
+    target: 99.5
+    complementOf: metric.availability
+    direction: higher-is-better
+    showInLeaderboard: true
+`,
+		"complement of a count": `metrics:
+  - id: metric.volume
+    termId: metric.volume
+    field: volume
+    unit: count
+    precision: 0
+    framing: denominator
+    direction: neutral
+    showInLeaderboard: false
+  - id: metric.share
+    termId: metric.share
+    field: downtime
+    unit: percent
+    precision: 2
+    complementOf: metric.volume
+    direction: lower-is-better
+    showInLeaderboard: true
+`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			b := bundle()
+			b["domain.yaml"] = []byte(strings.Replace(validDomain, domainMetrics, metrics, 1))
+			if _, err := config.Parse(b); err == nil {
+				t.Errorf("%s was accepted", name)
+			}
+		})
+	}
+}

@@ -2,6 +2,8 @@ package main
 
 import (
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -307,5 +309,101 @@ func TestExternalLinksWarnInText(t *testing.T) {
 		if !strings.Contains(body, `class="sr-only"`) {
 			t.Errorf("%s: an external link opens a new tab with no text saying so", locale)
 		}
+	}
+}
+
+// The header bar's whole point is that a deployment can change it, so the shipped
+// arrangement is not enough to test it with. This assembles a bar using every kind
+// — including a link, which the shipped config only shows commented out — and
+// checks that each renders, in order, with its accessibility intact.
+func TestEveryHeaderKindRenders(t *testing.T) {
+	dir := t.TempDir()
+	for _, name := range []string{"app.yaml", "brand.yaml", "domain.yaml", "theme.yaml", "icons.yaml", "layout.yaml", "sources.yaml"} {
+		data, err := configFS.ReadFile("config/" + name)
+		if err != nil {
+			t.Fatalf("reading shipped %s: %v", name, err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, name), data, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// Locales come along so the link's label resolves.
+	if err := os.MkdirAll(filepath.Join(dir, "locales"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	entries, err := configFS.ReadDir("config/locales")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range entries {
+		data, err := configFS.ReadFile("config/locales/" + e.Name())
+		if err != nil {
+			t.Fatal(err)
+		}
+		// The link's own term, added to every locale so the resolver finds it.
+		data = append(data, []byte("\n  nav.help: \"Service desk\"\n")...)
+		if err := os.WriteFile(filepath.Join(dir, "locales", e.Name()), data, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Deliberately a different order from the shipped bar, so this cannot pass
+	// by accident on a hardcoded arrangement.
+	chrome := `
+header:
+  items:
+    - kind: wordmark
+    - kind: link
+      termId: nav.help
+      href: https://example.gov/desk
+      external: true
+      iconKey: ui.external
+    - kind: spacer
+    - kind: theme-toggle
+    - kind: select
+      state: locale
+    - kind: select
+      state: period
+    - kind: scope-switch
+`
+	if err := os.WriteFile(filepath.Join(dir, "chrome.yaml"), []byte(chrome), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	app, err := build(options{configDir: dir})
+	if err != nil {
+		t.Fatalf("a bar using every kind did not start: %v", err)
+	}
+	body := get(t, app.handler, "/")
+
+	// Each kind rendered.
+	for _, want := range []string{
+		`class="wordmark"`, `class="chrome-link"`, `class="chrome-spacer"`,
+		`data-dpi-theme-toggle`, `name="lang"`, `name="period"`, `class="segmented"`,
+		`Service desk`, `href="https://example.gov/desk"`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the bar did not render %s", want)
+		}
+	}
+
+	// In the configured order, which is what makes it configuration rather than
+	// a fixed layout with switches.
+	wordmark := strings.Index(body, `class="wordmark"`)
+	link := strings.Index(body, `class="chrome-link"`)
+	spacer := strings.Index(body, `class="chrome-spacer"`)
+	segmented := strings.Index(body, `class="segmented"`)
+	if !(wordmark < link && link < spacer && spacer < segmented) {
+		t.Errorf("the bar is not in the configured order: wordmark=%d link=%d spacer=%d scope=%d",
+			wordmark, link, spacer, segmented)
+	}
+
+	// And it is still accessible.
+	problems, err := a11y.Audit(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range problems {
+		t.Errorf("a bar using every kind is not accessible: %s", p)
 	}
 }
