@@ -201,3 +201,65 @@ func TestNoControlIsNamedOnlyByAGlyph(t *testing.T) {
 		}
 	}
 }
+
+// The drawer is a <dialog>, which only script can open as a modal — so without
+// script it would be display:none and a shared /service/{id} link would render a
+// page with nothing on it. The fallback is CSS: the panel shows inline by
+// default, and the closed dialog is hidden only once an inline marker in <head>
+// has proved script is running to open it.
+//
+// That inverted default is easy to undo by accident — writing the obvious
+// `.drawer:not([open]) { display: none }` would break the no-script path while
+// looking perfectly correct in a browser. Both halves are asserted here because
+// neither is meaningful alone, and this is checkable without a browser whereas
+// the rendered result is not.
+func TestTheDrawerStillRendersWithoutScript(t *testing.T) {
+	h := dashboard(t)
+
+	page := get(t, h, "/service/pan")
+	if !strings.Contains(page, `classList.add("js")`) {
+		t.Error("no inline marker in <head> records that script is running; the CSS fallback has nothing to key off")
+	}
+	// The dialog must not be pre-opened: `open` renders it non-modally, with no
+	// focus trap, no Escape and no backdrop.
+	if strings.Contains(page, `<dialog class="drawer" id="drawer" data-dpi-drawer open`) {
+		t.Error("the drawer carries the open attribute, which renders it non-modally")
+	}
+	if !strings.Contains(page, `id="drawer"`) {
+		t.Fatal("the drawer is not in the document for a direct /service/{id} load")
+	}
+
+	css, err := webFS.ReadFile("web/static/app.css")
+	if err != nil {
+		t.Fatalf("reading app.css: %v", err)
+	}
+	style := string(css)
+	if !strings.Contains(style, "html.js .drawer:not([open])") {
+		t.Error("app.css hides the closed drawer without gating on html.js, so a reader without script sees nothing at /service/{id}")
+	}
+	if !strings.Contains(style, "html.js .drawer-panel") {
+		t.Error("app.css pins the drawer panel to the viewport without gating on html.js, so without script it would cover the page instead of joining it")
+	}
+}
+
+// One route to the drawer, for pointer and keyboard alike.
+//
+// The row used to carry the hx-* attributes, which gave a mouse click a fragment
+// swap and a keyboard user — who can only reach the link — a full page load. It
+// also meant the element that opened the drawer was a <tr>, which cannot hold
+// focus, so closing had nowhere to return it to.
+func TestTheDrawerHasOneRouteForPointerAndKeyboard(t *testing.T) {
+	h := dashboard(t)
+	body := get(t, h, "/")
+
+	if strings.Contains(body, `<tr class="lb-row" data-dpi-row-link="/service/`) {
+		t.Error("the row still carries an hx-* target; the request belongs to the focusable link inside it")
+	}
+	if !strings.Contains(body, `class="lb-name" href="/service/`) {
+		t.Fatal("no .lb-name link found")
+	}
+	// The link must carry both: the fragment for script, the page for without.
+	if !strings.Contains(body, `hx-get="/fragments/service/`) {
+		t.Error("the name link has no hx-get, so a keyboard user gets a full page load where a mouse gets the drawer")
+	}
+}

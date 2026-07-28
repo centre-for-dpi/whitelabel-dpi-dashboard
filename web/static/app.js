@@ -103,13 +103,20 @@
 
   /* --- table rows ----------------------------------------------------------
    *
-   * The row carries the HTMX attributes, so clicking anywhere in it opens the
-   * service. This handler exists only to stop a click that landed on the real
-   * link inside from being handled twice.
+   * The name link carries the HTMX attributes and is the only path to the
+   * drawer; the row forwards a click anywhere in it to that link. Doing it this
+   * way round is what makes the pointer and the keyboard behave identically —
+   * when the row held the attributes itself, a click swapped the drawer in and
+   * a keyboard user, who can only reach the link, got a whole new page. It also
+   * means the element that opened the drawer can hold focus, so there is
+   * somewhere to put it back on close.
    */
   register("dpi-row-link", {
     click(el, e) {
-      if (e.target.closest("a")) e.stopPropagation();
+      // A click that already landed on a link is that link's business.
+      if (e.target.closest("a")) return;
+      const link = el.querySelector(".lb-name");
+      if (link) link.click();
     },
   });
 
@@ -167,9 +174,14 @@
     const host = document.getElementById("drawer-host");
     if (host) host.innerHTML = "";
     // Restore the address bar, so the back button and a copied link agree with
-    // what is on screen.
+    // what is on screen. `tab` names a panel of the drawer, so it goes with it —
+    // otherwise closing leaves /?tab=errors, a URL describing a panel that is no
+    // longer open.
     if (window.location.pathname.startsWith("/service/")) {
-      history.pushState({}, "", "/" + window.location.search);
+      const params = new URLSearchParams(window.location.search);
+      params.delete("tab");
+      const query = params.toString();
+      history.pushState({}, "", query ? "/?" + query : "/");
     }
     // Put the reader back where they were. Checking isConnected matters because
     // the row may have been replaced by a fragment swap while the drawer was up.
@@ -184,9 +196,17 @@
 
   // Remember the opener before the request goes out, while the trigger is still
   // the element the reader activated.
+  //
+  // Only when the drawer is not already open. Switching tabs is also a request
+  // targeting #drawer-host, so without this guard the opener would be
+  // overwritten by the tab link — and that link is inside the drawer, so by the
+  // time it closed there would be nothing left to return focus to.
   document.body.addEventListener("htmx:beforeRequest", (e) => {
     const t = e.detail && e.detail.target;
-    if (t && t.id === "drawer-host") drawerOpener = e.detail.elt;
+    if (!t || t.id !== "drawer-host") return;
+    const dialog = document.getElementById("drawer");
+    if (dialog && dialog.open) return;
+    drawerOpener = e.detail.elt;
   });
 
   // Promote the dialog once the fragment is in the document. A tab switch

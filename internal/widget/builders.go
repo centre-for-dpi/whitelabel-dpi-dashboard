@@ -643,8 +643,12 @@ type RowCell struct {
 	// Name.
 	Name string
 	// Href is the service's own address, so the name is a real focusable link
-	// inside a row that is otherwise only clickable.
+	// inside a row that is otherwise only clickable. FragmentHref is the same
+	// service as a drawer fragment: the link carries both, so a pointer and a
+	// keyboard open the drawer by the same route and a reader without script
+	// still gets the full page.
 	Href         string
+	FragmentHref string
 	Description  string
 	Category     string
 	CategoryIcon Icon
@@ -826,6 +830,7 @@ func buildRow(c Context, sv model.Service, keys []string) Row {
 				Align:        "start",
 				Name:         r.Name,
 				Href:         "/service/" + sv.ID,
+				FragmentHref: "/fragments/service/" + sv.ID,
 				Description:  c.Text.Text(sv.DescTermID, nil),
 				Category:     c.Text.Text(sv.CategoryID, nil),
 				CategoryIcon: c.Icons.Icon(categoryIcon(d, sv.CategoryID)),
