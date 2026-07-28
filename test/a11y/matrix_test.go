@@ -37,6 +37,17 @@ var (
 		"the running dashboard to audit")
 	shotDir = flag.String("shots", envOr("A11Y_SHOTS", ""),
 		"write a screenshot per matrix cell to this directory")
+
+	// requireChrome turns a missing browser from a skip into a failure.
+	//
+	// Skipping is right on a developer's machine: not everyone has a Chrome, and
+	// the pure-Go layers already gate the commit. It is wrong in CI, where a
+	// silent skip is a green tick reporting that accessibility was verified when
+	// nothing ran at all — which is worse than having no gate, because it is
+	// indistinguishable from a pass. Defaults on from the CI variable every
+	// provider sets.
+	requireChrome = flag.Bool("require-chrome", envOr("CI", "") != "",
+		"fail rather than skip when no browser is available")
 )
 
 func envOr(key, fallback string) string {
@@ -54,6 +65,12 @@ func TestMain(m *testing.M) {
 	flag.Parse()
 
 	if _, err := FindChrome(); err != nil {
+		if *requireChrome {
+			fmt.Fprintf(os.Stderr, "the browser suite cannot run: %v\n"+
+				"Refusing to skip, because -require-chrome is set (it defaults on when CI is set):\n"+
+				"a skipped accessibility suite reports success without checking anything.\n", err)
+			os.Exit(1)
+		}
 		fmt.Fprintf(os.Stderr, "skipping the browser suite: %v\n", err)
 		os.Exit(0)
 	}

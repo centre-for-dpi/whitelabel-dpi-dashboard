@@ -101,6 +101,37 @@ image: ## Build the container image
 image-run: image ## Build and run the container, with nothing mounted
 	docker run --rm -p $(PORT):8080 $(IMAGE):latest
 
+TAG ?= latest
+
+.PHONY: image-smoke
+image-smoke: image smoke-image ## Build the image, then prove it serves
+
+# Separate from the build so CI can smoke an image it has already built — a
+# target that rebuilt would either waste the build or, worse, test a different
+# image from the one about to be published.
+#
+# This is what answers "does the image work", which a successful build does not:
+# a container that starts and then fails to serve is exactly the failure a
+# build-only check misses.
+.PHONY: smoke-image
+smoke-image: ## Prove an already-built $(IMAGE):$(TAG) serves
+	@set -e; \
+	  name=dpi-smoke-$$$$; \
+	  docker run -d --name $$name -p 18080:8080 $(IMAGE):$(TAG) >/dev/null; \
+	  trap 'docker rm -f $$name >/dev/null 2>&1 || true' EXIT; \
+	  for i in $$(seq 1 60); do \
+	    curl -fsS -o /dev/null http://127.0.0.1:18080/healthz 2>/dev/null && break || sleep 0.5; \
+	  done; \
+	  for path in / /healthz /readyz /assets/app.css /assets/app.js /assets/theme.css; do \
+	    code=$$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18080$$path); \
+	    test "$$code" = "200" || { echo "GET $$path -> $$code"; docker logs $$name; exit 1; }; \
+	    echo "GET $$path -> $$code"; \
+	  done; \
+	  health=$$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' $$name); \
+	  echo "healthcheck: $$health"; \
+	  test "$$health" != "unhealthy" || { docker logs $$name; exit 1; }; \
+	  echo "image serves correctly"
+
 .PHONY: compose
 compose: ## Bring the whole thing up with docker compose
 	docker compose up --build

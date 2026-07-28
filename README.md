@@ -1,5 +1,7 @@
 # White-label DPI Dashboard
 
+[![ci](https://github.com/centre-for-dpi/whitelabel-dpi-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/centre-for-dpi/whitelabel-dpi-dashboard/actions/workflows/ci.yml)
+
 A public status dashboard for digital public infrastructure. One static binary,
 no runtime dependencies, and everything a deployment needs to change lives in
 config files rather than in code.
@@ -33,6 +35,9 @@ Or without cloning anything:
 ```sh
 docker run --rm -p 8080:8080 ghcr.io/centre-for-dpi/whitelabel-dpi-dashboard
 ```
+
+The image is published from `main` by the pipeline above, for both `linux/amd64`
+and `linux/arm64`. Nothing is pushed that has not built and been proven to serve.
 
 Either way it starts on generated demonstration data — 178 services, ninety days
 of history, every status represented — so the dashboard is worth looking at
