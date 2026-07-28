@@ -13,7 +13,11 @@
 # works without a writable filesystem. Set DPI_STORAGE_DRIVER and DATABASE_URL
 # to keep history across restarts.
 
-FROM golang:1.26-alpine AS build
+# Pinned to the build platform, not the target: the binary is cross-compiled
+# below rather than built under emulation. For a pure-Go binary that is the same
+# output, and it is the difference between a multi-architecture build taking a
+# minute and taking twenty under QEMU.
+FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS build
 
 WORKDIR /src
 
@@ -23,9 +27,13 @@ RUN go mod download
 
 COPY . .
 
+# Supplied by buildx. Defaulted so a plain `docker build` still works.
+ARG TARGETOS=linux
+ARG TARGETARCH
+
 # -trimpath keeps build-machine paths out of panics.
 # -s -w drop the symbol table and DWARF, which is most of the binary's size.
-RUN CGO_ENABLED=0 go build \
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
       -trimpath \
       -ldflags='-s -w' \
       -o /out/dashboard .

@@ -1,5 +1,7 @@
 # White-label DPI Dashboard
 
+[![ci](https://github.com/centre-for-dpi/whitelabel-dpi-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/centre-for-dpi/whitelabel-dpi-dashboard/actions/workflows/ci.yml)
+
 A public status dashboard for digital public infrastructure. One static binary,
 no runtime dependencies, and everything a deployment needs to change lives in
 config files rather than in code.
@@ -13,6 +15,15 @@ Are the national data sharing services working right now?
 178 of 812 national & state services onboarded · updated 4 minutes ago
 ```
 
+## Accessibility
+
+WCAG 2.2 AA, enforced by tests rather than asserted: contrast is computed from
+your palette and fails startup, structure is checked over every route and locale
+on every commit, and axe-core runs in a headless Chrome across 26 states. See
+[`docs/accessibility.md`](docs/accessibility.md) for the claim and what is
+deliberately out of scope, and [`docs/design-walkthrough.md`](docs/design-walkthrough.md)
+for what the page shows and why.
+
 ## Try it
 
 ```sh
@@ -24,6 +35,9 @@ Or without cloning anything:
 ```sh
 docker run --rm -p 8080:8080 ghcr.io/centre-for-dpi/whitelabel-dpi-dashboard
 ```
+
+The image is published from `main` by the pipeline above, for both `linux/amd64`
+and `linux/arm64`. Nothing is pushed that has not built and been proven to serve.
 
 Either way it starts on generated demonstration data — 178 services, ninety days
 of history, every status represented — so the dashboard is worth looking at

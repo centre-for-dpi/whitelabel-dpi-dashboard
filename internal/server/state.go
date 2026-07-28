@@ -23,17 +23,18 @@ import (
 // URL parameter names. These are the demo's own, kept deliberately: links
 // already shared against the prototype continue to work.
 const (
-	paramScope  = "scope"
-	paramRegion = "region"
-	paramPeriod = "period"
-	paramSearch = "q"
-	paramStatus = "status"
-	paramCat    = "cat"
-	paramSort   = "sort"
-	paramDir    = "dir"
-	paramLang   = "lang"
-	paramTheme  = "theme"
-	paramTab    = "tab"
+	paramScope   = "scope"
+	paramRegion  = "region"
+	paramPeriod  = "period"
+	paramSearch  = "q"
+	paramStatus  = "status"
+	paramCat     = "cat"
+	paramSort    = "sort"
+	paramDir     = "dir"
+	paramLang    = "lang"
+	paramFilters = "filters"
+	paramTheme   = "theme"
+	paramTab     = "tab"
 )
 
 // readState reconstructs the reader's selections from a request.
@@ -55,6 +56,8 @@ func (s *Server) readState(r *http.Request) widget.State {
 		Statuses:   knownValues(q[paramStatus], config.Statuses),
 		Categories: knownValues(q[paramCat], categoryIDs(d)),
 		DrawerTab:  q.Get(paramTab),
+		// Only "open" counts, so a stray value collapses rather than throwing.
+		FiltersOpen: q.Get(paramFilters) == "open",
 	}
 
 	st.Region = regionOr(q.Get(paramRegion), st.Scope, d)

@@ -8,6 +8,13 @@
 {{if .Favicon}}<link rel="icon" href="{{.Favicon}}">{{end}}
 <link rel="stylesheet" href="/assets/theme.css?v={{.AssetVersion}}">
 <link rel="stylesheet" href="/assets/app.css?v={{.AssetVersion}}">
+{{/* Marks that script is running, before the first paint so there is no flash.
+     The drawer needs it: a <dialog> can only become modal through showModal(),
+     which means without script it would be display:none and a shared
+     /service/{id} link would render an empty page. The stylesheet therefore
+     shows the panel inline by default and hides the closed dialog only when
+     this class proves someone is there to open it. */}}
+<script>document.documentElement.classList.add("js")</script>
 <script src="/assets/htmx.min.js?v={{.AssetVersion}}" defer></script>
 <script src="/assets/app.js?v={{.AssetVersion}}" defer></script>
 </head>
@@ -25,6 +32,21 @@
 {{/* The drawer arrives here from a fragment swap, so a page load carries no
      markup for a panel nobody has opened. */}}
 <div id="drawer-host">{{if .Drawer}}{{template "drawer" .Drawer}}{{end}}</div>
+
+{{/* The announcer.
+
+     A live region only announces changes to a node the screen reader was
+     already watching. Put one inside a fragment and an outerHTML swap replaces
+     it — the reader is handed a brand-new element with text already in it, which
+     is not a change to anything, and nothing is said. Narrowing a filter would
+     then be silent for exactly the readers who most need telling.
+
+     So the region that speaks lives out here, outside every swap target, for the
+     life of the document; app.js copies each result count into it after a swap.
+     The count is also on screen inside the filter bar, where it belongs
+     visually — this is the same sentence, said once, to someone who cannot see
+     that corner of the page. */}}
+<p id="a11y-status" class="sr-only" role="status" aria-live="polite"></p>
 </body>
 </html>{{end}}
 
@@ -32,47 +54,63 @@
 {{define "chrome"}}
 <header class="chrome">
   <div class="shell chrome-inner">
-    <a class="wordmark" href="/">
-      {{template "icon" .BrandIcon}}
-      <span>{{.Title}}</span>
-    </a>
+    {{/* The bar is whatever chrome.yaml lists, in that order. This template
+         knows how to render each kind and nothing about which ones are present
+         or where they sit — so adding a link, dropping a control or moving the
+         language switcher is a config edit.
 
-    <form class="controls" method="get" action="/" data-dpi-autosubmit>
-      {{/* Every control is a real form field with a real GET target, so the
-           whole page works with no JavaScript at all. HTMX upgrades it; it does
-           not enable it. */}}
+         The form wraps the whole bar rather than a subset, because every control
+         in it is a real form field with a real GET target: the dashboard works
+         with no JavaScript at all, and HTMX upgrades that rather than enabling
+         it. A control outside the form would not submit. */}}
+    <form class="controls-bar" method="get" action="/" data-dpi-autosubmit>
       {{range .Hidden}}<input type="hidden" name="{{.Name}}" value="{{.Value}}">{{end}}
 
-      <div class="segmented" role="group" aria-label="{{.ScopeLabel}}">
-        {{range .Scopes}}
-        <a class="segment{{if .Active}} is-active{{end}}"
-           href="{{.Href}}"
-           hx-get="{{.Href}}" hx-target="body" hx-push-url="true"
-           {{if .Active}}aria-current="true"{{end}}>{{.Label}}</a>
+      {{range .ChromeItems}}
+        {{if eq .Kind "wordmark"}}
+          <a class="wordmark" href="{{.Href}}">
+            {{template "icon" .Icon}}
+            <span>{{.Label}}</span>
+          </a>
+
+        {{else if eq .Kind "spacer"}}
+          <span class="chrome-spacer" aria-hidden="true"></span>
+
+        {{else if eq .Kind "scope-switch"}}
+          <div class="segmented" role="group" aria-label="{{.Label}}">
+            {{range .Options}}
+            <a class="segment{{if .Active}} is-active{{end}}"
+               href="{{.Href}}"
+               hx-get="{{.Href}}" hx-target="body" hx-push-url="true"
+               {{if .Active}}aria-current="true"{{end}}>{{.Label}}</a>
+            {{end}}
+          </div>
+
+        {{else if eq .Kind "select"}}
+          {{/* The wrapping label associates implicitly, so the control is named
+               without an id to keep in sync. */}}
+          <label class="field">
+            <span class="field-label">{{.Label}}</span>
+            <select name="{{.Name}}" data-dpi-submit>
+              {{range .Options}}<option value="{{.Value}}"{{if .Active}} selected{{end}}>{{.Label}}</option>{{end}}
+            </select>
+          </label>
+
+        {{else if eq .Kind "theme-toggle"}}
+          <a class="icon-btn" href="{{.Href}}" data-dpi-theme-toggle
+             title="{{.Label}}" aria-label="{{.Label}}">{{template "icon" .Icon}}</a>
+
+        {{else if eq .Kind "link"}}
+          <a class="chrome-link" href="{{.Href}}"
+             {{if .External}}target="_blank" rel="noopener noreferrer"{{end}}>
+            {{template "icon" .Icon}}
+            {{.Label}}
+            {{if .External}}<span class="sr-only">{{$.NewTabText}}</span>{{end}}
+          </a>
         {{end}}
-      </div>
-
-      <label class="field">
-        <span class="field-label">{{.PeriodLabel}}</span>
-        <select name="period" data-dpi-submit>
-          {{range .Periods}}<option value="{{.Value}}"{{if .Active}} selected{{end}}>{{.Label}}</option>{{end}}
-        </select>
-      </label>
-
-      <label class="field">
-        <span class="field-label">{{.LocaleLabel}}</span>
-        <select name="lang" data-dpi-submit>
-          {{range .Locales}}<option value="{{.Value}}"{{if .Active}} selected{{end}}>{{.Label}}</option>{{end}}
-        </select>
-      </label>
+      {{end}}
 
       <noscript><button class="btn" type="submit">{{.ApplyLabel}}</button></noscript>
-
-      <a class="icon-btn" href="{{.ThemeHref}}"
-         data-dpi-theme-toggle
-         title="{{.ThemeIcon.Label}}" aria-label="{{.ThemeIcon.Label}}">
-        {{template "icon" .ThemeIcon}}
-      </a>
     </form>
   </div>
 </header>
@@ -101,7 +139,10 @@
   </div>
   {{end}}
 
-  <div class="grid"{{if .Grid.MinColWidth}} style="--min-col:{{css .Grid.MinColWidth}}"{{end}}{{if .Grid.Gap}} style="--gap:{{css .Grid.Gap}}"{{end}}>
+  {{/* One style attribute, not two. Emitting a second is silently lossy: a
+       browser keeps the first and discards the rest, so a section setting both
+       grid options lost its gap and nothing said so. */}}
+  <div class="grid" style="{{if .Grid.MinColWidth}}--min-col:{{css .Grid.MinColWidth}};{{end}}{{if .Grid.Gap}}--gap:{{css .Grid.Gap}};{{end}}">
     {{range .Widgets}}{{.HTML}}{{end}}
   </div>
 </section>

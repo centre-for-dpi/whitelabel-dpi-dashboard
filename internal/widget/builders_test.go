@@ -618,18 +618,20 @@ func TestLeaderboardRows(t *testing.T) {
 	if len(v.Rows) != 2 {
 		t.Fatalf("rows = %d", len(v.Rows))
 	}
+	// Rank 1 is the service needing most attention, so the weaker of the two
+	// leads: pan at 99.10% has 0.90 downtime against aadhaar's 0.01.
 	first := v.Rows[0]
-	if first.ID != "aadhaar" || first.Rank != "1" {
+	if first.ID != "pan" || first.Rank != "1" {
 		t.Errorf("first row = %+v", first)
 	}
 	name := cellKind(first, widget.CellName)
-	if first.Name != "svc.aadhaar.name" || name.Description != "svc.aadhaar.desc" {
+	if first.Name != "svc.pan.name" || name.Description != "svc.pan.desc" {
 		t.Errorf("first row names = %+v / %+v", first, name)
 	}
-	if name.Href != "/service/aadhaar" {
+	if name.Href != "/service/pan" {
 		t.Errorf("name href = %q; the name must stay a real focusable link", name.Href)
 	}
-	if first.StatusTone != "ok" || first.StatusIcon.Glyph != "[status.operational]" {
+	if first.StatusTone != "partial" || first.StatusIcon.Glyph != "[status.partial]" {
 		t.Errorf("status presentation = %+v", first)
 	}
 	if name.CategoryIcon.Glyph != "[cat.identity]" {
@@ -638,7 +640,7 @@ func TestLeaderboardRows(t *testing.T) {
 	if got := len(metricCells(first)); got != 1 {
 		t.Fatalf("cells = %d, want one per metric column", got)
 	}
-	if cellOf(first, 0).Value != "99.99%" {
+	if cellOf(first, 0).Value != "99.10%" {
 		t.Errorf("availability = %q", cellOf(first, 0).Value)
 	}
 	if !strings.Contains(cellOf(first, 0).Target, "99.50") {

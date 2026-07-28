@@ -17,6 +17,7 @@ func defaultsFS() fstest.MapFS {
 		"config/domain.yaml": {Data: []byte(validDomain)},
 		"config/theme.yaml":  {Data: []byte(validTheme)},
 		"config/icons.yaml":  {Data: []byte(validIcons)},
+		"config/chrome.yaml": {Data: []byte(validChrome)},
 	}
 }
 

@@ -123,7 +123,11 @@
   {{if .Empty}}
     <p class="muted">—</p>
   {{else}}
+  {{/* The summary names the disclosure and the table both. A table announced
+       without a caption is "table, 3 columns, 7 rows" and nothing else, which
+       tells a reader what shape the data is but not what it is. */}}
   <table>
+    <caption class="sr-only">{{.Summary}}</caption>
     <thead><tr>{{range .Headers}}<th scope="col">{{.}}</th>{{end}}</tr></thead>
     <tbody>
       {{range .Rows}}<tr>{{range .}}<td class="tnum">{{.}}</td>{{end}}</tr>{{end}}
@@ -137,9 +141,16 @@
 {{/* The drawer.
 
      A modal dialog, so the browser handles the focus trap, Escape and the
-     backdrop rather than 60 lines of JavaScript doing it worse. */}}
+     backdrop rather than 60 lines of JavaScript doing it worse.
+
+     Note what is NOT here: the `open` attribute. `open` renders a dialog
+     *non-modally*, which gets none of that — no focus trap, no Escape, no
+     ::backdrop, and nothing made inert. Only showModal() does, so app.js calls
+     it once the fragment has landed. If script never runs, the CSS fallback at
+     the end of app.css keeps the panel visible and usable as an ordinary
+     document section, which is the honest degradation. */}}
 {{define "drawer"}}
-<dialog class="drawer" id="drawer" data-dpi-drawer open aria-labelledby="drawer-title">
+<dialog class="drawer" id="drawer" data-dpi-drawer aria-labelledby="drawer-title">
   <article class="drawer-panel">
     <header class="drawer-head">
       <div class="drawer-head-row">
@@ -160,10 +171,22 @@
       <p class="drawer-rule"><strong>{{.RuleLabel}}</strong> {{.Rule}}</p>
       {{end}}
 
-      <nav class="tabs" role="tablist">
+      {{/* Navigation, not a tablist.
+
+           Each of these is a real URL that hx-push-url puts in the address bar,
+           so a reader can bookmark or share "the incidents tab of this
+           service". role="tab" would erase that link semantics, announce
+           "tab" for something that is a link, and oblige roving tabindex and
+           arrow-key handling that fights the browser's own behaviour — all to
+           describe a widget this is not. Links with aria-current say the same
+           thing truthfully, work with no script, and need no keyboard code.
+
+           Labelled by the service name, so a screen reader's landmark list
+           distinguishes this nav from the ones in the page chrome. */}}
+      <nav class="tabs" aria-labelledby="drawer-title">
         {{range .Tabs}}
-        <a class="tab{{if .Active}} is-active{{end}}" role="tab"
-           aria-selected="{{if .Active}}true{{else}}false{{end}}"
+        <a class="tab{{if .Active}} is-active{{end}}"
+           {{if .Active}}aria-current="page"{{end}}
            href="{{.Href}}"
            hx-get="{{.FragmentHref}}" hx-target="#drawer-host"
            hx-swap="innerHTML" hx-push-url="{{.Href}}">{{.Label}}</a>
@@ -171,7 +194,7 @@
       </nav>
     </header>
 
-    <div class="drawer-body" role="tabpanel">
+    <div class="drawer-body">
       <div class="grid"{{if .Grid.MinColWidth}} style="--min-col:{{css .Grid.MinColWidth}}"{{end}}>
         {{range .Widgets}}{{.HTML}}{{end}}
       </div>

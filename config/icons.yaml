@@ -13,8 +13,13 @@
 #   svg    inline SVG markup, for a brand mark or anything a character cannot
 #          express. Use fill="currentColor" so it follows the theme.
 #
-# `label` is the accessible name, used where the icon carries meaning on its
-# own rather than sitting beside text that already says it.
+# `labelTermId` is the accessible name, used where the icon carries meaning on
+# its own rather than sitting beside text that already says it. It is a term id
+# because that name is announced to a screen reader, and a literal string here
+# would announce English on a page translated into every other language.
+#
+# `label` still works and takes a literal string. It is deprecated; prefer
+# labelTermId.
 
 icons:
   # --- brand ---------------------------------------------------------------
@@ -52,15 +57,15 @@ icons:
   rank.same: { glyph: "–", label: No change }
 
   # --- interface -----------------------------------------------------------
-  ui.close: { glyph: "✕", label: Close }
+  ui.close: { glyph: "✕", labelTermId: dr.close }
   ui.chevronUp: { glyph: "▲", label: Collapse }
   ui.chevronDown: { glyph: "▼", label: Expand }
   ui.caret: { glyph: "▾", label: Show details }
   ui.arrow: { glyph: "→", label: Go }
-  ui.external: { glyph: "↗", label: Opens in a new tab }
+  ui.external: { glyph: "↗", labelTermId: chrome.newTab }
   ui.check: { glyph: "✓", label: All clear }
-  ui.themeDark: { glyph: "☾", label: Switch to dark theme }
-  ui.themeLight: { glyph: "☀", label: Switch to light theme }
+  ui.themeDark: { glyph: "☾", labelTermId: chrome.theme.toDark }
+  ui.themeLight: { glyph: "☀", labelTermId: chrome.theme.toLight }
   ui.sortAsc: { glyph: "▲", label: Sorted ascending }
   ui.sortDesc: { glyph: "▼", label: Sorted descending }
 

@@ -200,14 +200,49 @@ type Metric struct {
 	ShowInLeaderboard bool     `yaml:"showInLeaderboard"`
 	Framing           string   `yaml:"framing"`
 	DenominatorOf     string   `yaml:"denominatorOf"`
+	// ComplementOf names a metric this one is the arithmetic complement of:
+	// downtime is what is left of a hundred per cent after availability.
+	//
+	// The point is the target. A complement's target is DERIVED from the other
+	// metric's, so declaring "availability should reach 99.5%" and "downtime
+	// should stay under 0.5%" cannot become two numbers that disagree — which is
+	// what happens the first time somebody raises one and forgets the other. Set
+	// target on the metric being complemented, never on the complement.
+	ComplementOf string `yaml:"complementOf"`
+}
+
+// Complement returns the value of a metric that is the complement of v.
+//
+// Percentages only, because a complement is only meaningful against a known
+// whole and a hundred per cent is the only whole this vocabulary has.
+func Complement(v float64) float64 { return 100 - v }
+
+// ResolvedTarget is the metric's target, derived if it is a complement.
+//
+// Callers must use this rather than reading Target directly, or a complement will
+// appear to have no target at all.
+func (d Domain) ResolvedTarget(m Metric) *float64 {
+	if m.ComplementOf == "" {
+		return m.Target
+	}
+	for _, other := range d.Metrics {
+		if other.ID == m.ComplementOf && other.Target != nil {
+			t := Complement(*other.Target)
+			return &t
+		}
+	}
+	return nil
 }
 
 // Metric field names, matching model.Service.Metrics.
 const (
 	FieldAvailability = "availability"
-	FieldErrorRate    = "errorRate"
-	FieldLatencyP50   = "latencyP50"
-	FieldVolume       = "volume"
+	// FieldDowntime is derived, not stored: no source reports it, and a source
+	// that did could disagree with the availability beside it.
+	FieldDowntime   = "downtime"
+	FieldErrorRate  = "errorRate"
+	FieldLatencyP50 = "latencyP50"
+	FieldVolume     = "volume"
 )
 
 // Metric units.
@@ -352,12 +387,88 @@ type Icons struct {
 	Icons map[string]Icon `yaml:"icons"`
 }
 
-// Icon is either a text glyph or inline SVG markup. Label is the accessible
-// name used when the icon carries meaning on its own.
+// Icon is either a text glyph or inline SVG markup.
+//
+// LabelTermID is the accessible name, used where the icon carries meaning on its
+// own rather than sitting beside text that already says it. It is a term id, not
+// a string, because that name is what a screen reader announces — and a literal
+// here announced English to every reader in every language, including the ones
+// whose page is otherwise entirely translated.
+//
+// Label remains for the literal form. It is deprecated and validation says so,
+// but it still works: an integrator upgrading should not have their dashboard
+// stop starting over an accessible name.
 type Icon struct {
-	Glyph string `yaml:"glyph"`
-	SVG   string `yaml:"svg"`
-	Label string `yaml:"label"`
+	Glyph       string `yaml:"glyph"`
+	SVG         string `yaml:"svg"`
+	LabelTermID string `yaml:"labelTermId"`
+	Label       string `yaml:"label"`
+}
+
+// --- chrome.yaml -----------------------------------------------------------
+
+// Chrome is the page furniture: the header bar and what sits in it.
+//
+// It exists because the header used to be a fixed struct in Go with a fixed
+// template beside it, so a deployment could restyle the whole dashboard and
+// rearrange every section of the page — and still not add a link to its own
+// service desk, or remove a language switcher it did not need. The bar a reader
+// sees on every page was the one part of the product they could not touch.
+type Chrome struct {
+	Header ChromeBar `yaml:"header"`
+}
+
+// ChromeBar is an ordered list of items. Order is the order they appear.
+type ChromeBar struct {
+	Items []ChromeItem `yaml:"items"`
+}
+
+// ChromeKind names what an item is. A closed set, because each kind is a piece of
+// behaviour — a control that submits, a toggle that writes a cookie — and not
+// something that can be described generically in YAML.
+type ChromeKind string
+
+const (
+	// ChromeWordmark is the brand mark and name, linking home.
+	ChromeWordmark ChromeKind = "wordmark"
+	// ChromeScopeSwitch is the scope control, one segment per configured scope.
+	ChromeScopeSwitch ChromeKind = "scope-switch"
+	// ChromeSelect is a labelled dropdown bound to a named piece of reader state.
+	ChromeSelect ChromeKind = "select"
+	// ChromeThemeToggle switches between light and dark.
+	ChromeThemeToggle ChromeKind = "theme-toggle"
+	// ChromeLink is an arbitrary link: a service desk, an about page, a status
+	// history. The kind that makes this file worth having.
+	ChromeLink ChromeKind = "link"
+	// ChromeSpacer pushes everything after it to the far end of the bar.
+	ChromeSpacer ChromeKind = "spacer"
+)
+
+// ChromeKinds is every kind, for validation and for the generated schema.
+var ChromeKinds = []string{
+	string(ChromeWordmark), string(ChromeScopeSwitch), string(ChromeSelect),
+	string(ChromeThemeToggle), string(ChromeLink), string(ChromeSpacer),
+}
+
+// ChromeStates are the pieces of reader state a select may be bound to.
+var ChromeStates = []string{"period", "locale"}
+
+// ChromeItem is one item in the bar.
+type ChromeItem struct {
+	Kind ChromeKind `yaml:"kind"`
+	// State names what a select changes. Required for select, meaningless
+	// otherwise.
+	State string `yaml:"state"`
+	// TermID is the label. Required for link; a select falls back to the
+	// conventional term for its state.
+	TermID string `yaml:"termId"`
+	// Href is where a link goes.
+	Href string `yaml:"href"`
+	// External marks a link as leaving the site, which adds rel="noopener" and
+	// the new-tab indicator.
+	External bool `yaml:"external"`
+	// IconKey is an icon from icons.yaml, shown before the label.
+	IconKey string `yaml:"iconKey"`
 }
 
 // --- assembled -------------------------------------------------------------
@@ -369,4 +480,5 @@ type Config struct {
 	Domain Domain
 	Theme  Theme
 	Icons  Icons
+	Chrome Chrome
 }

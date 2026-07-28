@@ -9,18 +9,31 @@
       hx-get="/fragments/leaderboard" hx-target="#leaderboard" hx-swap="outerHTML"
       hx-push-url="true" hx-trigger="submit, change from:select, input delay:250ms from:input[type=search]">
 
+  {{/* aria-expanded comes from the request, not from a literal. It was
+       hardcoded false, and a filter change replaces this whole section — so on a
+       narrow screen the panel collapsed itself every time the reader used it,
+       and they had to reopen it to make a second change. The state rides in the
+       URL like every other piece, so a shared link reopens it too. */}}
+  <input type="hidden" name="filters" value="{{if .Expanded}}open{{else}}{{end}}" data-dpi-disclosure-state>
   <button class="filter-toggle" type="button" data-dpi-disclosure="filter-body"
-          aria-expanded="false" aria-controls="filter-body">
+          aria-expanded="{{if .Expanded}}true{{else}}false{{end}}" aria-controls="filter-body">
     {{.SearchLabel}}{{if .AppliedCount}} ({{.AppliedCount}}){{end}}
   </button>
 
   <div class="filter-body" id="filter-body">
     <div class="filter-row">
-      <input class="search" type="search" name="q" value="{{.Search}}"
+      {{/* The id is load-bearing, not decoration: htmx restores focus and
+           selection after a swap only for an element that has one, and this
+           input is replaced on every keystroke by its own debounced filter.
+           Without it, typing a word loses the caret partway through. */}}
+      <input id="lb-search" class="search" type="search" name="q" value="{{.Search}}"
              placeholder="{{.SearchLabel}}" aria-label="{{.SearchLabel}}">
 
       {{if .Regions}}
-      <select name="region" aria-label="region"{{if not .RegionEnabled}} disabled{{end}}>
+      {{/* The name comes from config like every other. It was the literal
+           "region", in English, and it is an accessible name — the one string on
+           this control anybody using a screen reader hears. */}}
+      <select name="region" aria-label="{{.RegionLabel}}"{{if not .RegionEnabled}} disabled{{end}}>
         {{range .Regions}}<option value="{{.Value}}"{{if .Active}} selected{{end}}>{{.Label}}</option>{{end}}
       </select>
       {{end}}
@@ -52,7 +65,10 @@
     </fieldset>
 
     <div class="filter-foot">
-      <p class="muted" aria-live="polite">{{.ResultText}}</p>
+      {{/* Visible here, announced from #a11y-status in the page shell — this
+           node is inside the swapped fragment, so a live region on it would be
+           replaced rather than updated and never announce. */}}
+      <p class="muted" data-dpi-announce>{{.ResultText}}</p>
       <noscript><button class="btn" type="submit">{{.ApplyLabel}}</button></noscript>
       {{if .ClearVisible}}
       <a class="link" href="/" hx-get="/fragments/leaderboard" hx-target="#leaderboard"
@@ -87,7 +103,7 @@
              hx-get="/fragments/leaderboard?sort={{.Key}}&dir={{.NextDir}}"
              hx-target="#leaderboard" hx-swap="outerHTML" hx-push-url="true"
              hx-include="[data-dpi-filters]">
-            {{.Label}}
+            {{.Label}}{{if .Sorted}} {{template "icon" .SortIcon}}{{end}}
           </a>
         </th>
         {{end}}
@@ -95,13 +111,18 @@
     </thead>
     <tbody>
       {{range .Rows}}
-      {{/* The whole row is the target, since a reader aiming at a service
-           should not have to hit the name exactly. The name is still a real
-           link inside it, so keyboard and screen-reader users get a focusable
-           element rather than a row that only a mouse can reach. */}}
-      <tr class="lb-row" data-dpi-row-link="/service/{{.ID}}"
-          hx-get="/fragments/service/{{.ID}}" hx-target="#drawer-host"
-          hx-swap="innerHTML" hx-push-url="/service/{{.ID}}" hx-trigger="click">
+      {{/* The whole row is clickable, since a reader aiming at a service should
+           not have to hit the name exactly — but the request belongs to the
+           link, not the row.
+
+           The row used to carry the hx-* attributes itself, which gave the
+           service two different behaviours: a mouse click swapped the drawer in,
+           while a keyboard user, who can only reach the link, got a full page
+           navigation. It also meant the thing that opened the drawer was a <tr>,
+           which cannot hold focus, so there was nowhere to send focus back to on
+           close. Now the link is the single path and the row simply forwards to
+           it. */}}
+      <tr class="lb-row" data-dpi-row-link>
         {{range .Cells}}{{template "lb-cell" .}}{{end}}
       </tr>
       {{end}}
@@ -140,12 +161,20 @@
 <td data-align="{{.Align}}">
   {{if eq .Kind "rank"}}
     <span class="tnum">{{.Rank}}</span>
-    <span class="rank-move" title="{{.RankMoveLabel}}" aria-label="{{.RankMoveLabel}}">
+    {{/* aria-label is only honoured on elements with a role, so on a bare span
+         it is silently dropped and the movement goes unannounced. Real text,
+         visually hidden, is announced by every screen reader and needs no
+         role at all. */}}
+    <span class="rank-move">
       {{template "icon" .RankMove}}
+      <span class="sr-only">{{.RankMoveLabel}}</span>
     </span>
 
   {{else if eq .Kind "name"}}
-    <a class="lb-name" href="{{.Href}}">
+    {{/* The one path to the drawer, for pointer and keyboard alike. */}}
+    <a class="lb-name" href="{{.Href}}"
+       hx-get="{{.FragmentHref}}" hx-target="#drawer-host"
+       hx-swap="innerHTML" hx-push-url="{{.Href}}">
       <span class="lb-title">{{.Name}}</span>
       <span class="lb-desc muted">{{.Description}}</span>
       <span class="lb-meta-line muted">

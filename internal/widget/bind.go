@@ -196,6 +196,11 @@ type State struct {
 	Categories []string
 	DrawerID   string
 	DrawerTab  string
+	// FiltersOpen carries whether the narrow-screen filter panel is showing. It
+	// is reader state like any other, so it rides in the URL: the panel used to
+	// re-collapse on every filter change, because the fragment that replaced it
+	// carried a hardcoded aria-expanded="false".
+	FiltersOpen bool
 }
 
 // TextResolver turns a term id into displayable text.

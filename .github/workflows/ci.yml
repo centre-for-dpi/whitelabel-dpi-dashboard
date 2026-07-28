@@ -1,0 +1,199 @@
+# The pipeline.
+#
+# Four jobs, in the order they can fail fastest: the cheap gates, then the
+# accessibility suite that needs a browser, then the image, then publishing.
+# Nothing is published that has not been built and proven to serve — a successful
+# `docker build` says the binary compiled, not that the container works, and those
+# are different claims.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  # So a broken publish can be retried without an empty commit.
+  workflow_dispatch:
+
+# The default token is read-only; publishing needs packages:write, granted per job
+# rather than here so the test jobs cannot push anything.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Matches the toolchain in go.mod and the Dockerfile. One place to bump.
+  GO_VERSION: "1.26"
+  IMAGE: ghcr.io/${{ github.repository }}
+
+jobs:
+  check:
+    name: lint, generate, test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      # One line, because the Makefile already owns what CI runs. Reimplementing
+      # the steps here is how a workflow and a `make ci` drift until only one of
+      # them is true — and the one a contributor runs locally is the other one.
+      #
+      # This is lint, static (a cgo-free build, which the scratch image needs),
+      # drift, validate (the contrast gate), test and cover.
+      - name: make ci
+        run: make ci
+
+      # The browser suite is a module of its own, so `./...` in the root does not
+      # reach it and it would rot unnoticed until someone ran it.
+      - name: vet the accessibility module
+        working-directory: test/a11y
+        run: |
+          test -z "$(gofmt -l .)" || { gofmt -l .; echo "run gofmt -w test/a11y"; exit 1; }
+          go vet -tags a11y ./...
+
+      # Belt and braces over `make test`, which does not use either: -race finds
+      # the data race a sequential run cannot, and -shuffle finds the test that
+      # only passes because another ran first.
+      - name: test again, with the race detector and shuffled
+        run: go test -race -shuffle=on ./...
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: .coverage/cover.out
+          retention-days: 14
+
+  accessibility:
+    name: accessibility (axe-core in Chrome)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      # The suite skips itself when there is no browser, which is right on a
+      # developer's machine and wrong here: a skipped accessibility suite reports
+      # success without checking anything. CI is set by the runner, which makes
+      # the suite fail rather than skip, and this asserts the browser is there
+      # before we get that far.
+      - name: a browser is available
+        run: |
+          for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
+            if command -v "$candidate" >/dev/null 2>&1; then
+              "$candidate" --version
+              exit 0
+            fi
+          done
+          echo "::error::no Chrome on the runner; the accessibility suite cannot run"
+          exit 1
+
+      - name: axe-core across the matrix, plus the keyboard and focus assertions
+        run: make a11y-report SHOTS="$PWD/.a11y-shots"
+
+      # The evidence for the conformance claim in docs/accessibility.md. Kept on
+      # failure especially, because a screenshot of the state that failed is
+      # usually the fastest way to see why.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: accessibility-screenshots
+          path: .a11y-shots/
+          retention-days: 14
+
+  image:
+    name: image builds and serves
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Single-architecture here, because this job proves the container works and
+      # you cannot run an arm64 image on an amd64 runner without emulation. The
+      # multi-architecture build happens at publish time.
+      - name: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: ci-local:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # smoke-image rather than image-smoke: the image is already built above, and
+      # a target that rebuilt would test something other than what was built.
+      - name: it serves
+        run: make smoke-image IMAGE=ci-local TAG=latest
+
+  publish:
+    name: publish to ghcr
+    # Only after everything else has passed. This is the job whose absence meant
+    # `docker run ghcr.io/...` had never been able to work: the image the README
+    # advertises was never built by anything.
+    needs: [check, accessibility, image]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      # For build provenance, so a consumer can verify where the image came from.
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          # latest tracks main, so the README's `docker run` works; a version tag
+          # also publishes its own immutable tags for anyone who wants to pin.
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,format=long
+
+      # arm64 as well as amd64: Apple Silicon and Graviton are both common enough
+      # that an amd64-only image means `docker run` is slow or fails outright.
+      # The Dockerfile cross-compiles rather than building under QEMU, so this
+      # costs almost nothing for a pure-Go binary.
+      - id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: attest provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true

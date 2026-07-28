@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"gopkg.in/yaml.v3"
+
+	"github.com/centre-for-dpi/whitelabel-dpi-dashboard/internal/a11y"
 )
 
 // validator accumulates located errors while walking a decoded config.
@@ -77,6 +79,7 @@ func validate(cfg Config, nodes map[string]*yaml.Node) Errors {
 	slices.Sort(iconKeys) // deterministic error text
 
 	v.validateIcons(cfg.Icons)
+	v.validateChrome(cfg.Chrome, cfg.Icons)
 	v.validateApp(cfg.App)
 	v.validateBrand(cfg.Brand, iconKeys)
 	v.validateDomain(cfg.Domain, iconKeys)
@@ -105,6 +108,12 @@ func (v *validator) validateIcons(ic Icons) {
 		}
 		if i.Glyph != "" && i.SVG != "" {
 			v.errKey(f, []any{"icons"}, k, "icon %q sets both glyph and svg; set exactly one", k)
+		}
+		// Both would be ambiguous about which one is announced, and the answer
+		// would be invisible until a screen reader read the wrong one.
+		if i.Label != "" && i.LabelTermID != "" {
+			v.errKey(f, []any{"icons"}, k,
+				"icon %q sets both label and labelTermId; keep labelTermId, which is translated", k)
 		}
 	}
 }
@@ -260,7 +269,7 @@ func (v *validator) validateTaxonomy(d Domain, iconKeys []string) []string {
 func (v *validator) validateMetrics(d Domain) []string {
 	const f = FileDomain
 
-	fields := []string{FieldAvailability, FieldErrorRate, FieldLatencyP50, FieldVolume}
+	fields := []string{FieldAvailability, FieldDowntime, FieldErrorRate, FieldLatencyP50, FieldVolume}
 	units := []string{UnitPercent, UnitMillisecond, UnitCount}
 	directions := []string{DirectionHigherIsBetter, DirectionLowerIsBetter, DirectionNeutral}
 
@@ -285,7 +294,15 @@ func (v *validator) validateMetrics(d Domain) []string {
 		// A metric with neither a target nor a framing has nothing to say
 		// beyond its raw number, and the demo deliberately declines to render
 		// one. Catching it here beats a silently blank tile.
-		if m.Target == nil && m.Framing == "" && m.ShowInLeaderboard {
+		// A complement takes its target from the metric it complements, so it
+		// legitimately declares none of its own — and declaring one would be the
+		// second number that eventually disagrees with the first.
+		if m.ComplementOf != "" && m.Target != nil {
+			v.errf(f, append(p, "target"),
+				"metric %q is the complement of %q, so its target is derived; remove this one or the two will disagree",
+				m.ID, m.ComplementOf)
+		}
+		if m.Target == nil && m.Framing == "" && m.ComplementOf == "" && m.ShowInLeaderboard {
 			v.errf(f, p, "metric %q is shown in the leaderboard but has neither a target nor a framing, so it has no context to render", m.ID)
 		}
 	}
@@ -294,6 +311,36 @@ func (v *validator) validateMetrics(d Domain) []string {
 	}
 
 	// Resolved in a second pass so that forward references are legal.
+	for i, m := range d.Metrics {
+		if m.ComplementOf == "" {
+			continue
+		}
+		p := []any{"metrics", i, "complementOf"}
+		if m.ComplementOf == m.ID {
+			v.errf(f, p, "metric %q is declared as its own complement", m.ID)
+			continue
+		}
+		if !slices.Contains(metricIDs, m.ComplementOf) {
+			v.errf(f, p, "unknown metric %q; expected one of %v", m.ComplementOf, metricIDs)
+			continue
+		}
+		// A complement of a metric that is not a percentage has no whole to be
+		// the remainder of.
+		for _, other := range d.Metrics {
+			if other.ID != m.ComplementOf {
+				continue
+			}
+			if other.Unit != UnitPercent || m.Unit != UnitPercent {
+				v.errf(f, p, "a complement and the metric it complements must both be percentages; %q is %q and %q is %q",
+					m.ID, m.Unit, other.ID, other.Unit)
+			}
+			if other.Target == nil && m.ShowInLeaderboard {
+				v.errf(f, p, "metric %q derives its target from %q, which has none, so it would render with no context",
+					m.ID, m.ComplementOf)
+			}
+		}
+	}
+
 	for i, m := range d.Metrics {
 		if m.DenominatorOf != "" && !slices.Contains(metricIDs, m.DenominatorOf) {
 			v.errf(f, []any{"metrics", i, "denominatorOf"}, "unknown metric %q", m.DenominatorOf)
@@ -480,6 +527,15 @@ func (v *validator) validateTheme(t Theme) {
 			}
 			v.checkCSSValue([]any{mode.name, name}, "token value", mode.tokens[name])
 		}
+
+		// WCAG contrast. A white-label dashboard hands its palette to every
+		// deployment, so this is the only moment anyone can be sure the
+		// combinations the templates actually produce are legible. Reported
+		// against the offending token so the reader is taken to the line they
+		// have to change, not to the pair.
+		for _, finding := range a11y.Check(mode.name, mode.tokens) {
+			v.errKey(f, []any{mode.name}, finding.Fg, "%s", finding)
+		}
 	}
 
 	for _, name := range sortedKeys(t.Tokens) {
@@ -535,4 +591,87 @@ func sortedKeys(m map[string]string) []string {
 	}
 	slices.Sort(out)
 	return out
+}
+
+// validateChrome checks the header bar.
+//
+// Every problem here is one that would otherwise be silent: an unknown kind
+// rendering nothing, a select bound to state that does not exist rendering an
+// empty dropdown, a link with no destination rendering an anchor that goes
+// nowhere. A bar item that quietly does not appear is the hardest kind of
+// configuration bug to notice, because the page still looks finished.
+func (v *validator) validateChrome(c Chrome, icons Icons) {
+	const f = FileChrome
+
+	if len(c.Header.Items) == 0 {
+		v.errf(f, []any{"header", "items"},
+			"the header has no items; a bar with nothing in it is more likely a mistake than a choice")
+		return
+	}
+
+	seen := map[ChromeKind]int{}
+	for i, item := range c.Header.Items {
+		p := []any{"header", "items", i}
+
+		if !slices.Contains(ChromeKinds, string(item.Kind)) {
+			v.errf(f, p, "unknown item kind %q; expected one of %s",
+				item.Kind, strings.Join(ChromeKinds, ", "))
+			continue
+		}
+		seen[item.Kind]++
+
+		switch item.Kind {
+		case ChromeSelect:
+			if item.State == "" {
+				v.errf(f, p, "a select must name the state it changes; expected one of %s",
+					strings.Join(ChromeStates, ", "))
+			} else if !slices.Contains(ChromeStates, item.State) {
+				v.errf(f, append(p, "state"), "unknown state %q; expected one of %s",
+					item.State, strings.Join(ChromeStates, ", "))
+			}
+		case ChromeLink:
+			if item.TermID == "" {
+				v.errf(f, p, "a link needs a termId, or it renders with no text to click")
+			}
+			if item.Href == "" {
+				v.errf(f, p, "a link needs an href, or it renders as an anchor that goes nowhere")
+			}
+		default:
+			// Kinds that take no configuration should not be given any, or the
+			// author is left believing they changed something.
+			if item.State != "" {
+				v.errf(f, append(p, "state"), "%s takes no state", item.Kind)
+			}
+			if item.Href != "" {
+				v.errf(f, append(p, "href"), "%s takes no href", item.Kind)
+			}
+		}
+
+		if item.IconKey != "" {
+			if _, ok := icons.Icons[item.IconKey]; !ok {
+				v.errf(f, append(p, "iconKey"), "unknown icon %q; it is not declared in %s",
+					item.IconKey, FileIcons)
+			}
+		}
+	}
+
+	// These carry reader state that the whole page depends on, and two of either
+	// would put the same control on the bar twice with no way to tell which one
+	// won.
+	for _, kind := range []ChromeKind{ChromeScopeSwitch, ChromeThemeToggle, ChromeWordmark} {
+		if seen[kind] > 1 {
+			v.errf(f, []any{"header", "items"}, "%s appears %d times; it may appear at most once", kind, seen[kind])
+		}
+	}
+	for _, state := range ChromeStates {
+		n := 0
+		for _, item := range c.Header.Items {
+			if item.Kind == ChromeSelect && item.State == state {
+				n++
+			}
+		}
+		if n > 1 {
+			v.errf(f, []any{"header", "items"}, "two selects both change %q", state)
+		}
+	}
 }

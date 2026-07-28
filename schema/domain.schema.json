@@ -22,6 +22,9 @@
       "items": {
         "additionalProperties": false,
         "properties": {
+          "complementOf": {
+            "type": "string"
+          },
           "denominatorOf": {
             "type": "string"
           },

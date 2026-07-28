@@ -1,6 +1,7 @@
 package widget
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 	"strconv"
@@ -10,6 +11,7 @@ import (
 	"github.com/centre-for-dpi/whitelabel-dpi-dashboard/internal/chart"
 	"github.com/centre-for-dpi/whitelabel-dpi-dashboard/internal/config"
 	"github.com/centre-for-dpi/whitelabel-dpi-dashboard/internal/model"
+	"github.com/centre-for-dpi/whitelabel-dpi-dashboard/internal/prose"
 	"github.com/centre-for-dpi/whitelabel-dpi-dashboard/internal/query"
 	"github.com/centre-for-dpi/whitelabel-dpi-dashboard/internal/rules"
 )
@@ -25,7 +27,7 @@ func Default() *Registry {
 		coverageDef(), timestampDef(), disclosureDef(), ctaButtonDef(),
 		signalCardsDef(), filterBarDef(), leaderboardDef(),
 		statTileDef(), sparklineDef(), barChartDef(), barListDef(),
-		timelineDef(), dataTableDef(),
+		timelineDef(), dataTableDef(), proseDef(),
 	} {
 		r.Register(d)
 	}
@@ -500,6 +502,12 @@ type FilterBarView struct {
 	// on screen shows them — an Arabic screen-reader user heard "status".
 	StatusLegend   string
 	CategoryLegend string
+	// RegionLabel names the region selector. It was the literal string "region",
+	// in English, on a page translated into eight languages — and it is an
+	// accessible name, so it is the one string on that control anybody hears.
+	RegionLabel string
+	// Expanded is whether the narrow-screen panel is showing.
+	Expanded bool
 }
 
 func filterBarDef() Definition {
@@ -514,6 +522,7 @@ func filterBarDef() Definition {
 		"clearTermId":          {Kind: KindString, Default: "flt.clear", Doc: "Label for the clear-filters link."},
 		"statusLegendTermId":   {Kind: KindString, Default: "flt.status", Doc: "Screen-reader name for the status chip group."},
 		"categoryLegendTermId": {Kind: KindString, Default: "flt.category", Doc: "Screen-reader name for the category chip group."},
+		"regionLabelTermId":    {Kind: KindString, Default: "flt.region", Doc: "Screen-reader name for the region selector."},
 	}
 	return Definition{
 		Type: "filter-bar", Template: "filter-bar", Schema: schema,
@@ -525,6 +534,10 @@ func filterBarDef() Definition {
 			v := FilterBarView{
 				Search:      c.State.Search,
 				ResultCount: len(c.Filtered),
+				Expanded:    c.State.FiltersOpen,
+			}
+			if term := o.String(schema, "regionLabelTermId"); term != "" {
+				v.RegionLabel = c.Text.Text(term, nil)
 			}
 			if term := o.String(schema, "searchTermId"); term != "" {
 				v.SearchLabel = c.Text.Text(term, nil)
@@ -605,6 +618,10 @@ type Column struct {
 	Sorted  bool
 	Dir     string
 	NextDir string
+	// SortIcon shows which way the sorted column is sorted. aria-sort tells a
+	// screen reader; nothing was telling anyone looking at the screen, so the
+	// two glyphs icons.yaml has always declared for this went unused.
+	SortIcon Icon
 }
 
 // Cell is one measurement in a row.
@@ -643,8 +660,12 @@ type RowCell struct {
 	// Name.
 	Name string
 	// Href is the service's own address, so the name is a real focusable link
-	// inside a row that is otherwise only clickable.
+	// inside a row that is otherwise only clickable. FragmentHref is the same
+	// service as a drawer fragment: the link carries both, so a pointer and a
+	// keyboard open the drawer by the same route and a reader without script
+	// still gets the full page.
 	Href         string
+	FragmentHref string
 	Description  string
 	Category     string
 	CategoryIcon Icon
@@ -763,6 +784,14 @@ func leaderboardDef() Definition {
 					if c.State.Dir == query.Asc {
 						col.NextDir = query.Desc
 					}
+					// The icon depicts the current order, not the order clicking
+					// would produce: it is a status, and aria-sort beside it says
+					// the same thing to a reader who cannot see it.
+					if col.Dir == query.Asc {
+						col.SortIcon = c.Icons.Icon("ui.sortAsc")
+					} else {
+						col.SortIcon = c.Icons.Icon("ui.sortDesc")
+					}
 				} else {
 					col.NextDir = query.DefaultDirection(key)
 				}
@@ -826,6 +855,7 @@ func buildRow(c Context, sv model.Service, keys []string) Row {
 				Align:        "start",
 				Name:         r.Name,
 				Href:         "/service/" + sv.ID,
+				FragmentHref: "/fragments/service/" + sv.ID,
 				Description:  c.Text.Text(sv.DescTermID, nil),
 				Category:     c.Text.Text(sv.CategoryID, nil),
 				CategoryIcon: c.Icons.Icon(categoryIcon(d, sv.CategoryID)),
@@ -875,7 +905,9 @@ func buildCell(c Context, sv model.Service, m config.Metric) Cell {
 	st := c.View.Standing(sv)
 
 	cell := Cell{}
-	if m.Field == config.FieldAvailability && !st.Availability.Valid {
+	// Downtime is derived from availability, so an absent availability leaves it
+	// just as unknown as availability itself.
+	if !st.Availability.Valid && (m.Field == config.FieldAvailability || m.Field == config.FieldDowntime) {
 		// "Not reported" and "zero" are different claims, and only one of them
 		// is true here.
 		cell.Unknown = true
@@ -884,9 +916,17 @@ func buildCell(c Context, sv model.Service, m config.Metric) Cell {
 	}
 
 	cell.Value = formatMetric(c, m, st)
-	if m.Target != nil {
-		cell.Target = c.Text.Text("metric.target", map[string]any{
-			"v": formatValue(c, m, *m.Target),
+	// ResolvedTarget rather than m.Target, or a complement renders with no target
+	// at all — the number it is measured against lives on the metric it
+	// complements.
+	if target := c.Config.Domain.ResolvedTarget(m); target != nil {
+		// A lower-is-better metric is measured against a ceiling, not a goal.
+		term := "metric.target"
+		if m.Direction == config.DirectionLowerIsBetter {
+			term = "metric.targetMax"
+		}
+		cell.Target = c.Text.Text(term, map[string]any{
+			"v": formatValue(c, m, *target),
 		})
 	}
 
@@ -925,6 +965,8 @@ func formatMetric(c Context, m config.Metric, st query.Standing) string {
 	switch m.Field {
 	case config.FieldAvailability:
 		return formatValue(c, m, st.Availability.Value)
+	case config.FieldDowntime:
+		return formatValue(c, m, config.Complement(st.Availability.Value))
 	case config.FieldErrorRate:
 		return formatValue(c, m, st.ErrorRate)
 	case config.FieldLatencyP50:
@@ -1419,4 +1461,50 @@ func withDuration(params map[string]any, formatted string) map[string]any {
 	}
 	out["duration"] = formatted
 	return out
+}
+
+// --- prose -----------------------------------------------------------------
+
+// ProseView is a block of configured body copy.
+//
+// Spans rather than a string, because the copy needs particular words picked out
+// and a locale file must never be able to supply markup. internal/prose parses
+// the closed vocabulary into these, and the template renders elements — so
+// nothing config supplies ever reaches the browser as HTML.
+type ProseView struct {
+	Class      string
+	Paragraphs [][]prose.Span
+}
+
+func proseDef() Definition {
+	schema := OptionSchema{
+		"termIds": {Kind: KindStringList, Required: true,
+			Doc: "Term ids, one per paragraph, rendered in order."},
+		"class": {Kind: KindString,
+			Doc: "Extra class, e.g. \"lede\"."},
+	}
+	return Definition{
+		Type: "prose", Template: "prose", Schema: schema,
+		Doc: "Body copy from the locale files. Each term may use <strong>, <em> and " +
+			"<mark tone=\"…\"> to pick out words; nothing else is allowed.",
+		Validate: func(o Options, _ Bind, _ ValidationContext) []error {
+			if len(o.StringList(schema, "termIds")) == 0 {
+				return []error{errors.New("prose has no termIds, so it would render nothing")}
+			}
+			return nil
+		},
+		Build: func(c Context, o Options) (any, error) {
+			v := ProseView{Class: o.String(schema, "class")}
+			for _, id := range o.StringList(schema, "termIds") {
+				spans, err := prose.Parse(c.Text.Text(id, nil))
+				if err != nil {
+					// Named so the reader knows which locale entry to fix, in a
+					// file the error cannot point a line at.
+					return nil, fmt.Errorf("term %q: %w", id, err)
+				}
+				v.Paragraphs = append(v.Paragraphs, spans)
+			}
+			return v, nil
+		},
+	}
 }

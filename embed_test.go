@@ -28,8 +28,8 @@ func TestShippedConfigIsValid(t *testing.T) {
 	if got := len(cfg.Domain.Taxonomy.Providers); got != 20 {
 		t.Errorf("got %d providers, want the demo's 20", got)
 	}
-	if got := len(cfg.Domain.Metrics); got != 4 {
-		t.Errorf("got %d metrics, want the demo's 4", got)
+	if got := len(cfg.Domain.Metrics); got != 5 {
+		t.Errorf("got %d metrics, want the demo's 5", got)
 	}
 	if got := len(cfg.Domain.Signals); got != 4 {
 		t.Errorf("got %d signals, want the demo's 4", got)

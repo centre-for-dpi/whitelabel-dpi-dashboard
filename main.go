@@ -211,7 +211,7 @@ func build(o options) (*app, error) {
 		Registry: registry,
 		Renderer: renderer,
 		Locales:  locales,
-		Icons:    render.NewIcons(cfg.Icons),
+		Icons:    cfg.Icons,
 		Source:   src,
 		Static:   webFS,
 		Log:      log,

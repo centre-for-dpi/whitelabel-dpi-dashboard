@@ -19,6 +19,8 @@ footer:
   - termId: footer.cdpi
     href: https://cdpi.dev/
     external: true
-  - termId: footer.source
+  # The same attribution the verdict section carries, so the sentence is
+  # translated once rather than twice.
+  - termId: verdict.source
     href: https://directory.apisetu.gov.in/
     external: true

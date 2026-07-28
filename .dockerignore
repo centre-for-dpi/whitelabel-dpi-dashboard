@@ -1,0 +1,37 @@
+# What the image build does not need.
+#
+# Without this, `COPY . .` sends the whole working tree to the daemon — the git
+# history, a coverage profile that is several megabytes, the accessibility
+# screenshots, and the design prototype. None of it reaches the binary, but all of
+# it is transferred on every build and any change to any of it invalidates the
+# layer cache. A rebuild after running `make cover` would miss the cache entirely.
+
+.git
+.gitignore
+.github
+
+# Test and audit output.
+.coverage
+.a11y-shots
+coverage.out
+*.test
+
+# The design source of truth, which is half a megabyte and not part of the
+# product. See docs/design-walkthrough.md.
+index.html
+
+# The browser accessibility suite: its own module, needs a Chrome, and cannot be
+# reached from the binary.
+test
+
+# Build output that would otherwise be copied in and then overwritten.
+whitelabel-dpi-dashboard
+whitelabel-dpi-dashboard-*
+
+# Documentation and local compose files.
+docs
+README.md
+LICENSE
+docker-compose*.yml
+Dockerfile
+.dockerignore

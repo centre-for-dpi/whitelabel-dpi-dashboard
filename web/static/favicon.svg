@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Service status">
+  <!-- The half-filled disc of the brand mark. currentColor is not available to a
+       favicon, so the two theme anchors are inlined; this is the one asset that
+       cannot read from theme.yaml. -->
+  <rect width="32" height="32" rx="7" fill="#3D5A5B"/>
+  <circle cx="16" cy="16" r="8" fill="none" stroke="#FAF9F5" stroke-width="2.5"/>
+  <path d="M16 8a8 8 0 0 0 0 16z" fill="#FAF9F5"/>
+</svg>

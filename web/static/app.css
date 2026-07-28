@@ -67,6 +67,15 @@ button, input, select { font: inherit; color: inherit; }
 }
 
 .controls { display: flex; align-items: center; gap: 12px; margin-inline-start: auto; flex-wrap: wrap; }
+
+/* The bar is one flex row of whatever chrome.yaml lists. A spacer takes all the
+ * free space, which is how "everything after this goes to the far end" is
+ * expressed without the template knowing what is on either side of it — and it
+ * mirrors for right-to-left with no extra rule, because auto margins follow the
+ * writing direction. */
+.controls-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; width: 100%; }
+.chrome-spacer { flex: 1 1 auto; }
+.chrome-link { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; font-size: .82rem; color: var(--accent); }
 .field { display: inline-flex; align-items: center; gap: 6px; font-size: .82rem; }
 .field-label { color: var(--muted-fg); }
 
@@ -125,12 +134,22 @@ select:disabled { opacity: .5; cursor: not-allowed; }
 .w-summary { font-size: 1.02rem; margin: 0; }
 .w-summary.is-clear { color: var(--status-ok); }
 
-.w-bar { display: flex; height: 40px; max-width: 760px; border-radius: var(--radius-sm); overflow: hidden; }
+.w-bar {
+  display: flex; height: 40px; max-width: 760px;
+  border: 1px solid var(--border-strong); border-radius: var(--radius-sm); overflow: hidden;
+}
 .bar-seg {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   width: var(--w); min-width: 42px; font-size: .8rem;
   background: var(--status-bg); color: var(--status-fg);
 }
+/* The bar's proportions are its content, and the fills are pastels that cannot
+ * contrast with each other, so this hairline is the only thing making two
+ * touching segments read as two. That puts it under WCAG 1.4.11, which is why
+ * it uses --border-strong — the one token startup checks against every status
+ * fill — and why it is on the adjacent sibling rather than on every segment,
+ * which would double up against the container's own border. */
+.bar-seg + .bar-seg { border-inline-start: 1px solid var(--border-strong); }
 
 /* One rule maps every tone to its pair of tokens. Adding a status means adding
  * tokens, not editing selectors. */
@@ -147,10 +166,27 @@ select:disabled { opacity: .5; cursor: not-allowed; }
 .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--status-fg); }
 
 .w-timestamp, .w-coverage { margin: 0; font-size: .82rem; }
+
+/* Configured body copy. mark carries a status tone so a sentence explaining a
+ * verdict can be tinted to match it; the pair comes from the same tokens the
+ * chips use, which is why startup has already proved it legible. */
+.w-prose { max-width: 62ch; }
+.w-prose p { margin: 0 0 8px; line-height: 1.5; color: var(--muted-fg); }
+.w-prose p:last-child { margin-block-end: 0; }
+.w-prose strong { color: var(--fg); font-weight: 600; }
+.w-prose mark {
+  background: var(--status-bg, var(--border-subtle)); color: var(--fg);
+  padding: 0 .2em; border-radius: var(--radius-sm);
+  box-decoration-break: clone; -webkit-box-decoration-break: clone;
+}
 .w-timestamp.is-stale time { color: var(--status-partial); font-weight: 600; }
 
 .w-disclosure { font-size: .86rem; max-width: 70ch; }
-.w-disclosure summary { cursor: pointer; color: var(--muted-fg); }
+/* WCAG 2.2 SC 2.5.8 asks for 24x24 CSS px. A summary is as wide as its
+ * container, so only the height is ever in question, and inline-flex plus a
+ * min-height is what gives a one-line label a 24px box. The same reasoning
+ * applies to every small control below. */
+.w-disclosure summary { cursor: pointer; color: var(--muted-fg); display: inline-flex; align-items: center; min-height: 24px; }
 .w-disclosure ul { margin: 10px 0 0; padding-inline-start: 18px; color: var(--muted-fg); }
 .w-disclosure li { margin-block: 4px; }
 
@@ -188,7 +224,11 @@ select:disabled { opacity: .5; cursor: not-allowed; }
 .chip-cat { background: var(--card); color: var(--fg); border-color: var(--border-strong); }
 .chip-cat:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .chip-static { cursor: default; }
-.chip-count { opacity: .75; }
+/* The count is secondary to the label, but opacity is the wrong way to say so:
+ * it multiplies the text towards the background, and a chip colour chosen to
+ * clear 4.5:1 lands near 3:1 once dimmed. Weight and letter-spacing carry the
+ * same hierarchy without touching the contrast the palette was checked at. */
+.chip-count { font-weight: 400; font-variant-numeric: tabular-nums; }
 
 .filter-foot { display: flex; align-items: center; gap: 12px; }
 
@@ -202,7 +242,7 @@ select:disabled { opacity: .5; cursor: not-allowed; }
 .lb th { font-size: .74rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted-fg); font-weight: 600; }
 [data-align="end"] { text-align: end; }
 [data-align="start"] { text-align: start; }
-.th-sort { display: inline-flex; gap: 6px; align-items: center; }
+.th-sort { display: inline-flex; gap: 6px; align-items: center; min-height: 24px; }
 .lb-row { cursor: pointer; }
 .lb-row:hover { background: var(--hover-bg, var(--border-subtle)); }
 
@@ -215,19 +255,35 @@ select:disabled { opacity: .5; cursor: not-allowed; }
 .rank-move { font-size: .7rem; color: var(--muted-fg); margin-inline-start: 4px; }
 
 .lb-cards { display: none; list-style: none; padding: 0; margin: 0; gap: 10px; }
-.lb-card { display: flex; align-items: center; gap: 10px; }
-.lb-card-name { flex: 1; font-weight: 600; }
+/* Wraps rather than overflows. At 320 CSS px — the floor SC 1.4.10 sets — a
+ * rank, a service name, a status chip and a figure do not fit on one line, and
+ * a nowrap row here is what pushed the whole document into horizontal
+ * scrolling. min-width:0 on the name is what lets it be the part that gives. */
+.lb-card { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.lb-card-name { flex: 1 1 auto; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
 
 .empty { padding: 24px; text-align: center; border: 1px dashed var(--border-strong); border-radius: var(--radius-lg); color: var(--muted-fg); }
 
 /* --- drawer --------------------------------------------------------------- */
 
-.drawer { border: 0; padding: 0; margin: 0; max-width: none; max-height: none; width: 100%; height: 100%; background: transparent; }
+/* A dialog is display:none until it is opened, and only script can open it as a
+ * modal. So the default here is the no-script rendering — an ordinary section in
+ * the flow, which is what a shared /service/{id} link must still show — and the
+ * closed dialog is hidden only once the inline marker in <head> has proved that
+ * script is running to open it. */
+.drawer { display: block; border: 0; padding: 0; margin: 0; max-width: none; max-height: none; width: 100%; background: transparent; }
+html.js .drawer { height: 100%; }
+html.js .drawer:not([open]) { display: none; }
+
 .drawer::backdrop { background: rgb(0 0 0 / 42%); }
 .drawer-panel {
-  position: fixed; inset-block: 0; inset-inline-end: 0;
   width: min(560px, 100%); overflow-y: auto;
   background: var(--card); box-shadow: var(--shadow-lg);
+}
+/* Only pinned to the viewport edge when it is genuinely a modal overlay.
+ * Without script it is part of the document and must not cover it. */
+html.js .drawer-panel {
+  position: fixed; inset-block: 0; inset-inline-end: 0;
   animation: slide-in var(--dur) var(--ease);
 }
 @keyframes slide-in { from { transform: translateX(100%); } }
@@ -282,12 +338,13 @@ select:disabled { opacity: .5; cursor: not-allowed; }
 .stages li.is-last .stage-dot { background: var(--accent); }
 
 .w-datatable { margin-block-start: 12px; font-size: .8rem; }
-.w-datatable summary { cursor: pointer; color: var(--muted-fg); }
+.w-datatable summary { cursor: pointer; color: var(--muted-fg); display: inline-flex; align-items: center; min-height: 24px; }
 .w-datatable table { width: 100%; border-collapse: collapse; margin-block-start: 8px; }
 .w-datatable th, .w-datatable td { padding: 5px 8px; border-block-end: 1px solid var(--border-subtle); text-align: start; }
 
 .footer { border-block-start: 1px solid var(--border-subtle); padding-block: 20px; }
 .footer-inner { display: flex; gap: 18px; flex-wrap: wrap; font-size: .8rem; color: var(--muted-fg); }
+.footer-inner a { display: inline-flex; align-items: center; gap: 5px; min-height: 24px; }
 
 /* --- narrow screens -------------------------------------------------------- */
 
@@ -306,7 +363,60 @@ select:disabled { opacity: .5; cursor: not-allowed; }
   .w-bar[data-hide-below="480px"] { display: none; }
 }
 
-/* Motion is decoration here; nothing depends on it. */
+/* Motion is decoration here; nothing depends on it.
+ *
+ * This covers CSS only. Scripted scrolling has to consult the same media query
+ * itself, which app.js does in one place so it cannot drift from this rule. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+/* --- forced colours -------------------------------------------------------
+ *
+ * Windows High Contrast and its equivalents replace every colour in the page
+ * with a small system palette. Everything this dashboard says with a tone —
+ * status fills, the bar's proportions, the error class of a code, which stage of
+ * an incident is current — therefore stops being said, because all five fills
+ * composite to the same Canvas.
+ *
+ * The response is not forced-color-adjust: none, which would opt out of the
+ * reader's own settings. It is to restate in borders and shapes what the fills
+ * were saying, using the system keywords so the reader's palette still wins. */
+@media (forced-colors: active) {
+  /* Keep every segment's edges: without this the bar is one undivided block. */
+  .bar-seg { border: 1px solid CanvasText; }
+  .bar-seg + .bar-seg { border-inline-start-width: 2px; }
+
+  /* Chips, cards and controls keep a visible boundary. */
+  .chip, .card, .w-filters, .segmented, .icon-btn, .btn, .lb, .drawer { border: 1px solid CanvasText; }
+
+  /* The primary button paints its own background and its own foreground, so
+   * when the background is forced to Canvas and the foreground is not, the
+   * label disappears into it — 1.05:1. Naming both system colours is the only
+   * way to keep the pair legible whatever the reader's palette is. */
+  .btn, .btn-primary { background: ButtonFace; color: ButtonText; border-color: ButtonText; }
+
+  /* A selected chip or segment is distinguished by the system's highlight,
+   * which is the only pair guaranteed to be distinguishable. */
+  .chip:has(input:checked), .segment[aria-current="true"], [role="tab"][aria-selected="true"] {
+    background: Highlight; color: HighlightText; forced-color-adjust: none;
+  }
+
+  /* Dots and fills are pure colour, so they need an outline to exist at all. */
+  .dot, .stage-dot, .badge-open { outline: 1px solid CanvasText; }
+  .bl-fill { background: CanvasText; }
+
+  /* The focus ring must not inherit a colour the system has overridden away. */
+  :focus-visible { outline-color: Highlight; }
+}
+
+/* --- increased contrast ---------------------------------------------------
+ *
+ * A reader who asks for more contrast is telling us the borders are too quiet.
+ * Both border tokens step up to the strongest available, which startup has
+ * already proved reaches 3:1 against every surface it lands on. */
+@media (prefers-contrast: more) {
+  :root { --border-subtle: var(--border-strong); }
+  .bar-seg + .bar-seg { border-inline-start-width: 2px; }
+  :focus-visible { outline-width: 3px; }
 }

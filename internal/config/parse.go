@@ -24,10 +24,11 @@ const (
 	FileDomain = "domain.yaml"
 	FileTheme  = "theme.yaml"
 	FileIcons  = "icons.yaml"
+	FileChrome = "chrome.yaml"
 )
 
 // requiredFiles must all be present for a bundle to parse.
-var requiredFiles = []string{FileApp, FileBrand, FileDomain, FileTheme, FileIcons}
+var requiredFiles = []string{FileApp, FileBrand, FileDomain, FileTheme, FileIcons, FileChrome}
 
 // Statuses is the fixed status vocabulary. Config controls each status's label,
 // icon, severity and thresholds, but not the set: the evaluation rules in
@@ -53,6 +54,7 @@ func Parse(b Bundle) (Config, error) {
 		{FileDomain, &cfg.Domain},
 		{FileTheme, &cfg.Theme},
 		{FileIcons, &cfg.Icons},
+		{FileChrome, &cfg.Chrome},
 	}
 
 	for _, t := range targets {

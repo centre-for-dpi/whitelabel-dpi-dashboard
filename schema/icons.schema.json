@@ -13,6 +13,9 @@
           "label": {
             "type": "string"
           },
+          "labelTermId": {
+            "type": "string"
+          },
           "svg": {
             "type": "string"
           }

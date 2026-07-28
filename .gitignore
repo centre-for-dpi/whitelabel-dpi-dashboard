@@ -33,6 +33,8 @@ go.work.sum
 
 # Compiled dashboard binary
 /whitelabel-dpi-dashboard
+/whitelabel-dpi-dashboard-lite
+/whitelabel-dpi-dashboard-sqlite
 /dist/
 
 # Local runtime state: the SQLite database and rolled-up history. Deployments
@@ -44,3 +46,7 @@ go.work.sum
 
 # Generated protobuf Go is deliberately NOT ignored — it is committed so that a
 # clean clone builds and runs without buf or protoc installed.
+
+# Screenshots from `make a11y-report`. Evidence for a conformance claim, not
+# something to keep in the history — regenerate them.
+.a11y-shots/
