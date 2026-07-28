@@ -9,8 +9,14 @@
       hx-get="/fragments/leaderboard" hx-target="#leaderboard" hx-swap="outerHTML"
       hx-push-url="true" hx-trigger="submit, change from:select, input delay:250ms from:input[type=search]">
 
+  {{/* aria-expanded comes from the request, not from a literal. It was
+       hardcoded false, and a filter change replaces this whole section — so on a
+       narrow screen the panel collapsed itself every time the reader used it,
+       and they had to reopen it to make a second change. The state rides in the
+       URL like every other piece, so a shared link reopens it too. */}}
+  <input type="hidden" name="filters" value="{{if .Expanded}}open{{else}}{{end}}" data-dpi-disclosure-state>
   <button class="filter-toggle" type="button" data-dpi-disclosure="filter-body"
-          aria-expanded="false" aria-controls="filter-body">
+          aria-expanded="{{if .Expanded}}true{{else}}false{{end}}" aria-controls="filter-body">
     {{.SearchLabel}}{{if .AppliedCount}} ({{.AppliedCount}}){{end}}
   </button>
 
@@ -24,7 +30,10 @@
              placeholder="{{.SearchLabel}}" aria-label="{{.SearchLabel}}">
 
       {{if .Regions}}
-      <select name="region" aria-label="region"{{if not .RegionEnabled}} disabled{{end}}>
+      {{/* The name comes from config like every other. It was the literal
+           "region", in English, and it is an accessible name — the one string on
+           this control anybody using a screen reader hears. */}}
+      <select name="region" aria-label="{{.RegionLabel}}"{{if not .RegionEnabled}} disabled{{end}}>
         {{range .Regions}}<option value="{{.Value}}"{{if .Active}} selected{{end}}>{{.Label}}</option>{{end}}
       </select>
       {{end}}
@@ -94,7 +103,7 @@
              hx-get="/fragments/leaderboard?sort={{.Key}}&dir={{.NextDir}}"
              hx-target="#leaderboard" hx-swap="outerHTML" hx-push-url="true"
              hx-include="[data-dpi-filters]">
-            {{.Label}}
+            {{.Label}}{{if .Sorted}} {{template "icon" .SortIcon}}{{end}}
           </a>
         </th>
         {{end}}

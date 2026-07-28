@@ -502,6 +502,12 @@ type FilterBarView struct {
 	// on screen shows them — an Arabic screen-reader user heard "status".
 	StatusLegend   string
 	CategoryLegend string
+	// RegionLabel names the region selector. It was the literal string "region",
+	// in English, on a page translated into eight languages — and it is an
+	// accessible name, so it is the one string on that control anybody hears.
+	RegionLabel string
+	// Expanded is whether the narrow-screen panel is showing.
+	Expanded bool
 }
 
 func filterBarDef() Definition {
@@ -516,6 +522,7 @@ func filterBarDef() Definition {
 		"clearTermId":          {Kind: KindString, Default: "flt.clear", Doc: "Label for the clear-filters link."},
 		"statusLegendTermId":   {Kind: KindString, Default: "flt.status", Doc: "Screen-reader name for the status chip group."},
 		"categoryLegendTermId": {Kind: KindString, Default: "flt.category", Doc: "Screen-reader name for the category chip group."},
+		"regionLabelTermId":    {Kind: KindString, Default: "flt.region", Doc: "Screen-reader name for the region selector."},
 	}
 	return Definition{
 		Type: "filter-bar", Template: "filter-bar", Schema: schema,
@@ -527,6 +534,10 @@ func filterBarDef() Definition {
 			v := FilterBarView{
 				Search:      c.State.Search,
 				ResultCount: len(c.Filtered),
+				Expanded:    c.State.FiltersOpen,
+			}
+			if term := o.String(schema, "regionLabelTermId"); term != "" {
+				v.RegionLabel = c.Text.Text(term, nil)
 			}
 			if term := o.String(schema, "searchTermId"); term != "" {
 				v.SearchLabel = c.Text.Text(term, nil)
@@ -607,6 +618,10 @@ type Column struct {
 	Sorted  bool
 	Dir     string
 	NextDir string
+	// SortIcon shows which way the sorted column is sorted. aria-sort tells a
+	// screen reader; nothing was telling anyone looking at the screen, so the
+	// two glyphs icons.yaml has always declared for this went unused.
+	SortIcon Icon
 }
 
 // Cell is one measurement in a row.
@@ -768,6 +783,14 @@ func leaderboardDef() Definition {
 					col.NextDir = query.Asc
 					if c.State.Dir == query.Asc {
 						col.NextDir = query.Desc
+					}
+					// The icon depicts the current order, not the order clicking
+					// would produce: it is a status, and aria-sort beside it says
+					// the same thing to a reader who cannot see it.
+					if col.Dir == query.Asc {
+						col.SortIcon = c.Icons.Icon("ui.sortAsc")
+					} else {
+						col.SortIcon = c.Icons.Icon("ui.sortDesc")
 					}
 				} else {
 					col.NextDir = query.DefaultDirection(key)

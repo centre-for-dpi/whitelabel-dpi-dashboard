@@ -64,11 +64,19 @@
    *
    * aria-expanded is the state, not a class: it is what a screen reader reads
    * and what the stylesheet keys off, so there is only one source of truth.
+   *
+   * The hidden field beside it carries that same fact into the next request. It
+   * has to, because the fragment that comes back replaces this whole panel — and
+   * without it the panel collapsed itself every time a reader on a narrow screen
+   * changed a filter, so making two changes meant reopening it in between.
    */
   register("dpi-disclosure", {
     click(el, e) {
       e.preventDefault();
-      el.setAttribute("aria-expanded", el.getAttribute("aria-expanded") !== "true");
+      const open = el.getAttribute("aria-expanded") !== "true";
+      el.setAttribute("aria-expanded", open);
+      const field = el.form?.querySelector("[data-dpi-disclosure-state]");
+      if (field) field.value = open ? "open" : "";
     },
   });
 
