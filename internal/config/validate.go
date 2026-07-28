@@ -269,7 +269,7 @@ func (v *validator) validateTaxonomy(d Domain, iconKeys []string) []string {
 func (v *validator) validateMetrics(d Domain) []string {
 	const f = FileDomain
 
-	fields := []string{FieldAvailability, FieldErrorRate, FieldLatencyP50, FieldVolume}
+	fields := []string{FieldAvailability, FieldDowntime, FieldErrorRate, FieldLatencyP50, FieldVolume}
 	units := []string{UnitPercent, UnitMillisecond, UnitCount}
 	directions := []string{DirectionHigherIsBetter, DirectionLowerIsBetter, DirectionNeutral}
 
@@ -294,7 +294,15 @@ func (v *validator) validateMetrics(d Domain) []string {
 		// A metric with neither a target nor a framing has nothing to say
 		// beyond its raw number, and the demo deliberately declines to render
 		// one. Catching it here beats a silently blank tile.
-		if m.Target == nil && m.Framing == "" && m.ShowInLeaderboard {
+		// A complement takes its target from the metric it complements, so it
+		// legitimately declares none of its own — and declaring one would be the
+		// second number that eventually disagrees with the first.
+		if m.ComplementOf != "" && m.Target != nil {
+			v.errf(f, append(p, "target"),
+				"metric %q is the complement of %q, so its target is derived; remove this one or the two will disagree",
+				m.ID, m.ComplementOf)
+		}
+		if m.Target == nil && m.Framing == "" && m.ComplementOf == "" && m.ShowInLeaderboard {
 			v.errf(f, p, "metric %q is shown in the leaderboard but has neither a target nor a framing, so it has no context to render", m.ID)
 		}
 	}
@@ -303,6 +311,36 @@ func (v *validator) validateMetrics(d Domain) []string {
 	}
 
 	// Resolved in a second pass so that forward references are legal.
+	for i, m := range d.Metrics {
+		if m.ComplementOf == "" {
+			continue
+		}
+		p := []any{"metrics", i, "complementOf"}
+		if m.ComplementOf == m.ID {
+			v.errf(f, p, "metric %q is declared as its own complement", m.ID)
+			continue
+		}
+		if !slices.Contains(metricIDs, m.ComplementOf) {
+			v.errf(f, p, "unknown metric %q; expected one of %v", m.ComplementOf, metricIDs)
+			continue
+		}
+		// A complement of a metric that is not a percentage has no whole to be
+		// the remainder of.
+		for _, other := range d.Metrics {
+			if other.ID != m.ComplementOf {
+				continue
+			}
+			if other.Unit != UnitPercent || m.Unit != UnitPercent {
+				v.errf(f, p, "a complement and the metric it complements must both be percentages; %q is %q and %q is %q",
+					m.ID, m.Unit, other.ID, other.Unit)
+			}
+			if other.Target == nil && m.ShowInLeaderboard {
+				v.errf(f, p, "metric %q derives its target from %q, which has none, so it would render with no context",
+					m.ID, m.ComplementOf)
+			}
+		}
+	}
+
 	for i, m := range d.Metrics {
 		if m.DenominatorOf != "" && !slices.Contains(metricIDs, m.DenominatorOf) {
 			v.errf(f, []any{"metrics", i, "denominatorOf"}, "unknown metric %q", m.DenominatorOf)

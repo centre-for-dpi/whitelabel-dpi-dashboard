@@ -136,6 +136,11 @@ func fieldValue(p model.HistoryPoint, field string) (float64, bool) {
 	switch field {
 	case config.FieldAvailability:
 		return p.Availability.Value, p.Availability.Valid
+	case config.FieldDowntime:
+		// Derived, so the trend is availability's with the sign flipped: a fall
+		// in availability is a rise in downtime, and the arrow has to agree with
+		// the number it sits beside.
+		return config.Complement(p.Availability.Value), p.Availability.Valid
 	case config.FieldErrorRate:
 		return p.ErrorRate, true
 	case config.FieldLatencyP50:

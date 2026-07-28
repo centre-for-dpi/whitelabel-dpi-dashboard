@@ -905,7 +905,9 @@ func buildCell(c Context, sv model.Service, m config.Metric) Cell {
 	st := c.View.Standing(sv)
 
 	cell := Cell{}
-	if m.Field == config.FieldAvailability && !st.Availability.Valid {
+	// Downtime is derived from availability, so an absent availability leaves it
+	// just as unknown as availability itself.
+	if !st.Availability.Valid && (m.Field == config.FieldAvailability || m.Field == config.FieldDowntime) {
 		// "Not reported" and "zero" are different claims, and only one of them
 		// is true here.
 		cell.Unknown = true
@@ -914,9 +916,17 @@ func buildCell(c Context, sv model.Service, m config.Metric) Cell {
 	}
 
 	cell.Value = formatMetric(c, m, st)
-	if m.Target != nil {
-		cell.Target = c.Text.Text("metric.target", map[string]any{
-			"v": formatValue(c, m, *m.Target),
+	// ResolvedTarget rather than m.Target, or a complement renders with no target
+	// at all — the number it is measured against lives on the metric it
+	// complements.
+	if target := c.Config.Domain.ResolvedTarget(m); target != nil {
+		// A lower-is-better metric is measured against a ceiling, not a goal.
+		term := "metric.target"
+		if m.Direction == config.DirectionLowerIsBetter {
+			term = "metric.targetMax"
+		}
+		cell.Target = c.Text.Text(term, map[string]any{
+			"v": formatValue(c, m, *target),
 		})
 	}
 
@@ -955,6 +965,8 @@ func formatMetric(c Context, m config.Metric, st query.Standing) string {
 	switch m.Field {
 	case config.FieldAvailability:
 		return formatValue(c, m, st.Availability.Value)
+	case config.FieldDowntime:
+		return formatValue(c, m, config.Complement(st.Availability.Value))
 	case config.FieldErrorRate:
 		return formatValue(c, m, st.ErrorRate)
 	case config.FieldLatencyP50:

@@ -164,6 +164,8 @@ terms:
   metric.latencyP50:    "प्रतिक्रिया समय (p50)"
   metric.noReference:   "कोई संदर्भ उपलब्ध नहीं"
   metric.target:        "लक्ष्य {v}"
+  metric.downtime:      "डाउनटाइम"
+  metric.targetMax:     "अधिकतम {v}"
   metric.trend.falling: "घट रहा है"
   metric.trend.rising:  "बढ़ रहा है"
   metric.trend.steady:  "स्थिर"

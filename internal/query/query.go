@@ -21,6 +21,7 @@
 package query
 
 import (
+	"math"
 	"slices"
 	"strings"
 
@@ -246,21 +247,9 @@ func (v View) Rank(services []model.Service) []model.Service {
 	slices.SortStableFunc(out, func(a, b model.Service) int {
 		as, bs := standings[a.ID], standings[b.ID]
 
-		av, bv := as.Availability, bs.Availability
-		switch {
-		case av.Valid && !bv.Valid:
-			return -1
-		case !av.Valid && bv.Valid:
-			return 1
-		case av.Valid && bv.Valid && av.Value != bv.Value:
-			if av.Value > bv.Value {
-				return -1 // more available ranks better
-			}
-			return 1
-		}
-		if as.ErrorRate != bs.ErrorRate {
-			if as.ErrorRate < bs.ErrorRate {
-				return -1 // fewer errors ranks better
+		if sa, sb := as.Attention(), bs.Attention(); sa != sb {
+			if sa > sb {
+				return -1 // needs attention more, so ranks first
 			}
 			return 1
 		}
@@ -360,6 +349,30 @@ func (v View) comparator(key string, ranks map[string]int) func(a, b model.Servi
 	return func(a, b model.Service) int { return ranks[a.ID] - ranks[b.ID] }
 }
 
+// Attention is the published ranking rule: how much of this service is failing
+// the people using it.
+//
+// Downtime and error rate are both percentages of the same population of
+// requests, so adding them compares like with like — a service down for 2% of
+// the window and erroring on 1% of what got through is failing 3% of the people
+// who came to it. That is the number, and it is why rank 1 is the service that
+// needs attention most rather than the one performing best. A leaderboard whose
+// top entry is the thing already working asks the reader to scroll to find the
+// problem.
+//
+// A service with no availability reading at all ranks first, ahead of every
+// measured failure. Not because it is necessarily worse, but because it cannot be
+// verified: an unmonitored service is the one case where nobody can say whether
+// citizens are being served, and that is the most urgent thing on the page.
+// Scoring it zero would sort it among the healthy, which is the specific mistake
+// model.OptFloat exists to prevent.
+func (s Standing) Attention() float64 {
+	if !s.Availability.Valid {
+		return math.Inf(1)
+	}
+	return config.Complement(s.Availability.Value) + s.ErrorRate
+}
+
 // value reads a sortable number out of a standing.
 //
 // An absent availability sorts below every real reading rather than as zero, so
@@ -372,6 +385,14 @@ func (s Standing) value(field string) float64 {
 			return -1
 		}
 		return s.Availability.Value
+	case config.FieldDowntime:
+		// Sorted the same way round as availability — an absent reading below
+		// every real one — so "not reported" does not masquerade as a total
+		// outage at the top of a descending sort.
+		if !s.Availability.Valid {
+			return -1
+		}
+		return config.Complement(s.Availability.Value)
 	case config.FieldErrorRate:
 		return s.ErrorRate
 	case config.FieldLatencyP50:

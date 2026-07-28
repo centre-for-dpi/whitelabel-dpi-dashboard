@@ -165,6 +165,8 @@ terms:
   metric.latencyP50:    "زمن الاستجابة (p50)"
   metric.noReference:   "لا يوجد إطار مرجعي"
   metric.target:        "الهدف {v}"
+  metric.downtime:      "التوقف"
+  metric.targetMax:     "بحد أقصى {v}"
   metric.trend.falling: "في انخفاض"
   metric.trend.rising:  "في ارتفاع"
   metric.trend.steady:  "مستقر"

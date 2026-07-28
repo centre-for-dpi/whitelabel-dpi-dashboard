@@ -164,6 +164,8 @@ terms:
   metric.latencyP50:    "响应时间 (p50)"
   metric.noReference:   "无参考基准"
   metric.target:        "目标 {v}"
+  metric.downtime:      "停机"
+  metric.targetMax:     "最多 {v}"
   metric.trend.falling: "下降"
   metric.trend.rising:  "上升"
   metric.trend.steady:  "持平"

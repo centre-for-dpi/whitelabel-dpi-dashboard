@@ -1,6 +1,7 @@
 package config_test
 
 import (
+	"math"
 	"strings"
 	"testing"
 
@@ -592,5 +593,106 @@ func TestExpandEnvRejectsUnterminatedReference(t *testing.T) {
 
 	if _, err := config.ExpandEnv([]byte("dsn: ${UNTERMINATED\n"), lookup); err == nil {
 		t.Error("an unterminated ${ reference was accepted")
+	}
+}
+
+// A complement's target is derived, so it cannot drift from the metric it
+// complements. This is the whole reason ComplementOf exists rather than a second
+// hand-written number.
+func TestComplementTargetIsDerived(t *testing.T) {
+	b := bundle()
+	b["domain.yaml"] = []byte(strings.Replace(validDomain, domainMetrics, `metrics:
+  - id: metric.availability
+    termId: metric.availability
+    field: availability
+    unit: percent
+    precision: 2
+    target: 99.5
+    direction: higher-is-better
+    showInLeaderboard: false
+  - id: metric.downtime
+    termId: metric.downtime
+    field: downtime
+    unit: percent
+    precision: 2
+    complementOf: metric.availability
+    direction: lower-is-better
+    showInLeaderboard: true
+  - id: metric.errorRate
+    termId: metric.errorRate
+    field: errorRate
+    unit: percent
+    precision: 2
+    target: 1.0
+    direction: lower-is-better
+    showInLeaderboard: true
+`, 1))
+
+	cfg, err := config.Parse(b)
+	if err != nil {
+		t.Fatalf("a complement metric was rejected: %v", err)
+	}
+
+	var downtime config.Metric
+	for _, m := range cfg.Domain.Metrics {
+		if m.ID == "metric.downtime" {
+			downtime = m
+		}
+	}
+	if downtime.Target != nil {
+		t.Error("the complement declares its own target; it must derive one")
+	}
+	got := cfg.Domain.ResolvedTarget(downtime)
+	if got == nil {
+		t.Fatal("ResolvedTarget returned nothing for a complement")
+	}
+	if *got != 0.5 {
+		t.Errorf("derived target = %v, want 0.5 (the complement of 99.5)", *got)
+	}
+
+	// Raising the availability target must move the downtime target with it —
+	// which is the property a second hand-written number cannot have.
+	b["domain.yaml"] = []byte(strings.Replace(string(b["domain.yaml"]), "target: 99.5", "target: 99.9", 1))
+	cfg, err = config.Parse(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, m := range cfg.Domain.Metrics {
+		if m.ID == "metric.downtime" {
+			if got := cfg.Domain.ResolvedTarget(m); got == nil || math.Abs(*got-0.1) > 1e-9 {
+				t.Errorf("derived target = %v, want 0.1 after raising availability to 99.9", got)
+			}
+		}
+	}
+}
+
+func TestRejectsAComplementThatDeclaresItsOwnTarget(t *testing.T) {
+	b := bundle()
+	b["domain.yaml"] = []byte(strings.Replace(validDomain, domainMetrics, `metrics:
+  - id: metric.availability
+    termId: metric.availability
+    field: availability
+    unit: percent
+    precision: 2
+    target: 99.5
+    direction: higher-is-better
+    showInLeaderboard: false
+  - id: metric.downtime
+    termId: metric.downtime
+    field: downtime
+    unit: percent
+    precision: 2
+    complementOf: metric.availability
+    target: 0.7
+    direction: lower-is-better
+    showInLeaderboard: true
+`, 1))
+
+	_, err := config.Parse(b)
+	if err == nil {
+		t.Fatal("a complement with its own target was accepted; the two numbers will disagree")
+	}
+	if !strings.Contains(err.Error(), "derived") {
+		t.Errorf("error does not explain that the target is derived: %v", err)
 	}
 }

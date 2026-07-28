@@ -161,6 +161,8 @@ terms:
   metric.latencyP50:    "Temps de réponse (p50)"
   metric.noReference:   "aucun cadre de référence"
   metric.target:        "cible {v}"
+  metric.downtime:      "Indisponibilité"
+  metric.targetMax:     "au plus {v}"
   metric.trend.falling: "en baisse"
   metric.trend.rising:  "en hausse"
   metric.trend.steady:  "stable"

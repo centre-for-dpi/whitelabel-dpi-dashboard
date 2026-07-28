@@ -13,6 +13,15 @@ Are the national data sharing services working right now?
 178 of 812 national & state services onboarded · updated 4 minutes ago
 ```
 
+## Accessibility
+
+WCAG 2.2 AA, enforced by tests rather than asserted: contrast is computed from
+your palette and fails startup, structure is checked over every route and locale
+on every commit, and axe-core runs in a headless Chrome across 26 states. See
+[`docs/accessibility.md`](docs/accessibility.md) for the claim and what is
+deliberately out of scope, and [`docs/design-walkthrough.md`](docs/design-walkthrough.md)
+for what the page shows and why.
+
 ## Try it
 
 ```sh

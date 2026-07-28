@@ -145,7 +145,7 @@ pages:
               # Add a metric to domain.yaml and name it here to gain a column.
               # Anything that is not rank, name or status must be a metric id
               # the deployment actually declares.
-              columns: [rank, name, status, metric.availability, metric.errorRate]
+              columns: [rank, name, status, metric.downtime, metric.errorRate]
               captionTermId: lb.caption
               emptyTermId: flt.empty
               showingTermId: lb.showing

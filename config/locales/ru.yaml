@@ -164,6 +164,8 @@ terms:
   metric.latencyP50:    "Отклик (p50)"
   metric.noReference:   "нет ориентира"
   metric.target:        "цель {v}"
+  metric.downtime:      "Простой"
+  metric.targetMax:     "не более {v}"
   metric.trend.falling: "снижается"
   metric.trend.rising:  "растёт"
   metric.trend.steady:  "стабильно"

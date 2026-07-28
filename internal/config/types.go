@@ -200,14 +200,49 @@ type Metric struct {
 	ShowInLeaderboard bool     `yaml:"showInLeaderboard"`
 	Framing           string   `yaml:"framing"`
 	DenominatorOf     string   `yaml:"denominatorOf"`
+	// ComplementOf names a metric this one is the arithmetic complement of:
+	// downtime is what is left of a hundred per cent after availability.
+	//
+	// The point is the target. A complement's target is DERIVED from the other
+	// metric's, so declaring "availability should reach 99.5%" and "downtime
+	// should stay under 0.5%" cannot become two numbers that disagree — which is
+	// what happens the first time somebody raises one and forgets the other. Set
+	// target on the metric being complemented, never on the complement.
+	ComplementOf string `yaml:"complementOf"`
+}
+
+// Complement returns the value of a metric that is the complement of v.
+//
+// Percentages only, because a complement is only meaningful against a known
+// whole and a hundred per cent is the only whole this vocabulary has.
+func Complement(v float64) float64 { return 100 - v }
+
+// ResolvedTarget is the metric's target, derived if it is a complement.
+//
+// Callers must use this rather than reading Target directly, or a complement will
+// appear to have no target at all.
+func (d Domain) ResolvedTarget(m Metric) *float64 {
+	if m.ComplementOf == "" {
+		return m.Target
+	}
+	for _, other := range d.Metrics {
+		if other.ID == m.ComplementOf && other.Target != nil {
+			t := Complement(*other.Target)
+			return &t
+		}
+	}
+	return nil
 }
 
 // Metric field names, matching model.Service.Metrics.
 const (
 	FieldAvailability = "availability"
-	FieldErrorRate    = "errorRate"
-	FieldLatencyP50   = "latencyP50"
-	FieldVolume       = "volume"
+	// FieldDowntime is derived, not stored: no source reports it, and a source
+	// that did could disagree with the availability beside it.
+	FieldDowntime   = "downtime"
+	FieldErrorRate  = "errorRate"
+	FieldLatencyP50 = "latencyP50"
+	FieldVolume     = "volume"
 )
 
 // Metric units.

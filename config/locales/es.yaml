@@ -161,6 +161,8 @@ terms:
   metric.latencyP50:    "Tiempo de respuesta (p50)"
   metric.noReference:   "sin marco de referencia"
   metric.target:        "objetivo {v}"
+  metric.downtime:      "Inactividad"
+  metric.targetMax:     "como máximo {v}"
   metric.trend.falling: "a la baja"
   metric.trend.rising:  "al alza"
   metric.trend.steady:  "estable"

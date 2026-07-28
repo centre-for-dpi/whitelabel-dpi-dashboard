@@ -106,6 +106,24 @@ metrics:
     precision: 2
     target: 99.5
     direction: higher-is-better
+    # Shown in the drawer, not on the board: the board speaks in downtime, and
+    # showing both would be the same fact twice in adjacent columns.
+    showInLeaderboard: false
+
+  # Downtime is availability's complement, and it is what the leaderboard shows.
+  #
+  # The board is ordered by what needs attention, so it should be measured in the
+  # thing that is wrong rather than the thing that is right: "0.6% downtime" is
+  # the figure a reader is looking for, and "99.4% availability" makes them do the
+  # subtraction. Its target is derived from the availability target above, so the
+  # two can never drift into disagreeing.
+  - id: metric.downtime
+    termId: metric.downtime
+    field: downtime
+    unit: percent
+    precision: 2
+    complementOf: metric.availability
+    direction: lower-is-better
     showInLeaderboard: true
 
   - id: metric.errorRate

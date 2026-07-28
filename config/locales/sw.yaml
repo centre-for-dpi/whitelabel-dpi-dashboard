@@ -161,6 +161,8 @@ terms:
   metric.latencyP50:    "Muda wa jibu (p50)"
   metric.noReference:   "hakuna rejeleo"
   metric.target:        "lengo {v}"
+  metric.downtime:      "Kutokupatikana"
+  metric.targetMax:     "kiwango cha juu {v}"
   metric.trend.falling: "inashuka"
   metric.trend.rising:  "inapanda"
   metric.trend.steady:  "thabiti"
