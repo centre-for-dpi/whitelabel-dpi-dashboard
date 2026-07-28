@@ -101,3 +101,27 @@
   {{end}}
 </div>
 {{end}}
+
+
+{{/* Configured body copy.
+
+     The spans come from internal/prose, which parses a closed vocabulary out of
+     the locale string. This template renders elements from that tree; it never
+     receives markup. That is the whole point — a locale file is data, and a
+     deployment that can edit a mounted config directory must not thereby be able
+     to put script on every page. */}}
+{{define "widget/prose"}}
+<div class="w w-prose{{if .Class}} {{.Class}}{{end}}">
+  {{range .Paragraphs}}
+  <p>
+    {{- range . -}}
+      {{- if eq .Kind "strong"}}<strong>{{.Text}}</strong>
+      {{- else if eq .Kind "em"}}<em>{{.Text}}</em>
+      {{- else if eq .Kind "mark"}}<mark{{if .Tone}} data-tone="{{.Tone}}"{{end}}>{{.Text}}</mark>
+      {{- else}}{{.Text}}
+      {{- end}}
+    {{- end -}}
+  </p>
+  {{end}}
+</div>
+{{end}}

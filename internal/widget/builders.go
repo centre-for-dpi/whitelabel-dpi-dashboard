@@ -1,6 +1,7 @@
 package widget
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 	"strconv"
@@ -10,6 +11,7 @@ import (
 	"github.com/centre-for-dpi/whitelabel-dpi-dashboard/internal/chart"
 	"github.com/centre-for-dpi/whitelabel-dpi-dashboard/internal/config"
 	"github.com/centre-for-dpi/whitelabel-dpi-dashboard/internal/model"
+	"github.com/centre-for-dpi/whitelabel-dpi-dashboard/internal/prose"
 	"github.com/centre-for-dpi/whitelabel-dpi-dashboard/internal/query"
 	"github.com/centre-for-dpi/whitelabel-dpi-dashboard/internal/rules"
 )
@@ -25,7 +27,7 @@ func Default() *Registry {
 		coverageDef(), timestampDef(), disclosureDef(), ctaButtonDef(),
 		signalCardsDef(), filterBarDef(), leaderboardDef(),
 		statTileDef(), sparklineDef(), barChartDef(), barListDef(),
-		timelineDef(), dataTableDef(),
+		timelineDef(), dataTableDef(), proseDef(),
 	} {
 		r.Register(d)
 	}
@@ -1424,4 +1426,50 @@ func withDuration(params map[string]any, formatted string) map[string]any {
 	}
 	out["duration"] = formatted
 	return out
+}
+
+// --- prose -----------------------------------------------------------------
+
+// ProseView is a block of configured body copy.
+//
+// Spans rather than a string, because the copy needs particular words picked out
+// and a locale file must never be able to supply markup. internal/prose parses
+// the closed vocabulary into these, and the template renders elements — so
+// nothing config supplies ever reaches the browser as HTML.
+type ProseView struct {
+	Class      string
+	Paragraphs [][]prose.Span
+}
+
+func proseDef() Definition {
+	schema := OptionSchema{
+		"termIds": {Kind: KindStringList, Required: true,
+			Doc: "Term ids, one per paragraph, rendered in order."},
+		"class": {Kind: KindString,
+			Doc: "Extra class, e.g. \"lede\"."},
+	}
+	return Definition{
+		Type: "prose", Template: "prose", Schema: schema,
+		Doc: "Body copy from the locale files. Each term may use <strong>, <em> and " +
+			"<mark tone=\"…\"> to pick out words; nothing else is allowed.",
+		Validate: func(o Options, _ Bind, _ ValidationContext) []error {
+			if len(o.StringList(schema, "termIds")) == 0 {
+				return []error{errors.New("prose has no termIds, so it would render nothing")}
+			}
+			return nil
+		},
+		Build: func(c Context, o Options) (any, error) {
+			v := ProseView{Class: o.String(schema, "class")}
+			for _, id := range o.StringList(schema, "termIds") {
+				spans, err := prose.Parse(c.Text.Text(id, nil))
+				if err != nil {
+					// Named so the reader knows which locale entry to fix, in a
+					// file the error cannot point a line at.
+					return nil, fmt.Errorf("term %q: %w", id, err)
+				}
+				v.Paragraphs = append(v.Paragraphs, spans)
+			}
+			return v, nil
+		},
+	}
 }

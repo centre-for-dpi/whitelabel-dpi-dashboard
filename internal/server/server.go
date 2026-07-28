@@ -41,7 +41,7 @@ type Options struct {
 	Registry *widget.Registry
 	Renderer *render.Renderer
 	Locales  *i18n.Catalogue
-	Icons    *render.Icons
+	Icons    config.Icons
 	Source   Snapshots
 	Static   fs.FS
 	Clock    Clock
@@ -61,12 +61,15 @@ type Options struct {
 
 // Server serves the dashboard.
 type Server struct {
-	cfg      config.Config
-	layout   layout.Layout
-	reg      *widget.Registry
-	render   *Renderer
-	locales  *i18n.Catalogue
-	icons    *render.Icons
+	cfg     config.Config
+	layout  layout.Layout
+	reg     *widget.Registry
+	render  *Renderer
+	locales *i18n.Catalogue
+	// iconSet is the configured set, not a compiled resolver: an icon's
+	// accessible name is announced to a reader, so it has to be resolved in that
+	// reader's locale, which means once per request rather than once at startup.
+	iconSet  config.Icons
 	source   Snapshots
 	clock    Clock
 	log      *slog.Logger
@@ -100,7 +103,7 @@ func New(o Options) (*Server, error) {
 		reg:          o.Registry,
 		render:       o.Renderer,
 		locales:      o.Locales,
-		icons:        o.Icons,
+		iconSet:      o.Icons,
 		source:       o.Source,
 		clock:        o.Clock,
 		log:          o.Log,
@@ -194,7 +197,7 @@ func (s *Server) build(r *http.Request) widget.Context {
 		Ranks:    ranks,
 		State:    st,
 		Text:     text,
-		Icons:    s.icons,
+		Icons:    render.NewIcons(s.iconSet, text),
 		Now:      s.clock.Now(),
 	}
 

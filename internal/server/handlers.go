@@ -14,11 +14,14 @@ import (
 
 // PageData is what the base template renders.
 type PageData struct {
-	Locale       string
-	Direction    string
-	Theme        string
-	Title        string
-	Tagline      string
+	Locale    string
+	Direction string
+	Theme     string
+	Title     string
+	Tagline   string
+	// Wordmark is the brand name in the header, which the document title no
+	// longer has to match.
+	Wordmark     string
 	Favicon      string
 	SkipText     string
 	AssetVersion string
@@ -86,9 +89,19 @@ func (s *Server) handlePage(w http.ResponseWriter, r *http.Request) {
 	s.write(w, buf.Bytes())
 }
 
+// pageTerm prefers a page's own term and falls back to the brand's, so adding a
+// title to layout.yaml is opt-in and its absence changes nothing.
+func pageTerm(pageTerm, fallback string) string {
+	if pageTerm != "" {
+		return pageTerm
+	}
+	return fallback
+}
+
 func (s *Server) pageData(c widget.Context, r *http.Request) (PageData, error) {
 	d := s.cfg.Domain
 	text := c.Text
+	icons := c.Icons
 
 	page, ok := s.layout.PageByPath("/")
 	if !ok {
@@ -99,13 +112,14 @@ func (s *Server) pageData(c widget.Context, r *http.Request) (PageData, error) {
 		Locale:       c.State.Locale,
 		Direction:    s.locales.For(c.State.Locale).Direction(),
 		Theme:        c.State.Theme,
-		Title:        text.Text(s.cfg.Brand.WordmarkTermID, nil),
-		Tagline:      text.Text(s.cfg.Brand.TaglineTermID, nil),
+		Title:        text.Text(pageTerm(page.TitleTermID, s.cfg.Brand.WordmarkTermID), nil),
+		Tagline:      text.Text(pageTerm(page.DescriptionTermID, s.cfg.Brand.TaglineTermID), nil),
+		Wordmark:     text.Text(s.cfg.Brand.WordmarkTermID, nil),
 		Favicon:      s.cfg.Brand.Favicon,
 		SkipText:     text.Text("chrome.skip", nil),
 		AssetVersion: s.assetVersion,
-		BrandIcon:    s.icons.Icon(s.cfg.Brand.IconKey),
-		ExternalIcon: s.icons.Icon("ui.external"),
+		BrandIcon:    icons.Icon(s.cfg.Brand.IconKey),
+		ExternalIcon: icons.Icon("ui.external"),
 		ScopeLabel:   text.Text("chrome.scope.label", nil),
 		PeriodLabel:  text.Text("chrome.period.label", nil),
 		LocaleLabel:  text.Text("chrome.locale.label", nil),
@@ -115,10 +129,10 @@ func (s *Server) pageData(c widget.Context, r *http.Request) (PageData, error) {
 	// The toggle offers the theme you would switch TO, which is what the icon
 	// has to depict for the control to make sense.
 	if c.State.Theme == "dark" {
-		data.ThemeIcon = s.icons.Icon("ui.themeLight")
+		data.ThemeIcon = icons.Icon("ui.themeLight")
 		data.ThemeHref = link("/", withParam(r.URL.Query(), paramTheme, "light"))
 	} else {
-		data.ThemeIcon = s.icons.Icon("ui.themeDark")
+		data.ThemeIcon = icons.Icon("ui.themeDark")
 		data.ThemeHref = link("/", withParam(r.URL.Query(), paramTheme, "dark"))
 	}
 
@@ -287,6 +301,7 @@ func (s *Server) drawerData(c widget.Context, r *http.Request) (DrawerData, erro
 	d := s.cfg.Domain
 	status := string(sv.Status)
 	text := c.Text
+	icons := c.Icons
 
 	tabID := c.State.DrawerTab
 	if _, ok := s.layout.TabByID(tabID); !ok {
@@ -298,13 +313,13 @@ func (s *Server) drawerData(c widget.Context, r *http.Request) (DrawerData, erro
 		Name:         text.Text(sv.NameTermID, nil),
 		Description:  text.Text(sv.DescTermID, nil),
 		Category:     text.Text(sv.CategoryID, nil),
-		CategoryIcon: s.icons.Icon(categoryIcon(d, sv.CategoryID)),
+		CategoryIcon: icons.Icon(categoryIcon(d, sv.CategoryID)),
 		Region:       text.Text(sv.RegionID, nil),
 		StatusLabel:  text.Text(d.StatusModel.LabelTermID[status], nil),
-		StatusIcon:   s.icons.Icon(d.StatusModel.IconKey[status]),
+		StatusIcon:   icons.Icon(d.StatusModel.IconKey[status]),
 		StatusTone:   statusTone(status),
 		RuleLabel:    text.Text("dr.why", nil),
-		CloseIcon:    s.icons.Icon("ui.close"),
+		CloseIcon:    icons.Icon("ui.close"),
 		CloseHref:    link("/", stripDrawer(r.URL.Query())),
 	}
 

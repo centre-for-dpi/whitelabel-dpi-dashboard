@@ -108,6 +108,12 @@ func (v *validator) validateIcons(ic Icons) {
 		if i.Glyph != "" && i.SVG != "" {
 			v.errKey(f, []any{"icons"}, k, "icon %q sets both glyph and svg; set exactly one", k)
 		}
+		// Both would be ambiguous about which one is announced, and the answer
+		// would be invisible until a screen reader read the wrong one.
+		if i.Label != "" && i.LabelTermID != "" {
+			v.errKey(f, []any{"icons"}, k,
+				"icon %q sets both label and labelTermId; keep labelTermId, which is translated", k)
+		}
 	}
 }
 

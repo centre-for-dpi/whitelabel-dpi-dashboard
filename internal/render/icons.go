@@ -22,11 +22,21 @@ type Icons struct {
 	set map[string]widget.Icon
 }
 
-// NewIcons compiles the configured set.
-func NewIcons(c config.Icons) *Icons {
+// NewIcons compiles the configured set, resolving each accessible name.
+//
+// The name is resolved once here rather than per render because it is the same
+// string on every request for a given locale — but note that this makes an Icons
+// per-locale, which is why the server builds one per request rather than holding
+// a single set. An icon's name is announced to a reader, so it has to be in
+// their language; a set built once at startup could only ever be in one.
+func NewIcons(c config.Icons, text widget.TextResolver) *Icons {
 	out := &Icons{set: make(map[string]widget.Icon, len(c.Icons))}
 	for key, i := range c.Icons {
-		out.set[key] = widget.Icon{Glyph: i.Glyph, SVG: i.SVG, Label: i.Label}
+		label := i.Label // the deprecated literal, still honoured
+		if i.LabelTermID != "" {
+			label = text.Text(i.LabelTermID, nil)
+		}
+		out.set[key] = widget.Icon{Glyph: i.Glyph, SVG: i.SVG, Label: label}
 	}
 	return out
 }

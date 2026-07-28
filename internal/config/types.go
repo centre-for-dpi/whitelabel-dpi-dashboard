@@ -352,12 +352,22 @@ type Icons struct {
 	Icons map[string]Icon `yaml:"icons"`
 }
 
-// Icon is either a text glyph or inline SVG markup. Label is the accessible
-// name used when the icon carries meaning on its own.
+// Icon is either a text glyph or inline SVG markup.
+//
+// LabelTermID is the accessible name, used where the icon carries meaning on its
+// own rather than sitting beside text that already says it. It is a term id, not
+// a string, because that name is what a screen reader announces — and a literal
+// here announced English to every reader in every language, including the ones
+// whose page is otherwise entirely translated.
+//
+// Label remains for the literal form. It is deprecated and validation says so,
+// but it still works: an integrator upgrading should not have their dashboard
+// stop starting over an accessible name.
 type Icon struct {
-	Glyph string `yaml:"glyph"`
-	SVG   string `yaml:"svg"`
-	Label string `yaml:"label"`
+	Glyph       string `yaml:"glyph"`
+	SVG         string `yaml:"svg"`
+	LabelTermID string `yaml:"labelTermId"`
+	Label       string `yaml:"label"`
 }
 
 // --- assembled -------------------------------------------------------------

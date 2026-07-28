@@ -54,9 +54,13 @@
 {{define "chrome"}}
 <header class="chrome">
   <div class="shell chrome-inner">
+    {{/* The wordmark, not the document title. They were the same string until
+         layout.yaml could set titleTermId, and they want different things: a
+         wordmark is a name and should be short, while a title competes for
+         attention in a list of twenty browser tabs. */}}
     <a class="wordmark" href="/">
       {{template "icon" .BrandIcon}}
-      <span>{{.Title}}</span>
+      <span>{{.Wordmark}}</span>
     </a>
 
     <form class="controls" method="get" action="/" data-dpi-autosubmit>

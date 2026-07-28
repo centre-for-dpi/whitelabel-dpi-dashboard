@@ -52,6 +52,19 @@ pages:
             options:
               allWellTermId: verdict.allClear
 
+          # The sentences that say what the words mean. Any paragraph on the page
+          # is a term id listed here, so changing the copy — or dropping it — is
+          # an edit to this file and the locale files, not to Go.
+          #
+          # Each term may pick out words with <strong>, <em> or
+          # <mark tone="…">, and nothing else. See internal/prose.
+          - type: prose
+            options:
+              termIds:
+                - verdict.kicker1
+                - verdict.kicker2
+                - verdict.kicker3
+
           - type: segmented-bar
             bind: { source: aggregate.statusCounts }
             options:

@@ -33,9 +33,19 @@ type Layout struct {
 
 // Page is one addressable view.
 type Page struct {
-	ID       string    `yaml:"id"`
-	Path     string    `yaml:"path"`
-	Sections []Section `yaml:"sections"`
+	ID   string `yaml:"id"`
+	Path string `yaml:"path"`
+	// TitleTermID is the document title — what a browser tab, a bookmark and a
+	// search result show. Optional: without it the title falls back to the
+	// wordmark, which is what it used to be unconditionally. They are different
+	// strings for a reason. A wordmark is a name and wants to be short; a title
+	// competes for attention in a list of twenty tabs and wants to say what the
+	// page answers.
+	TitleTermID string `yaml:"titleTermId"`
+	// DescriptionTermID becomes the meta description, and falls back to the
+	// brand tagline.
+	DescriptionTermID string    `yaml:"descriptionTermId"`
+	Sections          []Section `yaml:"sections"`
 }
 
 // Section is a band of the page, and the unit HTMX swaps.

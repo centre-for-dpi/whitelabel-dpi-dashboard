@@ -101,6 +101,7 @@
                         "heading",
                         "leaderboard-table",
                         "legend",
+                        "prose",
                         "segmented-bar",
                         "signal-cards",
                         "sparkline",
@@ -128,6 +129,9 @@
       "items": {
         "additionalProperties": false,
         "properties": {
+          "descriptionTermId": {
+            "type": "string"
+          },
           "id": {
             "type": "string"
           },
@@ -259,6 +263,7 @@
                           "heading",
                           "leaderboard-table",
                           "legend",
+                          "prose",
                           "segmented-bar",
                           "signal-cards",
                           "sparkline",
@@ -278,6 +283,9 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "titleTermId": {
+            "type": "string"
           }
         },
         "type": "object"
