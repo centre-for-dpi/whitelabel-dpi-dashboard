@@ -1,6 +1,11 @@
 # Development entry points. Everything here works on a clean clone with only Go
 # installed — buf and protoc are needed solely to regenerate the wire contracts,
 # and their output is committed so `make run` never requires them.
+#
+# Three exceptions, each of which says so in its own comment: the image and
+# compose targets need Docker, the store contract suite needs the databases from
+# docker-compose.test.yml, and `a11y-browser` needs a Chrome. None of them is on
+# the path from a clone to a running dashboard.
 
 GO       ?= go
 BINARY   ?= whitelabel-dpi-dashboard
@@ -12,7 +17,7 @@ PORT     ?= 8080
 
 .PHONY: help
 help: ## Show this help
-	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
+	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) \
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
 
 # --- run -------------------------------------------------------------------
@@ -244,8 +249,15 @@ static: ## Prove the binary still builds without cgo, as the scratch image needs
 	CGO_ENABLED=0 $(GO) build -o /dev/null .
 
 .PHONY: ci
-ci: lint static drift test cover ## Everything CI runs
+# The single source of truth for what CI runs, so the workflow is one line and
+# cannot drift from what a contributor can run locally. `validate` is here for the
+# contrast gate: it is the only target that proves the shipped palette starts,
+# which is a different claim from any test passing.
+#
+# The browser layer is deliberately not here. It needs a Chrome, and this target
+# has to stay runnable on a clean clone; CI runs `a11y-browser` as its own job.
+ci: lint static drift validate test cover ## Everything CI runs, except the browser suite
 
 .PHONY: clean
 clean: ## Remove build and coverage artefacts
-	rm -rf $(BINARY) $(COVERDIR) dist .demo .demo.pid
+	rm -rf $(BINARY) $(BINARY)-lite $(BINARY)-sqlite $(COVERDIR) dist .demo .demo.pid .a11y-shots

@@ -42,8 +42,14 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
-      - name: gofmt and vet
-        run: make lint
+      # One line, because the Makefile already owns what CI runs. Reimplementing
+      # the steps here is how a workflow and a `make ci` drift until only one of
+      # them is true — and the one a contributor runs locally is the other one.
+      #
+      # This is lint, static (a cgo-free build, which the scratch image needs),
+      # drift, validate (the contrast gate), test and cover.
+      - name: make ci
+        run: make ci
 
       # The browser suite is a module of its own, so `./...` in the root does not
       # reach it and it would rot unnoticed until someone ran it.
@@ -53,31 +59,11 @@ jobs:
           test -z "$(gofmt -l .)" || { gofmt -l .; echo "run gofmt -w test/a11y"; exit 1; }
           go vet -tags a11y ./...
 
-      # Schemas and fixtures are committed but derived. Drift is caught by the
-      # test suite too; catching it here says which command to run.
-      # Scoped to the generated paths rather than the whole tree, so a failure
-      # names what is actually stale instead of anything else that happens to
-      # differ. `make generate` also regenerates protobuf, which needs buf; the
-      # two targets below are the ones a clean clone can run.
-      - name: generated files are in step with the source
-        run: |
-          make schema
-          make seed
-          git diff --exit-code --stat -- schema examples || {
-            echo "::error::committed generated files are stale. Run 'make schema && make seed' and commit the result."
-            exit 1
-          }
-
-      - name: config is valid
-        run: make validate
-
-      - name: test
+      # Belt and braces over `make test`, which does not use either: -race finds
+      # the data race a sequential run cannot, and -shuffle finds the test that
+      # only passes because another ran first.
+      - name: test again, with the race detector and shuffled
         run: go test -race -shuffle=on ./...
-
-      - name: coverage
-        run: |
-          make cover
-          go tool cover -func=.coverage/cover.out | tail -1
 
       - uses: actions/upload-artifact@v4
         if: always()
