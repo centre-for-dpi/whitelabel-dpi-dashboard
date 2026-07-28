@@ -79,6 +79,7 @@ func validate(cfg Config, nodes map[string]*yaml.Node) Errors {
 	slices.Sort(iconKeys) // deterministic error text
 
 	v.validateIcons(cfg.Icons)
+	v.validateChrome(cfg.Chrome, cfg.Icons)
 	v.validateApp(cfg.App)
 	v.validateBrand(cfg.Brand, iconKeys)
 	v.validateDomain(cfg.Domain, iconKeys)
@@ -552,4 +553,87 @@ func sortedKeys(m map[string]string) []string {
 	}
 	slices.Sort(out)
 	return out
+}
+
+// validateChrome checks the header bar.
+//
+// Every problem here is one that would otherwise be silent: an unknown kind
+// rendering nothing, a select bound to state that does not exist rendering an
+// empty dropdown, a link with no destination rendering an anchor that goes
+// nowhere. A bar item that quietly does not appear is the hardest kind of
+// configuration bug to notice, because the page still looks finished.
+func (v *validator) validateChrome(c Chrome, icons Icons) {
+	const f = FileChrome
+
+	if len(c.Header.Items) == 0 {
+		v.errf(f, []any{"header", "items"},
+			"the header has no items; a bar with nothing in it is more likely a mistake than a choice")
+		return
+	}
+
+	seen := map[ChromeKind]int{}
+	for i, item := range c.Header.Items {
+		p := []any{"header", "items", i}
+
+		if !slices.Contains(ChromeKinds, string(item.Kind)) {
+			v.errf(f, p, "unknown item kind %q; expected one of %s",
+				item.Kind, strings.Join(ChromeKinds, ", "))
+			continue
+		}
+		seen[item.Kind]++
+
+		switch item.Kind {
+		case ChromeSelect:
+			if item.State == "" {
+				v.errf(f, p, "a select must name the state it changes; expected one of %s",
+					strings.Join(ChromeStates, ", "))
+			} else if !slices.Contains(ChromeStates, item.State) {
+				v.errf(f, append(p, "state"), "unknown state %q; expected one of %s",
+					item.State, strings.Join(ChromeStates, ", "))
+			}
+		case ChromeLink:
+			if item.TermID == "" {
+				v.errf(f, p, "a link needs a termId, or it renders with no text to click")
+			}
+			if item.Href == "" {
+				v.errf(f, p, "a link needs an href, or it renders as an anchor that goes nowhere")
+			}
+		default:
+			// Kinds that take no configuration should not be given any, or the
+			// author is left believing they changed something.
+			if item.State != "" {
+				v.errf(f, append(p, "state"), "%s takes no state", item.Kind)
+			}
+			if item.Href != "" {
+				v.errf(f, append(p, "href"), "%s takes no href", item.Kind)
+			}
+		}
+
+		if item.IconKey != "" {
+			if _, ok := icons.Icons[item.IconKey]; !ok {
+				v.errf(f, append(p, "iconKey"), "unknown icon %q; it is not declared in %s",
+					item.IconKey, FileIcons)
+			}
+		}
+	}
+
+	// These carry reader state that the whole page depends on, and two of either
+	// would put the same control on the bar twice with no way to tell which one
+	// won.
+	for _, kind := range []ChromeKind{ChromeScopeSwitch, ChromeThemeToggle, ChromeWordmark} {
+		if seen[kind] > 1 {
+			v.errf(f, []any{"header", "items"}, "%s appears %d times; it may appear at most once", kind, seen[kind])
+		}
+	}
+	for _, state := range ChromeStates {
+		n := 0
+		for _, item := range c.Header.Items {
+			if item.Kind == ChromeSelect && item.State == state {
+				n++
+			}
+		}
+		if n > 1 {
+			v.errf(f, []any{"header", "items"}, "two selects both change %q", state)
+		}
+	}
 }

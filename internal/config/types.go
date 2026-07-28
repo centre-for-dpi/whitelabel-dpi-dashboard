@@ -370,6 +370,72 @@ type Icon struct {
 	Label       string `yaml:"label"`
 }
 
+// --- chrome.yaml -----------------------------------------------------------
+
+// Chrome is the page furniture: the header bar and what sits in it.
+//
+// It exists because the header used to be a fixed struct in Go with a fixed
+// template beside it, so a deployment could restyle the whole dashboard and
+// rearrange every section of the page — and still not add a link to its own
+// service desk, or remove a language switcher it did not need. The bar a reader
+// sees on every page was the one part of the product they could not touch.
+type Chrome struct {
+	Header ChromeBar `yaml:"header"`
+}
+
+// ChromeBar is an ordered list of items. Order is the order they appear.
+type ChromeBar struct {
+	Items []ChromeItem `yaml:"items"`
+}
+
+// ChromeKind names what an item is. A closed set, because each kind is a piece of
+// behaviour — a control that submits, a toggle that writes a cookie — and not
+// something that can be described generically in YAML.
+type ChromeKind string
+
+const (
+	// ChromeWordmark is the brand mark and name, linking home.
+	ChromeWordmark ChromeKind = "wordmark"
+	// ChromeScopeSwitch is the scope control, one segment per configured scope.
+	ChromeScopeSwitch ChromeKind = "scope-switch"
+	// ChromeSelect is a labelled dropdown bound to a named piece of reader state.
+	ChromeSelect ChromeKind = "select"
+	// ChromeThemeToggle switches between light and dark.
+	ChromeThemeToggle ChromeKind = "theme-toggle"
+	// ChromeLink is an arbitrary link: a service desk, an about page, a status
+	// history. The kind that makes this file worth having.
+	ChromeLink ChromeKind = "link"
+	// ChromeSpacer pushes everything after it to the far end of the bar.
+	ChromeSpacer ChromeKind = "spacer"
+)
+
+// ChromeKinds is every kind, for validation and for the generated schema.
+var ChromeKinds = []string{
+	string(ChromeWordmark), string(ChromeScopeSwitch), string(ChromeSelect),
+	string(ChromeThemeToggle), string(ChromeLink), string(ChromeSpacer),
+}
+
+// ChromeStates are the pieces of reader state a select may be bound to.
+var ChromeStates = []string{"period", "locale"}
+
+// ChromeItem is one item in the bar.
+type ChromeItem struct {
+	Kind ChromeKind `yaml:"kind"`
+	// State names what a select changes. Required for select, meaningless
+	// otherwise.
+	State string `yaml:"state"`
+	// TermID is the label. Required for link; a select falls back to the
+	// conventional term for its state.
+	TermID string `yaml:"termId"`
+	// Href is where a link goes.
+	Href string `yaml:"href"`
+	// External marks a link as leaving the site, which adds rel="noopener" and
+	// the new-tab indicator.
+	External bool `yaml:"external"`
+	// IconKey is an icon from icons.yaml, shown before the label.
+	IconKey string `yaml:"iconKey"`
+}
+
 // --- assembled -------------------------------------------------------------
 
 // Config is the fully loaded and validated configuration.
@@ -379,4 +445,5 @@ type Config struct {
 	Domain Domain
 	Theme  Theme
 	Icons  Icons
+	Chrome Chrome
 }

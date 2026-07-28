@@ -296,8 +296,8 @@ func TestEveryControlWorksWithoutJavaScript(t *testing.T) {
 	// the control work in the first place.
 	body := get(t, dashboard(t), "/")
 
-	if !strings.Contains(body, `<form class="controls" method="get"`) {
-		t.Error("the chrome controls are not a real GET form")
+	if !strings.Contains(body, `<form class="controls-bar" method="get"`) {
+		t.Error("the chrome bar is not a real GET form")
 	}
 	if !strings.Contains(body, `method="get" action="/" data-dpi-filters`) {
 		t.Error("the filter bar is not a real GET form")

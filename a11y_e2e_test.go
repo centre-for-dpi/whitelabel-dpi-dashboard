@@ -263,3 +263,49 @@ func TestTheDrawerHasOneRouteForPointerAndKeyboard(t *testing.T) {
 		t.Error("the name link has no hx-get, so a keyboard user gets a full page load where a mouse gets the drawer")
 	}
 }
+
+// The header bar is configured, so its accessibility cannot be asserted by
+// reading one template. These are the properties that must hold for whatever a
+// deployment assembles.
+func TestTheConfiguredHeaderBarStaysAccessible(t *testing.T) {
+	h := dashboard(t)
+	body := get(t, h, "/")
+
+	// Every control in the bar has to submit, or the no-JavaScript path silently
+	// stops working for whichever control was left outside the form.
+	if !strings.Contains(body, `<form class="controls-bar" method="get"`) {
+		t.Error("the bar is not a real GET form")
+	}
+
+	// A spacer is layout, so it must not be announced as anything.
+	if strings.Contains(body, `class="chrome-spacer"`) &&
+		!strings.Contains(body, `class="chrome-spacer" aria-hidden="true"`) {
+		t.Error("the spacer is exposed to assistive technology; it is pure layout")
+	}
+
+	// The structural auditor covers names, labels and roles across the whole
+	// document; this just asserts the bar contributed no problems of its own.
+	for _, p := range auditPath(t, h, "/") {
+		switch p.Rule {
+		case "control-label", "link-name", "button-name", "aria-idref":
+			t.Errorf("the header bar contributed a problem: %s", p)
+		}
+	}
+}
+
+// An external link's indicator is an icon, and every icon in the shipped set is
+// a glyph, which the icon template correctly hides. So the warning that a link
+// leaves the site has to be in text as well, or it is visual only.
+func TestExternalLinksWarnInText(t *testing.T) {
+	h := dashboard(t)
+
+	for _, locale := range []string{"en", "ar", "hi"} {
+		body := get(t, h, "/?lang="+locale)
+		if !strings.Contains(body, `target="_blank"`) {
+			continue // no external link configured on this page
+		}
+		if !strings.Contains(body, `class="sr-only"`) {
+			t.Errorf("%s: an external link opens a new tab with no text saying so", locale)
+		}
+	}
+}

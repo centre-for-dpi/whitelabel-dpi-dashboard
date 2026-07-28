@@ -222,6 +222,19 @@ icons:
   trend.up: { glyph: "\u25B2", label: Rising }
 `
 
+const validChrome = `
+header:
+  items:
+    - kind: wordmark
+    - kind: spacer
+    - kind: scope-switch
+    - kind: select
+      state: period
+    - kind: select
+      state: locale
+    - kind: theme-toggle
+`
+
 func bundle() config.Bundle {
 	return config.Bundle{
 		"app.yaml":    []byte(validApp),
@@ -229,6 +242,7 @@ func bundle() config.Bundle {
 		"domain.yaml": []byte(validDomain),
 		"theme.yaml":  []byte(validTheme),
 		"icons.yaml":  []byte(validIcons),
+		"chrome.yaml": []byte(validChrome),
 	}
 }
 

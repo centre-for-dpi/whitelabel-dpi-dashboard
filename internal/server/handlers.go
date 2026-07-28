@@ -35,6 +35,14 @@ type PageData struct {
 	LocaleLabel string
 	ApplyLabel  string
 	ThemeHref   string
+	// NewTabText warns, in text a screen reader reads, that a link leaves the
+	// site. The external icon is aria-hidden like every glyph, so without this
+	// the warning is visual only.
+	NewTabText string
+
+	// ChromeItems is the header bar, in configured order. The template switches
+	// on Kind rather than knowing what the bar contains.
+	ChromeItems []ChromeItemView
 
 	Scopes  []Choice
 	Periods []Choice
@@ -89,6 +97,27 @@ func (s *Server) handlePage(w http.ResponseWriter, r *http.Request) {
 	s.write(w, buf.Bytes())
 }
 
+// ChromeItemView is one item of the header bar, ready to render.
+//
+// One flat type with a Kind rather than an interface per kind: html/template
+// cannot switch on a Go type, so a template would need a field to switch on
+// anyway, and this keeps the shape of the bar visible in one place.
+type ChromeItemView struct {
+	Kind string
+
+	// Label is the text, already resolved.
+	Label string
+	Icon  widget.Icon
+
+	// Select.
+	Name    string
+	Options []Choice
+
+	// Link, and the wordmark.
+	Href     string
+	External bool
+}
+
 // pageTerm prefers a page's own term and falls back to the brand's, so adding a
 // title to layout.yaml is opt-in and its absence changes nothing.
 func pageTerm(pageTerm, fallback string) string {
@@ -124,6 +153,7 @@ func (s *Server) pageData(c widget.Context, r *http.Request) (PageData, error) {
 		PeriodLabel:  text.Text("chrome.period.label", nil),
 		LocaleLabel:  text.Text("chrome.locale.label", nil),
 		ApplyLabel:   text.Text("chrome.apply", nil),
+		NewTabText:   text.Text("chrome.newTab", nil),
 	}
 
 	// The toggle offers the theme you would switch TO, which is what the icon
@@ -162,6 +192,10 @@ func (s *Server) pageData(c widget.Context, r *http.Request) (PageData, error) {
 			Value: code, Label: names[code], Active: code == c.State.Locale,
 		})
 	}
+
+	// The bar, assembled in the order chrome.yaml lists. Built last because each
+	// item draws on the choices above rather than recomputing them.
+	data.ChromeItems = s.chromeItems(data, text, icons)
 
 	// Everything the visible controls do not carry, so submitting the period
 	// selector does not silently clear the filters.
@@ -408,4 +442,65 @@ type errNoPageErr struct{}
 
 func (errNoPageErr) Error() string {
 	return "the layout declares no page at /, so there is nothing to serve"
+}
+
+// chromeItems turns the configured bar into view models, in order.
+//
+// Anything a kind needs has already been computed for the page — the scope
+// choices, the period options, the theme href — so this only selects and labels.
+// An unknown kind cannot reach here: config validation rejects it at startup,
+// and skipping it silently rather than panicking means a hot reload that races
+// validation degrades to a missing control instead of a blank page.
+func (s *Server) chromeItems(data PageData, text widget.TextResolver, icons widget.IconResolver) []ChromeItemView {
+	out := make([]ChromeItemView, 0, len(s.cfg.Chrome.Header.Items))
+	for _, item := range s.cfg.Chrome.Header.Items {
+		v := ChromeItemView{Kind: string(item.Kind)}
+		if item.IconKey != "" {
+			v.Icon = icons.Icon(item.IconKey)
+		}
+
+		switch item.Kind {
+		case config.ChromeWordmark:
+			v.Label = data.Wordmark
+			v.Href = "/"
+			if item.IconKey == "" {
+				v.Icon = data.BrandIcon
+			}
+
+		case config.ChromeScopeSwitch:
+			v.Label = data.ScopeLabel
+			v.Options = data.Scopes
+
+		case config.ChromeSelect:
+			switch item.State {
+			case "period":
+				v.Name, v.Label, v.Options = paramPeriod, data.PeriodLabel, data.Periods
+			case "locale":
+				v.Name, v.Label, v.Options = paramLang, data.LocaleLabel, data.Locales
+			}
+			// A configured label wins, so a deployment can rename a control
+			// without renaming the term the rest of the page uses.
+			if item.TermID != "" {
+				v.Label = text.Text(item.TermID, nil)
+			}
+
+		case config.ChromeThemeToggle:
+			v.Label = data.ThemeIcon.Label
+			v.Icon = data.ThemeIcon
+			v.Href = data.ThemeHref
+
+		case config.ChromeLink:
+			v.Label = text.Text(item.TermID, nil)
+			v.Href = item.Href
+			v.External = item.External
+
+		case config.ChromeSpacer:
+			// Nothing to resolve; the template gives it the margin.
+
+		default:
+			continue
+		}
+		out = append(out, v)
+	}
+	return out
 }

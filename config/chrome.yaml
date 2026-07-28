@@ -1,0 +1,52 @@
+# yaml-language-server: $schema=../schema/chrome.schema.json
+#
+# THE HEADER BAR.
+#
+# What sits across the top of every page, in the order it sits there. Adding a
+# link to your own service desk, dropping a control you do not need, or moving
+# the language switcher to the far end is an edit to this file.
+#
+# This exists because the bar used to be a fixed struct in Go with a fixed
+# template beside it. A deployment could restyle every colour, rearrange every
+# section of the page and add its own metrics — and still not put a link to its
+# own help desk in the one place a reader looks for it.
+#
+# `kind` is a closed set, not an open one, because each kind is a piece of
+# behaviour rather than a shape: a select submits a form, a theme toggle writes a
+# cookie the server reads back. Run `make validate` after an edit and an unknown
+# kind is rejected with the list of the ones that exist.
+
+header:
+  items:
+    # The brand mark and name, linking home. The name comes from
+    # brand.yaml wordmarkTermId, which is separate from the document title.
+    - kind: wordmark
+
+    # Everything after a spacer is pushed to the far end of the bar. In a
+    # right-to-left locale that is the left, automatically — the layout is built
+    # from logical properties.
+    - kind: spacer
+
+    # One segment per scope in domain.yaml. Drop this and the dashboard is
+    # single-scope; the reader simply never sees a choice they did not have.
+    - kind: scope-switch
+
+    # A labelled dropdown bound to a piece of reader state. `state` is what it
+    # changes; the label and the options come from domain.yaml and the locale
+    # files, so a deployment that offers different periods does not touch this.
+    - kind: select
+      state: period
+
+    - kind: select
+      state: locale
+
+    - kind: theme-toggle
+
+    # An arbitrary link — the kind this file exists for. Uncomment, point it at
+    # your own page, and add the term to config/locales/*.yaml.
+    #
+    # - kind: link
+    #   termId: nav.help
+    #   href: https://example.gov/service-desk
+    #   external: true
+    #   iconKey: ui.external

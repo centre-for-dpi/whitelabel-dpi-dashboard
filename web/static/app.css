@@ -67,6 +67,15 @@ button, input, select { font: inherit; color: inherit; }
 }
 
 .controls { display: flex; align-items: center; gap: 12px; margin-inline-start: auto; flex-wrap: wrap; }
+
+/* The bar is one flex row of whatever chrome.yaml lists. A spacer takes all the
+ * free space, which is how "everything after this goes to the far end" is
+ * expressed without the template knowing what is on either side of it — and it
+ * mirrors for right-to-left with no extra rule, because auto margins follow the
+ * writing direction. */
+.controls-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; width: 100%; }
+.chrome-spacer { flex: 1 1 auto; }
+.chrome-link { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; font-size: .82rem; color: var(--accent); }
 .field { display: inline-flex; align-items: center; gap: 6px; font-size: .82rem; }
 .field-label { color: var(--muted-fg); }
 
