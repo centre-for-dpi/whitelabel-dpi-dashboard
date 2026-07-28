@@ -52,7 +52,10 @@
     </fieldset>
 
     <div class="filter-foot">
-      <p class="muted" aria-live="polite">{{.ResultText}}</p>
+      {{/* Visible here, announced from #a11y-status in the page shell — this
+           node is inside the swapped fragment, so a live region on it would be
+           replaced rather than updated and never announce. */}}
+      <p class="muted" data-dpi-announce>{{.ResultText}}</p>
       <noscript><button class="btn" type="submit">{{.ApplyLabel}}</button></noscript>
       {{if .ClearVisible}}
       <a class="link" href="/" hx-get="/fragments/leaderboard" hx-target="#leaderboard"
@@ -140,8 +143,13 @@
 <td data-align="{{.Align}}">
   {{if eq .Kind "rank"}}
     <span class="tnum">{{.Rank}}</span>
-    <span class="rank-move" title="{{.RankMoveLabel}}" aria-label="{{.RankMoveLabel}}">
+    {{/* aria-label is only honoured on elements with a role, so on a bare span
+         it is silently dropped and the movement goes unannounced. Real text,
+         visually hidden, is announced by every screen reader and needs no
+         role at all. */}}
+    <span class="rank-move">
       {{template "icon" .RankMove}}
+      <span class="sr-only">{{.RankMoveLabel}}</span>
     </span>
 
   {{else if eq .Kind "name"}}

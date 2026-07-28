@@ -95,6 +95,7 @@ terms:
   verdict.kicker3.word: "ошибка"
   verdict.segment:      "{count} {label}"
   verdict.source:       "Охват по каталогу API Setu"
+  footer.cdpi:          "При поддержке Centre for Digital Public Infrastructure (CDPI)"
   verdict.updated:      "Обновлено {rel}"
 
   # --- The five outcomes.

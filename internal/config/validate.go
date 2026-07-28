@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"gopkg.in/yaml.v3"
+
+	"github.com/centre-for-dpi/whitelabel-dpi-dashboard/internal/a11y"
 )
 
 // validator accumulates located errors while walking a decoded config.
@@ -479,6 +481,15 @@ func (v *validator) validateTheme(t Theme) {
 				v.errKey(f, []any{mode.name}, name, "token %q is not a CSS custom property; names must begin with \"--\"", name)
 			}
 			v.checkCSSValue([]any{mode.name, name}, "token value", mode.tokens[name])
+		}
+
+		// WCAG contrast. A white-label dashboard hands its palette to every
+		// deployment, so this is the only moment anyone can be sure the
+		// combinations the templates actually produce are legible. Reported
+		// against the offending token so the reader is taken to the line they
+		// have to change, not to the pair.
+		for _, finding := range a11y.Check(mode.name, mode.tokens) {
+			v.errKey(f, []any{mode.name}, finding.Fg, "%s", finding)
 		}
 	}
 

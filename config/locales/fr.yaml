@@ -92,6 +92,7 @@ terms:
   verdict.kicker3.word: "erreur"
   verdict.segment:      "{count} {label}"
   verdict.source:       "Couverture issue de l'annuaire API Setu"
+  footer.cdpi:          "Avec le soutien du Centre for Digital Public Infrastructure (CDPI)"
   verdict.updated:      "Mis à jour {rel}"
 
   # --- The five outcomes.

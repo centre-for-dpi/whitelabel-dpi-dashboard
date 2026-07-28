@@ -36,7 +36,13 @@ func CSS(t config.Theme) string {
 	writeFontFaces(&b, t.Fonts.Serif)
 
 	// Light is the default: it applies unless something more specific wins.
-	b.WriteString(":root{")
+	//
+	// color-scheme is declared alongside the tokens because the browser paints
+	// several things this stylesheet cannot reach — the select dropdown, the
+	// scrollbar, the caret, form control chrome. Without it those stay in light
+	// colours over a dark page, which is how a themed dashboard ends up with an
+	// unreadable language menu.
+	b.WriteString(":root{color-scheme:light;")
 	writeTokens(&b, t.Light)
 	writeTokens(&b, t.Tokens)
 	writeFontToken(&b, "--font-body", t.Fonts.Body.Stack)
@@ -47,13 +53,13 @@ func CSS(t config.Theme) string {
 		// Follow the operating system, but stand aside when the reader has
 		// explicitly chosen light — otherwise the toggle would be a no-op for
 		// anyone whose OS is set to dark.
-		b.WriteString(`@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){`)
+		b.WriteString(`@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;`)
 		writeTokens(&b, t.Dark)
 		b.WriteString("}}\n")
 
 		// This selector and the one above have equal specificity, so an
 		// explicit choice can only win by coming later. Do not reorder.
-		b.WriteString(`:root[data-theme="dark"]{`)
+		b.WriteString(`:root[data-theme="dark"]{color-scheme:dark;`)
 		writeTokens(&b, t.Dark)
 		b.WriteString("}\n")
 	}

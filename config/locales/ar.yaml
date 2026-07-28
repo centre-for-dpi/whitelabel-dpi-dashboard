@@ -96,6 +96,7 @@ terms:
   verdict.kicker3.word: "خطأ"
   verdict.segment:      "{count} {label}"
   verdict.source:       "التغطية من دليل API Setu"
+  footer.cdpi:          "بدعم من مركز البنية التحتية الرقمية العامة (CDPI)"
   verdict.updated:      "حُدِّث {rel}"
 
   # --- The five outcomes.

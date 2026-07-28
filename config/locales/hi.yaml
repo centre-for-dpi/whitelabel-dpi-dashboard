@@ -95,6 +95,7 @@ terms:
   verdict.kicker3.word: "त्रुटि"
   verdict.segment:      "{count} {label}"
   verdict.source:       "कवरेज API Setu निर्देशिका से लिया गया"
+  footer.cdpi:          "डिजिटल पब्लिक इंफ्रास्ट्रक्चर केंद्र (CDPI) द्वारा समर्थित"
   verdict.updated:      "{rel} अपडेट किया गया"
 
   # --- The five outcomes.

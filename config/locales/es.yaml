@@ -92,6 +92,7 @@ terms:
   verdict.kicker3.word: "error"
   verdict.segment:      "{count} {label}"
   verdict.source:       "Cobertura del directorio API Setu"
+  footer.cdpi:          "Con el apoyo del Centre for Digital Public Infrastructure (CDPI)"
   verdict.updated:      "Actualizado {rel}"
 
   # --- The five outcomes.

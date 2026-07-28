@@ -95,6 +95,7 @@ terms:
   verdict.kicker3.word: "错误"
   verdict.segment:      "{count} {label}"
   verdict.source:       "覆盖范围取自 API Setu 目录"
+  footer.cdpi:          "由数字公共基础设施中心 (CDPI) 支持"
   verdict.updated:      "更新于 {rel}"
 
   # --- The five outcomes.

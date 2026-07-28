@@ -125,12 +125,22 @@ select:disabled { opacity: .5; cursor: not-allowed; }
 .w-summary { font-size: 1.02rem; margin: 0; }
 .w-summary.is-clear { color: var(--status-ok); }
 
-.w-bar { display: flex; height: 40px; max-width: 760px; border-radius: var(--radius-sm); overflow: hidden; }
+.w-bar {
+  display: flex; height: 40px; max-width: 760px;
+  border: 1px solid var(--border-strong); border-radius: var(--radius-sm); overflow: hidden;
+}
 .bar-seg {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   width: var(--w); min-width: 42px; font-size: .8rem;
   background: var(--status-bg); color: var(--status-fg);
 }
+/* The bar's proportions are its content, and the fills are pastels that cannot
+ * contrast with each other, so this hairline is the only thing making two
+ * touching segments read as two. That puts it under WCAG 1.4.11, which is why
+ * it uses --border-strong — the one token startup checks against every status
+ * fill — and why it is on the adjacent sibling rather than on every segment,
+ * which would double up against the container's own border. */
+.bar-seg + .bar-seg { border-inline-start: 1px solid var(--border-strong); }
 
 /* One rule maps every tone to its pair of tokens. Adding a status means adding
  * tokens, not editing selectors. */
@@ -188,7 +198,11 @@ select:disabled { opacity: .5; cursor: not-allowed; }
 .chip-cat { background: var(--card); color: var(--fg); border-color: var(--border-strong); }
 .chip-cat:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .chip-static { cursor: default; }
-.chip-count { opacity: .75; }
+/* The count is secondary to the label, but opacity is the wrong way to say so:
+ * it multiplies the text towards the background, and a chip colour chosen to
+ * clear 4.5:1 lands near 3:1 once dimmed. Weight and letter-spacing carry the
+ * same hierarchy without touching the contrast the palette was checked at. */
+.chip-count { font-weight: 400; font-variant-numeric: tabular-nums; }
 
 .filter-foot { display: flex; align-items: center; gap: 12px; }
 
@@ -222,12 +236,24 @@ select:disabled { opacity: .5; cursor: not-allowed; }
 
 /* --- drawer --------------------------------------------------------------- */
 
-.drawer { border: 0; padding: 0; margin: 0; max-width: none; max-height: none; width: 100%; height: 100%; background: transparent; }
+/* A dialog is display:none until it is opened, and only script can open it as a
+ * modal. So the default here is the no-script rendering — an ordinary section in
+ * the flow, which is what a shared /service/{id} link must still show — and the
+ * closed dialog is hidden only once the inline marker in <head> has proved that
+ * script is running to open it. */
+.drawer { display: block; border: 0; padding: 0; margin: 0; max-width: none; max-height: none; width: 100%; background: transparent; }
+html.js .drawer { height: 100%; }
+html.js .drawer:not([open]) { display: none; }
+
 .drawer::backdrop { background: rgb(0 0 0 / 42%); }
 .drawer-panel {
-  position: fixed; inset-block: 0; inset-inline-end: 0;
   width: min(560px, 100%); overflow-y: auto;
   background: var(--card); box-shadow: var(--shadow-lg);
+}
+/* Only pinned to the viewport edge when it is genuinely a modal overlay.
+ * Without script it is part of the document and must not cover it. */
+html.js .drawer-panel {
+  position: fixed; inset-block: 0; inset-inline-end: 0;
   animation: slide-in var(--dur) var(--ease);
 }
 @keyframes slide-in { from { transform: translateX(100%); } }
@@ -306,7 +332,54 @@ select:disabled { opacity: .5; cursor: not-allowed; }
   .w-bar[data-hide-below="480px"] { display: none; }
 }
 
-/* Motion is decoration here; nothing depends on it. */
+/* Motion is decoration here; nothing depends on it.
+ *
+ * This covers CSS only. Scripted scrolling has to consult the same media query
+ * itself, which app.js does in one place so it cannot drift from this rule. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+/* --- forced colours -------------------------------------------------------
+ *
+ * Windows High Contrast and its equivalents replace every colour in the page
+ * with a small system palette. Everything this dashboard says with a tone —
+ * status fills, the bar's proportions, the error class of a code, which stage of
+ * an incident is current — therefore stops being said, because all five fills
+ * composite to the same Canvas.
+ *
+ * The response is not forced-color-adjust: none, which would opt out of the
+ * reader's own settings. It is to restate in borders and shapes what the fills
+ * were saying, using the system keywords so the reader's palette still wins. */
+@media (forced-colors: active) {
+  /* Keep every segment's edges: without this the bar is one undivided block. */
+  .bar-seg { border: 1px solid CanvasText; }
+  .bar-seg + .bar-seg { border-inline-start-width: 2px; }
+
+  /* Chips, cards and controls keep a visible boundary. */
+  .chip, .card, .w-filters, .segmented, .icon-btn, .btn, .lb, .drawer { border: 1px solid CanvasText; }
+
+  /* A selected chip or segment is distinguished by the system's highlight,
+   * which is the only pair guaranteed to be distinguishable. */
+  .chip:has(input:checked), .segment[aria-current="true"], [role="tab"][aria-selected="true"] {
+    background: Highlight; color: HighlightText; forced-color-adjust: none;
+  }
+
+  /* Dots and fills are pure colour, so they need an outline to exist at all. */
+  .dot, .stage-dot, .badge-open { outline: 1px solid CanvasText; }
+  .bl-fill { background: CanvasText; }
+
+  /* The focus ring must not inherit a colour the system has overridden away. */
+  :focus-visible { outline-color: Highlight; }
+}
+
+/* --- increased contrast ---------------------------------------------------
+ *
+ * A reader who asks for more contrast is telling us the borders are too quiet.
+ * Both border tokens step up to the strongest available, which startup has
+ * already proved reaches 3:1 against every surface it lands on. */
+@media (prefers-contrast: more) {
+  :root { --border-subtle: var(--border-strong); }
+  .bar-seg + .bar-seg { border-inline-start-width: 2px; }
+  :focus-visible { outline-width: 3px; }
 }

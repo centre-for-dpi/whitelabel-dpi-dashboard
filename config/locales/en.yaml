@@ -102,6 +102,7 @@ terms:
   verdict.kicker3.word: "error"
   verdict.segment: "{count} {label}"
   verdict.source: "Sample data. Source: API Setu"
+  footer.cdpi:    "Supported by the Centre for Digital Public Infrastructure (CDPI)"
   verdict.updated: "Updated {rel}"
 
   # --- The five outcomes.

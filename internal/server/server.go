@@ -106,7 +106,7 @@ func New(o Options) (*Server, error) {
 		log:          o.Log,
 		mux:          http.NewServeMux(),
 		themeCSS:     []byte(css),
-		assetVersion: fingerprint(css),
+		assetVersion: assetFingerprint(css, o.Static),
 		static:       o.Static,
 		example:      o.ExampleUpstream,
 		ingest:       o.Ingest,
@@ -374,6 +374,40 @@ func cacheForever(h http.Handler) http.Handler {
 		w.Header().Set("cache-control", "public, max-age=31536000, immutable")
 		h.ServeHTTP(w, r)
 	})
+}
+
+// assetFingerprint is the version stamped onto every asset URL.
+//
+// It must cover everything served under that version, not just the generated
+// stylesheet. Assets go out as immutable with a year-long max-age, so anything
+// the fingerprint does not cover is one a returning reader will never fetch
+// again: a fix to app.js would ship, the deployment would restart, and browsers
+// that had been there before would keep running last month's script against
+// this month's markup.
+//
+// Walking the embedded tree is cheap and happens once at startup, and the tree
+// is fixed at build time, so this cannot drift from what handleStatic serves.
+func assetFingerprint(css string, static fs.FS) string {
+	var b strings.Builder
+	b.WriteString(css)
+
+	if static != nil {
+		// WalkDir visits in lexical order, so the fingerprint is deterministic
+		// and two identical builds agree.
+		_ = fs.WalkDir(static, "web/static", func(path string, d fs.DirEntry, err error) error {
+			if err != nil || d.IsDir() {
+				return nil
+			}
+			data, err := fs.ReadFile(static, path)
+			if err != nil {
+				return nil
+			}
+			b.WriteString(path)
+			b.Write(data)
+			return nil
+		})
+	}
+	return fingerprint(b.String())
 }
 
 // fingerprint is a short content hash, used to bust asset caches.

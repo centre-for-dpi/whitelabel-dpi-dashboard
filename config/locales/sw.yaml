@@ -92,6 +92,7 @@ terms:
   verdict.kicker3.word: "kosa"
   verdict.segment:      "{count} {label}"
   verdict.source:       "Ufikiaji kutoka orodha ya API Setu"
+  footer.cdpi:          "Kwa msaada wa Centre for Digital Public Infrastructure (CDPI)"
   verdict.updated:      "Imesasishwa {rel}"
 
   # --- The five outcomes.

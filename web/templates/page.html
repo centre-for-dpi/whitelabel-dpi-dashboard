@@ -8,6 +8,13 @@
 {{if .Favicon}}<link rel="icon" href="{{.Favicon}}">{{end}}
 <link rel="stylesheet" href="/assets/theme.css?v={{.AssetVersion}}">
 <link rel="stylesheet" href="/assets/app.css?v={{.AssetVersion}}">
+{{/* Marks that script is running, before the first paint so there is no flash.
+     The drawer needs it: a <dialog> can only become modal through showModal(),
+     which means without script it would be display:none and a shared
+     /service/{id} link would render an empty page. The stylesheet therefore
+     shows the panel inline by default and hides the closed dialog only when
+     this class proves someone is there to open it. */}}
+<script>document.documentElement.classList.add("js")</script>
 <script src="/assets/htmx.min.js?v={{.AssetVersion}}" defer></script>
 <script src="/assets/app.js?v={{.AssetVersion}}" defer></script>
 </head>
@@ -25,6 +32,21 @@
 {{/* The drawer arrives here from a fragment swap, so a page load carries no
      markup for a panel nobody has opened. */}}
 <div id="drawer-host">{{if .Drawer}}{{template "drawer" .Drawer}}{{end}}</div>
+
+{{/* The announcer.
+
+     A live region only announces changes to a node the screen reader was
+     already watching. Put one inside a fragment and an outerHTML swap replaces
+     it — the reader is handed a brand-new element with text already in it, which
+     is not a change to anything, and nothing is said. Narrowing a filter would
+     then be silent for exactly the readers who most need telling.
+
+     So the region that speaks lives out here, outside every swap target, for the
+     life of the document; app.js copies each result count into it after a swap.
+     The count is also on screen inside the filter bar, where it belongs
+     visually — this is the same sentence, said once, to someone who cannot see
+     that corner of the page. */}}
+<p id="a11y-status" class="sr-only" role="status" aria-live="polite"></p>
 </body>
 </html>{{end}}
 
