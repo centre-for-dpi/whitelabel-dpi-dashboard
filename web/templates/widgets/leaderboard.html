@@ -7,7 +7,14 @@
 {{define "widget/filter-bar"}}
 <form class="w w-filters" method="get" action="/" data-dpi-filters
       hx-get="/fragments/leaderboard" hx-target="#leaderboard" hx-swap="outerHTML"
-      hx-push-url="true" hx-trigger="submit, change from:select, input delay:250ms from:input[type=search]">
+      {{/* Checkboxes are named explicitly. The trigger listed only
+           `change from:select`, so ticking a status or category chip flipped
+           the checkbox and highlighted the pill while the board behind it never
+           moved — the one failure mode worse than a control that plainly does
+           nothing. Search keeps its own debounced `input` trigger and is left
+           out of `change`, which a search field also fires on blur. */}}
+      hx-push-url="true"
+      hx-trigger="submit, change from:select, change from:input[type=checkbox], input delay:250ms from:input[type=search]">
 
   {{/* aria-expanded comes from the request, not from a literal. It was
        hardcoded false, and a filter change replaces this whole section — so on a
@@ -15,53 +22,74 @@
        and they had to reopen it to make a second change. The state rides in the
        URL like every other piece, so a shared link reopens it too. */}}
   <input type="hidden" name="filters" value="{{if .Expanded}}open{{else}}{{end}}" data-dpi-disclosure-state>
+
+  {{/* Everything the reader chose that this form has no control for. A GET form
+       submits its own fields and nothing else, so narrowing the board used to
+       reset the language, the period, the role and the sort to the deployment's
+       defaults — and the drawer opened afterwards inherited all of it. */}}
+  {{range .Hidden}}<input type="hidden" name="{{.Name}}" value="{{.Value}}">{{end}}
+
   <button class="filter-toggle" type="button" data-dpi-disclosure="filter-body"
           aria-expanded="{{if .Expanded}}true{{else}}false{{end}}" aria-controls="filter-body">
-    {{.SearchLabel}}{{if .AppliedCount}} ({{.AppliedCount}}){{end}}
+    {{.FiltersLabel}}
   </button>
 
   <div class="filter-body" id="filter-body">
     <div class="filter-row">
-      {{/* The id is load-bearing, not decoration: htmx restores focus and
-           selection after a swap only for an element that has one, and this
-           input is replaced on every keystroke by its own debounced filter.
-           Without it, typing a word loses the caret partway through. */}}
-      <input id="lb-search" class="search" type="search" name="q" value="{{.Search}}"
-             placeholder="{{.SearchLabel}}" aria-label="{{.SearchLabel}}">
+      {{/* The group names are shown, not only announced. They were sr-only, so a
+           sighted reader met a bare box and two undifferentiated rows of pills
+           and had to infer what each row selected. A label that is worth reading
+           aloud is worth reading. */}}
+      <div class="filter-field">
+        <label class="field-legend" for="lb-search">{{.SearchLabel}}</label>
+        {{/* The id is load-bearing, not decoration: htmx restores focus and
+             selection after a swap only for an element that has one, and this
+             input is replaced on every keystroke by its own debounced filter.
+             Without it, typing a word loses the caret partway through. */}}
+        <input id="lb-search" class="search" type="search" name="q" value="{{.Search}}"
+               placeholder="{{if .SearchPlaceholder}}{{.SearchPlaceholder}}{{else}}{{.SearchLabel}}{{end}}">
+      </div>
 
       {{if .Regions}}
-      {{/* The name comes from config like every other. It was the literal
-           "region", in English, and it is an accessible name — the one string on
-           this control anybody using a screen reader hears. */}}
-      <select name="region" aria-label="{{.RegionLabel}}"{{if not .RegionEnabled}} disabled{{end}}>
-        {{range .Regions}}<option value="{{.Value}}"{{if .Active}} selected{{end}}>{{.Label}}</option>{{end}}
-      </select>
+      <div class="filter-field filter-field-region">
+        <label class="field-legend" for="lb-region">{{.RegionLabel}}</label>
+        <select id="lb-region" name="region"{{if not .RegionEnabled}} disabled{{end}}>
+          {{range .Regions}}<option value="{{.Value}}"{{if .Active}} selected{{end}}>{{.Label}}</option>{{end}}
+        </select>
+      </div>
       {{end}}
     </div>
 
     {{/* Checkboxes rather than buttons: a filter is a state, not an action, and
-         a checkbox is what a keyboard and a screen reader already understand. */}}
-    <fieldset class="chips">
-      <legend class="sr-only">{{.StatusLegend}}</legend>
-      {{range .Statuses}}
-      <label class="chip" data-tone="{{.Tone}}">
-        <input type="checkbox" name="status" value="{{.Value}}"{{if .Active}} checked{{end}}>
-        {{template "icon" .Icon}}
-        <span>{{.Label}}</span>
-        <span class="chip-count tnum">{{.Count}}</span>
-      </label>
-      {{end}}
+         a checkbox is what a keyboard and a screen reader already understand.
+         The legend sits outside the flex row so it reads as a heading for the
+         group rather than as the first pill in it. */}}
+    <fieldset class="chip-group">
+      <legend class="field-legend">{{.StatusLegend}}</legend>
+      <div class="chips">
+        {{range .Statuses}}
+        <label class="chip" data-tone="{{.Tone}}">
+          <input type="checkbox" name="status" value="{{.Value}}"{{if .Active}} checked{{end}}>
+          {{template "icon" .Icon}}
+          <span>{{.Label}}</span>
+          <span class="chip-count tnum">{{.Count}}</span>
+        </label>
+        {{end}}
+      </div>
     </fieldset>
 
-    <fieldset class="chips">
-      <legend class="sr-only">{{.CategoryLegend}}</legend>
-      {{range .Categories}}
-      <label class="chip chip-cat">
-        <input type="checkbox" name="cat" value="{{.Value}}"{{if .Active}} checked{{end}}>
-        {{template "icon" .Icon}}
-        <span>{{.Label}}</span>
-      </label>
-      {{end}}
+    <fieldset class="chip-group">
+      <legend class="field-legend">{{.CategoryLegend}}</legend>
+      <div class="chips">
+        {{range .Categories}}
+        <label class="chip chip-cat">
+          <input type="checkbox" name="cat" value="{{.Value}}"{{if .Active}} checked{{end}}>
+          {{template "icon" .Icon}}
+          <span>{{.Label}}</span>
+          <span class="chip-count tnum">{{.Count}}</span>
+        </label>
+        {{end}}
+      </div>
     </fieldset>
 
     <div class="filter-foot">
@@ -71,7 +99,7 @@
       <p class="muted" data-dpi-announce>{{.ResultText}}</p>
       <noscript><button class="btn" type="submit">{{.ApplyLabel}}</button></noscript>
       {{if .ClearVisible}}
-      <a class="link" href="/" hx-get="/fragments/leaderboard" hx-target="#leaderboard"
+      <a class="link" href="{{.ClearHref}}" hx-get="{{.ClearFragmentHref}}" hx-target="#leaderboard"
          hx-swap="outerHTML" hx-push-url="true">{{.ClearLabel}}</a>
       {{end}}
     </div>
@@ -82,16 +110,17 @@
 
 {{define "widget/leaderboard-table"}}
 <div class="w w-leaderboard">
-  <p class="lb-meta muted">
-    {{.ShowingText}}{{if .PeriodLabel}} · <span class="lb-period">{{.PeriodLabel}}</span>{{end}}
-  </p>
-
   {{if .Empty}}
   <p class="empty">{{.EmptyText}}</p>
   {{else}}
 
+  <div class="lb-frame">
   <table class="lb">
-    {{if .Caption}}<caption class="sr-only">{{.Caption}}</caption>{{end}}
+    {{/* Shown, not only announced. The caption states what the ordering means,
+         and a reader who cannot see the rule cannot tell whether rank 1 is the
+         best performer or the worst — which is precisely the thing a
+         leaderboard is ambiguous about. */}}
+    {{if .Caption}}<caption>{{.Caption}}</caption>{{end}}
     <thead>
       <tr>
         {{range .Columns}}
@@ -99,10 +128,13 @@
              which way — the arrow alone says nothing to one. */}}
         <th scope="col" data-align="{{.Align}}"
             aria-sort="{{if .Sorted}}{{if eq .Dir "asc"}}ascending{{else}}descending{{end}}{{else}}none{{end}}">
-          <a class="th-sort" href="/?sort={{.Key}}&dir={{.NextDir}}"
-             hx-get="/fragments/leaderboard?sort={{.Key}}&dir={{.NextDir}}"
-             hx-target="#leaderboard" hx-swap="outerHTML" hx-push-url="true"
-             hx-include="[data-dpi-filters]">
+          {{/* The href carries the whole reader state, filters included, which
+               is why nothing is included from the filter form: a request
+               assembled from the link and the form together would send `sort`
+               twice and the reader's language not at all. */}}
+          <a class="th-sort" href="{{.Href}}"
+             hx-get="{{.FragmentHref}}"
+             hx-target="#leaderboard" hx-swap="outerHTML" hx-push-url="true">
             {{.Label}}{{if .Sorted}} {{template "icon" .SortIcon}}{{end}}
           </a>
         </th>
@@ -128,6 +160,7 @@
       {{end}}
     </tbody>
   </table>
+  </div>
 
   {{/* The same rows as cards, for a screen too narrow for a table. Both are in
        the document and CSS chooses; swapping markup at a breakpoint would mean
@@ -135,16 +168,26 @@
   <ul class="lb-cards">
     {{range .Rows}}
     <li>
-      <a class="card lb-card" href="/service/{{.ID}}"
-         hx-get="/fragments/service/{{.ID}}" hx-target="#drawer-host"
+      <a class="card lb-card" href="{{.Href}}"
+         hx-get="{{.FragmentHref}}" hx-target="#drawer-host"
          hx-swap="innerHTML" hx-push-url="true">
-        <span class="lb-card-rank tnum">{{.Rank}}</span>
-        <span class="lb-card-name">{{.Name}}</span>
-        <span class="chip-static" data-tone="{{.StatusTone}}">
-          {{template "icon" .StatusIcon}} {{.StatusLabel}}
+        <span class="lb-card-head">
+          <span class="lb-card-rank tnum">{{.Rank}}</span>
+          <span class="lb-card-name">{{.Name}}</span>
+          <span class="chip-static" data-tone="{{.StatusTone}}">
+            {{template "icon" .StatusIcon}} {{.StatusLabel}}
+          </span>
         </span>
-        {{if .Worst.Value}}<span class="tnum">{{.Worst.Value}}</span>{{end}}
-        {{if .Worst.Unknown}}<span class="muted">{{.Worst.Note}}</span>{{end}}
+        {{/* The card has no column headers, so the figure names itself and
+             carries the target it is measured against. A bare "0.28%" under a
+             service name says nothing about what was measured or whether it is
+             good news. */}}
+        <span class="lb-card-metric">
+          <span class="muted">{{.Worst.Label}}</span>
+          {{if .Worst.Value}}<strong class="tnum">{{.Worst.Value}}</strong>{{end}}
+          {{if .Worst.Target}}<span class="muted tnum">{{.Worst.Target}}</span>{{end}}
+          {{if .Worst.Unknown}}<span class="muted">{{.Worst.Note}}</span>{{end}}
+        </span>
       </a>
     </li>
     {{end}}
@@ -166,7 +209,7 @@
          visually hidden, is announced by every screen reader and needs no
          role at all. */}}
     <span class="rank-move">
-      {{template "icon" .RankMove}}
+      {{template "icon" .RankMove}}{{if .RankMoveBy}}<span class="tnum">{{.RankMoveBy}}</span>{{end}}
       <span class="sr-only">{{.RankMoveLabel}}</span>
     </span>
 
@@ -190,7 +233,12 @@
   {{else}}
     {{with .Cell}}
       {{if .Unknown}}
-        <span class="muted">{{.Note}}</span>
+        {{/* The dash holds the column's shape so the eye still reads down a
+             line of figures, and the note beneath says why this one is not a
+             number. The sentence alone, set at the width of a reading, pulled
+             the column apart. */}}
+        <span class="cell-value muted" aria-hidden="true">&#8212;</span>
+        <span class="cell-note muted">{{.Note}}</span>
       {{else}}
         <span class="cell-value tnum">{{.Value}}</span>
         {{if .Target}}<span class="cell-target muted">{{.Target}}</span>{{end}}

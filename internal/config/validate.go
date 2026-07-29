@@ -187,6 +187,24 @@ func (v *validator) validateDomain(d Domain, iconKeys []string) {
 	if !slices.Contains(d.Scopes, d.DefaultScope) {
 		v.errf(f, []any{"defaultScope"}, "unknown scope %q; expected one of %v", d.DefaultScope, d.Scopes)
 	}
+	roleIDs := make([]string, 0, len(d.Roles))
+	seenRole := map[string]bool{}
+	for i, r := range d.Roles {
+		p := []any{"roles", i}
+		if r.ID == "" {
+			v.errf(f, append(p, "id"), "role has no id")
+			continue
+		}
+		v.dupCheck(f, append(p, "id"), seenRole, r.ID, "role id")
+		roleIDs = append(roleIDs, r.ID)
+	}
+	// Roles are optional. A deployment reporting only one side of an exchange
+	// is not making the distinction at all, and should not have to declare a
+	// vocabulary it never uses.
+	if len(d.Roles) > 0 && !slices.Contains(roleIDs, d.DefaultRole) {
+		v.errf(f, []any{"defaultRole"}, "unknown role %q; expected one of %v", d.DefaultRole, roleIDs)
+	}
+
 	if d.OnboardedDenominator <= 0 {
 		v.errf(f, []any{"onboardedDenominator"}, "must be positive, got %d; it is the denominator of the coverage line", d.OnboardedDenominator)
 	}
@@ -263,6 +281,16 @@ func (v *validator) validateTaxonomy(d Domain, iconKeys []string) []string {
 		v.dupCheck(f, append(path, "id"), seenProv, p.ID, "provider id")
 	}
 
+	seenSector := map[string]bool{}
+	for i, s := range d.Taxonomy.Sectors {
+		path := []any{"taxonomy", "sectors", i}
+		if s.ID == "" {
+			v.errf(f, append(path, "id"), "sector has no id")
+			continue
+		}
+		v.dupCheck(f, append(path, "id"), seenSector, s.ID, "sector id")
+	}
+
 	return categoryIDs
 }
 
@@ -302,8 +330,8 @@ func (v *validator) validateMetrics(d Domain) []string {
 				"metric %q is the complement of %q, so its target is derived; remove this one or the two will disagree",
 				m.ID, m.ComplementOf)
 		}
-		if m.Target == nil && m.Framing == "" && m.ComplementOf == "" && m.ShowInLeaderboard {
-			v.errf(f, p, "metric %q is shown in the leaderboard but has neither a target nor a framing, so it has no context to render", m.ID)
+		if m.Target == nil && m.Framing == "" && m.ComplementOf == "" && (m.ShowInLeaderboard || m.ShowInDrawer) {
+			v.errf(f, p, "metric %q is shown but has neither a target nor a framing, so it has no context to render", m.ID)
 		}
 	}
 	if len(d.Metrics) == 0 {
@@ -406,30 +434,46 @@ func (v *validator) validateThresholdsAndStatus(d Domain, iconKeys []string) {
 }
 
 func (v *validator) validateSignals(d Domain, categoryIDs, metricIDs, iconKeys []string) {
-	const f = FileDomain
 	_ = metricIDs
 
-	kinds := []string{
-		SignalBelowTargetDays,
-		SignalErrorRisingCategories,
-		SignalLongestOpenIncident,
-		SignalMaintenanceActive,
-	}
+	v.validateEmptyCard(d.SignalsEmpty, "signalsEmpty", iconKeys)
+	v.validateSignalSet(d.Signals, "signals", SignalKinds, categoryIDs, d.Roles, iconKeys)
 
-	// The card shown when nothing fired is configured too: "nothing to report"
-	// is a statement the deployment makes, in its own words.
-	e := d.SignalsEmpty
+	// The demand side is optional: a deployment reporting only supply has no
+	// unmet demand to find. Declaring rules without the card for "none of them
+	// fired" is not, though — the band would render blank.
+	if len(d.Opportunities) > 0 {
+		v.validateEmptyCard(d.OpportunitiesNone, "opportunitiesEmpty", iconKeys)
+		v.validateSignalSet(d.Opportunities, "opportunities", OpportunityKinds, categoryIDs, d.Roles, iconKeys)
+	}
+}
+
+// validateEmptyCard checks the card shown when nothing fired. It is configured
+// like every other card, because "nothing to report" is a statement the
+// deployment makes, in its own words.
+func (v *validator) validateEmptyCard(e SignalEmpty, field string, iconKeys []string) {
+	const f = FileDomain
+
 	if e.TermID == "" {
-		v.errf(f, []any{"signalsEmpty", "termId"}, "no term for the empty-signals card; with no signal firing the section would render blank")
+		v.errf(f, []any{field, "termId"}, "no term for the empty card; with nothing firing the section would render blank")
 	}
 	if e.IconKey == "" || !slices.Contains(iconKeys, e.IconKey) {
-		v.errf(f, []any{"signalsEmpty", "iconKey"}, "unknown icon %q; declare it in %s", e.IconKey, FileIcons)
+		v.errf(f, []any{field, "iconKey"}, "unknown icon %q; declare it in %s", e.IconKey, FileIcons)
 	}
-	v.oneOf(f, []any{"signalsEmpty", "tone"}, e.Tone, Tones, "tone")
+	v.oneOf(f, []any{field, "tone"}, e.Tone, Tones, "tone")
+}
+
+func (v *validator) validateSignalSet(signals []Signal, field string, kinds, categoryIDs []string, roles []Role, iconKeys []string) {
+	const f = FileDomain
+
+	roleIDs := make([]string, 0, len(roles))
+	for _, r := range roles {
+		roleIDs = append(roleIDs, r.ID)
+	}
 
 	seen := map[string]bool{}
-	for i, s := range d.Signals {
-		p := []any{"signals", i}
+	for i, s := range signals {
+		p := []any{field, i}
 		if s.ID == "" {
 			v.errf(f, append(p, "id"), "signal has no id")
 			continue
@@ -446,13 +490,18 @@ func (v *validator) validateSignals(d Domain, categoryIDs, metricIDs, iconKeys [
 		v.oneOf(f, append(p, "tone"), s.Tone, Tones, "tone")
 
 		switch s.Kind {
-		case SignalBelowTargetDays:
+		case SignalBelowTargetDays, OpportunityZeroRequestors, OpportunityFastestGrowingDemand:
 			if s.Days <= 0 {
 				v.errf(f, append(p, "days"), "signal %q needs a positive days window, got %d", s.ID, s.Days)
 			}
 		case SignalErrorRisingCategories:
 			if s.MinCategory <= 0 {
 				v.errf(f, append(p, "minCategories"), "signal %q needs a positive minCategories, got %d", s.ID, s.MinCategory)
+			}
+		case OpportunitySingleRequestorCategories:
+			if s.Concentration <= 0 || s.Concentration > 100 {
+				v.errf(f, append(p, "concentration"),
+					"signal %q needs a concentration between 0 and 100, got %v", s.ID, s.Concentration)
 			}
 		}
 
@@ -475,6 +524,11 @@ func (v *validator) validateSignals(d Domain, categoryIDs, metricIDs, iconKeys [
 			if !slices.Contains(categoryIDs, c) {
 				v.errf(f, append(p, "filter", "category", j), "unknown category %q", c)
 			}
+		}
+		// A card whose action switches the board to a role the deployment does
+		// not declare would send the reader to an empty page.
+		if s.Filter.Role != "" && !slices.Contains(roleIDs, s.Filter.Role) {
+			v.errf(f, append(p, "filter", "role"), "unknown role %q; expected one of %v", s.Filter.Role, roleIDs)
 		}
 	}
 }
@@ -609,9 +663,20 @@ func (v *validator) validateChrome(c Chrome, icons Icons) {
 		return
 	}
 
+	// The strip is optional and checked by the same rules: it is a bar, and a
+	// second set of rules for it would be a second place for them to drift.
+	v.validateChromeBar(c.Header, "header", icons)
+	if len(c.Strip.Items) > 0 {
+		v.validateChromeBar(c.Strip, "strip", icons)
+	}
+}
+
+func (v *validator) validateChromeBar(bar ChromeBar, name string, icons Icons) {
+	const f = FileChrome
+
 	seen := map[ChromeKind]int{}
-	for i, item := range c.Header.Items {
-		p := []any{"header", "items", i}
+	for i, item := range bar.Items {
+		p := []any{name, "items", i}
 
 		if !slices.Contains(ChromeKinds, string(item.Kind)) {
 			v.errf(f, p, "unknown item kind %q; expected one of %s",
@@ -658,20 +723,20 @@ func (v *validator) validateChrome(c Chrome, icons Icons) {
 	// These carry reader state that the whole page depends on, and two of either
 	// would put the same control on the bar twice with no way to tell which one
 	// won.
-	for _, kind := range []ChromeKind{ChromeScopeSwitch, ChromeThemeToggle, ChromeWordmark} {
+	for _, kind := range []ChromeKind{ChromeScopeSwitch, ChromeThemeToggle, ChromeWordmark, ChromeRoleSwitch} {
 		if seen[kind] > 1 {
-			v.errf(f, []any{"header", "items"}, "%s appears %d times; it may appear at most once", kind, seen[kind])
+			v.errf(f, []any{name, "items"}, "%s appears %d times; it may appear at most once", kind, seen[kind])
 		}
 	}
 	for _, state := range ChromeStates {
 		n := 0
-		for _, item := range c.Header.Items {
+		for _, item := range bar.Items {
 			if item.Kind == ChromeSelect && item.State == state {
 				n++
 			}
 		}
 		if n > 1 {
-			v.errf(f, []any{"header", "items"}, "two selects both change %q", state)
+			v.errf(f, []any{name, "items"}, "two selects both change %q", state)
 		}
 	}
 }

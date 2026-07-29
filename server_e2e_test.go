@@ -82,7 +82,9 @@ func TestThePublishedRulesQuoteTheLiveThresholds(t *testing.T) {
 	// applied. A sentence with the numbers missing quietly breaks that.
 	body := get(t, dashboard(t), "/")
 
-	for _, want := range []string{"99.00%", "99.50%", "2.00%", "1.00%", "15 minutes"} {
+	// The digits the thresholds actually have. Padding 99 to "99.00%" would
+	// claim a precision nobody set.
+	for _, want := range []string{"99%", "99.5%", "2%", "1%", "15 minutes"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the published rules do not quote %q", want)
 		}
@@ -255,6 +257,7 @@ func TestEveryDrawerTabRenders(t *testing.T) {
 
 	for _, tc := range []struct{ tab, want string }{
 		{"overview", `class="spark"`},
+		{"opportunity", "w-demand"},
 		{"errors", "w-barlist"},
 		{"traffic", `class="bars"`},
 		{"incidents", "w-timeline"},
@@ -271,12 +274,42 @@ func TestEveryDrawerTabRenders(t *testing.T) {
 func TestEveryChartHasATableBehindIt(t *testing.T) {
 	// A line on a screen is not accessible to a screen reader, not copyable and
 	// not checkable. The table is what makes the figure usable.
+	//
+	// The class is asserted because it is what styles the table. The drawer
+	// builds this markup twice — once from the shared widget, once inline in the
+	// demand mix — and the opportunity tab shipped a table no stylesheet rule
+	// ever matched, so it arrived unpadded and unruled.
 	h := dashboard(t)
 
-	for _, tab := range []string{"errors", "traffic"} {
+	for _, tab := range []string{"errors", "traffic", "opportunity"} {
 		body := get(t, h, "/fragments/service/aadhaar?tab="+tab)
-		if !strings.Contains(body, "w-datatable") || !strings.Contains(body, "<table>") {
+		if !strings.Contains(body, `<table class="data">`) {
 			t.Errorf("the %s tab has a chart with no table behind it", tab)
+		}
+	}
+}
+
+func TestChangingDrawerTabSwapsThePaneAlone(t *testing.T) {
+	// Everything above the tab strip is the same whichever tab is showing, and
+	// rebuilding the dialog around it replayed the panel's entry animation on
+	// every click.
+	h := dashboard(t)
+	body := get(t, h, "/fragments/service/aadhaar/pane?tab=traffic")
+
+	if !strings.Contains(body, `id="drawer-body"`) {
+		t.Error("the pane fragment does not contain the pane")
+	}
+	// The strip is above the pane, inside a sticky header, so it cannot ride
+	// along inside the swap and travels out of band instead.
+	if !strings.Contains(body, `id="drawer-tabs" hx-swap-oob="true"`) {
+		t.Error("the tab strip does not travel out of band, so the active tab would not follow")
+	}
+	if !strings.Contains(body, `id="drawer-tab-traffic"`) {
+		t.Error("the tab links have no ids, so htmx cannot restore focus after the swap")
+	}
+	for _, unwanted := range []string{`id="drawer"`, `class="drawer-head"`, `id="drawer-title"`} {
+		if strings.Contains(body, unwanted) {
+			t.Errorf("a tab change re-renders %s, which has not changed", unwanted)
 		}
 	}
 }
@@ -311,8 +344,15 @@ func TestEveryControlWorksWithoutJavaScript(t *testing.T) {
 		t.Error("no submit button for readers without JavaScript")
 	}
 	// Sorting is a link, so it works before any script has loaded.
-	if !strings.Contains(body, `class="th-sort" href="/?sort=`) {
+	if !strings.Contains(body, `class="th-sort" href="/?`) || !strings.Contains(body, "sort=rank") {
 		t.Error("column sorting is not a real link")
+	}
+	// Every drawer tab is a real address too, so a reader without script gets
+	// the whole page at that tab rather than nothing at all.
+	drawer := get(t, dashboard(t), "/service/aadhaar")
+	if !strings.Contains(drawer, `class="tab" id="drawer-tab-errors"`) ||
+		!strings.Contains(drawer, `href="/service/aadhaar?tab=errors"`) {
+		t.Error("a drawer tab is not a real link")
 	}
 }
 
@@ -324,7 +364,7 @@ func TestTheMarkupIsAccessible(t *testing.T) {
 		`aria-live="polite"`, // the result count announces itself when it changes
 		`class="skip"`,       // skip to content
 		`aria-labelledby="drawer-title"`,
-		`<caption class="sr-only">`,
+		`<caption>`,              // the ordering rule is stated, not only announced
 		`role="img" aria-label=`, // charts carry a text alternative
 	} {
 		if !strings.Contains(body, want) {
@@ -486,6 +526,117 @@ func TestFragmentsAreFragmentsNotWholePages(t *testing.T) {
 	if !strings.Contains(body, `id="leaderboard"`) {
 		t.Error("the fragment is not the section it claims to be")
 	}
+}
+
+// --- the reader's state survives the journey --------------------------------
+
+func TestTheDrawerIsRenderedInTheReadersLanguage(t *testing.T) {
+	// The drawer used to open in English on a French page: the link that opened
+	// it was built as a bare "/fragments/service/{id}", so the request arrived
+	// with no query and the language fell back to Accept-Language.
+	h := dashboard(t)
+	french := get(t, h, "/service/aadhaar?lang=fr&tab=errors")
+
+	for _, path := range []string{
+		"/fragments/service/aadhaar?lang=fr&tab=errors",
+		"/fragments/service/aadhaar/pane?lang=fr&tab=errors",
+	} {
+		body := get(t, h, path)
+		// The tab labels are translated in every locale, so they are what says
+		// which language the fragment came back in.
+		want := "Erreurs"
+		if !strings.Contains(french, want) {
+			t.Fatalf("the French page does not contain %q; the fixture has moved", want)
+		}
+		if !strings.Contains(body, want) {
+			t.Errorf("%s did not render in French", path)
+		}
+	}
+}
+
+func TestEveryRouteToTheDrawerCarriesTheReadersState(t *testing.T) {
+	// The state rides in the URL, so a link that drops it hands the next request
+	// the deployment's defaults instead of the reader's choices — and the loss is
+	// sticky, because the drawer rebuilds its own tab links from what it was
+	// given.
+	body := get(t, dashboard(t), "/?lang=fr&period=90d&role=requestor")
+
+	for _, want := range []string{
+		`class="lb-name" href="/service/`,      // the table row
+		`class="card lb-card" href="/service/`, // the narrow-screen card
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("no route to the drawer matching %q; the markup has moved", want)
+		}
+	}
+	for _, fragment := range fragmentHrefs(body) {
+		for _, want := range []string{"lang=fr", "period=90d", "role=requestor"} {
+			if !strings.Contains(fragment, want) {
+				t.Errorf("a drawer link drops %s: %s", want, fragment)
+			}
+		}
+	}
+}
+
+func TestNarrowingTheBoardKeepsWhatIsNotAFilter(t *testing.T) {
+	// A GET form submits its own fields and nothing else, so the filter form has
+	// to carry the language, the period and the role itself. Without them,
+	// narrowing the board reset all three — and the drawer opened afterwards
+	// inherited the reset.
+	body := get(t, dashboard(t), "/fragments/leaderboard?q=pension&lang=fr&period=90d&role=requestor")
+
+	for _, want := range []string{
+		`<input type="hidden" name="role" value="requestor">`,
+		`<input type="hidden" name="period" value="90d">`,
+		`<input type="hidden" name="lang" value="fr">`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the filter form does not carry %s", want)
+		}
+	}
+}
+
+func TestFragmentsSayWhichAddressTheyAre(t *testing.T) {
+	// hx-push-url="true" pushes the URL the request went to, which for a fragment
+	// is an internal address serving markup rather than a page. The server is the
+	// only party that knows the reader-facing equivalent, so it states it.
+	h := dashboard(t)
+
+	for _, tc := range []struct{ path, want string }{
+		{"/fragments/leaderboard?q=pension&lang=fr", "/?lang=fr&q=pension"},
+		{"/fragments/service/aadhaar?lang=fr&tab=errors", "/service/aadhaar?lang=fr&tab=errors"},
+		{"/fragments/service/aadhaar/pane?lang=fr&tab=errors", "/service/aadhaar?lang=fr&tab=errors"},
+	} {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, tc.path, nil))
+		if got := rec.Header().Get("HX-Push-Url"); got != tc.want {
+			t.Errorf("GET %s pushed %q, want %q", tc.path, got, tc.want)
+		}
+	}
+}
+
+func TestTheChromeBarReturnsTheReaderToWhereTheyAre(t *testing.T) {
+	// Changing the language while reading a service used to close the drawer and
+	// land the reader back at the top of the board, having asked only to read the
+	// same panel in another language.
+	body := get(t, dashboard(t), "/service/aadhaar?lang=fr")
+
+	if !strings.Contains(body, `<form class="controls-bar" method="get" action="/service/aadhaar"`) {
+		t.Error("the chrome bar submits to the board rather than to the open drawer")
+	}
+	if !strings.Contains(body, `href="/service/aadhaar?lang=fr&amp;theme=dark"`) {
+		t.Error("the theme toggle closes the drawer")
+	}
+}
+
+var fragmentHref = regexp.MustCompile(`hx-get="(/fragments/service/[^"]*)"`)
+
+func fragmentHrefs(body string) []string {
+	var out []string
+	for _, m := range fragmentHref.FindAllStringSubmatch(body, -1) {
+		out = append(out, strings.ReplaceAll(m[1], "&amp;", "&"))
+	}
+	return out
 }
 
 func TestValidateModeStartsAndStops(t *testing.T) {

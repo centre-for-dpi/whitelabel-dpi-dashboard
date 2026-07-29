@@ -139,12 +139,32 @@ type Domain struct {
 	Periods              []Period `yaml:"periods"`
 	DefaultPeriod        string   `yaml:"defaultPeriod"`
 
-	Taxonomy     Taxonomy    `yaml:"taxonomy"`
-	Metrics      []Metric    `yaml:"metrics"`
-	Thresholds   Thresholds  `yaml:"thresholds"`
-	StatusModel  StatusModel `yaml:"statusModel"`
-	Signals      []Signal    `yaml:"signals"`
-	SignalsEmpty SignalEmpty `yaml:"signalsEmpty"`
+	// Roles are the sides of the exchange the deployment reports on: who issues
+	// a document, and who requests one. A deployment with only one side
+	// declares one role and never renders a switch.
+	//
+	// The role narrows the population the board is computed over, exactly as
+	// scope does — the two are the same kind of thing, and a reader looking at
+	// requestors should see requestors ranked against requestors.
+	Roles       []Role `yaml:"roles"`
+	DefaultRole string `yaml:"defaultRole"`
+
+	// Platforms are the exchanges this dashboard reports on, named and linked
+	// so a reader can tell whose numbers these are. A deployment covering one
+	// platform lists one; a deployment covering none lists none and the strip
+	// does not render.
+	Platforms []Platform `yaml:"platforms"`
+
+	Taxonomy    Taxonomy    `yaml:"taxonomy"`
+	Metrics     []Metric    `yaml:"metrics"`
+	Thresholds  Thresholds  `yaml:"thresholds"`
+	StatusModel StatusModel `yaml:"statusModel"`
+	Signals     []Signal    `yaml:"signals"`
+	// Opportunities are the demand-side signals: the same contract, looking for
+	// issuance nobody is consuming rather than service nobody is getting.
+	Opportunities     []Signal    `yaml:"opportunities"`
+	SignalsEmpty      SignalEmpty `yaml:"signalsEmpty"`
+	OpportunitiesNone SignalEmpty `yaml:"opportunitiesEmpty"`
 }
 
 // Period is a selectable comparison window. Days is the lookback used for trend
@@ -156,12 +176,48 @@ type Period struct {
 	Days   int    `yaml:"days"`
 }
 
-// Taxonomy groups services three ways: by what the citizen wants (category), by
-// where they are (region), and by who runs it (provider).
+// Role is one side of the exchange, and how the switch between sides reads.
+type Role struct {
+	ID     string `yaml:"id"`
+	TermID string `yaml:"termId"`
+	// CaptionTermID is what the board's caption says while this role is on
+	// view: the ranking rule is the same, but what is being ranked is not.
+	CaptionTermID string `yaml:"captionTermId"`
+}
+
+// Platform is one exchange the dashboard covers.
+type Platform struct {
+	ID     string `yaml:"id"`
+	TermID string `yaml:"termId"`
+	Href   string `yaml:"href"`
+	// Logo is a path under the asset root. A wordmark travels better as a file
+	// the theme pipeline can serve and a browser can cache than as a data URI
+	// baked into the config, which is what the prototype had to do to stay a
+	// single file.
+	Logo string `yaml:"logo"`
+	// LogoWidth and LogoHeight are the mark's intrinsic size, so the row does
+	// not reflow while the image loads.
+	LogoWidth  int `yaml:"logoWidth"`
+	LogoHeight int `yaml:"logoHeight"`
+}
+
+// Taxonomy groups services four ways: by what the citizen wants (category), by
+// where they are (region), by who runs it (provider), and — for the demand side
+// — by what line of business is asking (sector).
 type Taxonomy struct {
 	Categories []Category `yaml:"categories"`
 	Regions    []Region   `yaml:"regions"`
 	Providers  []Provider `yaml:"providers"`
+	// Sectors group requestors by what they do rather than by who they are: a
+	// bank and a lender pulling the same document are two sectors making the
+	// same request, and that is the shape of the demand a publisher needs.
+	Sectors []Sector `yaml:"sectors"`
+}
+
+// Sector is a requestor's line of business.
+type Sector struct {
+	ID     string `yaml:"id"`
+	TermID string `yaml:"termId"`
 }
 
 // Category is a demand-side grouping — what task the citizen is trying to do.
@@ -198,8 +254,13 @@ type Metric struct {
 	Target            *float64 `yaml:"target"`
 	Direction         string   `yaml:"direction"`
 	ShowInLeaderboard bool     `yaml:"showInLeaderboard"`
-	Framing           string   `yaml:"framing"`
-	DenominatorOf     string   `yaml:"denominatorOf"`
+	// ShowInDrawer puts the metric on the open service's tile grid. It is a
+	// separate switch from the board's because the two surfaces answer
+	// different questions, and a deployment may reasonably rank on one figure
+	// and explain with another.
+	ShowInDrawer  bool   `yaml:"showInDrawer"`
+	Framing       string `yaml:"framing"`
+	DenominatorOf string `yaml:"denominatorOf"`
 	// ComplementOf names a metric this one is the arithmetic complement of:
 	// downtime is what is left of a hundred per cent after availability.
 	//
@@ -233,6 +294,13 @@ func (d Domain) ResolvedTarget(m Metric) *float64 {
 	}
 	return nil
 }
+
+// Metric framings — what gives a figure with no target its context.
+const (
+	// FramingDenominator renders the metric as the share of a pair of counts,
+	// framed by the counts themselves.
+	FramingDenominator = "denominator"
+)
 
 // Metric field names, matching model.Service.Metrics.
 const (
@@ -300,6 +368,15 @@ type Signal struct {
 	Days        int           `yaml:"days"`
 	MinCategory int           `yaml:"minCategories"`
 	Filter      *SignalFilter `yaml:"filter"`
+	// Concentration is the share of a group one member must account for before
+	// the group counts as concentrated, in percent.
+	Concentration float64 `yaml:"concentration"`
+	// ActionTermID overrides the shared "view affected" label. An opportunity
+	// leads somewhere different from a fault — to a list of documents, or to a
+	// trend — and saying so is the difference between a link and a guess.
+	ActionTermID string `yaml:"actionTermId"`
+	// FocusTab names the drawer pane a single-service finding opens on.
+	FocusTab string `yaml:"focusTab"`
 }
 
 // SignalEmpty is the card shown when no signal fired. It is configured rather
@@ -324,10 +401,48 @@ const (
 	SignalMaintenanceActive     = "maintenanceActive"
 )
 
+// Opportunity kinds: the demand-side mirror. Same contract as the attention
+// rules — each card prints the rule it applied — but what they look for is
+// issuance nobody is consuming rather than service nobody is getting.
+const (
+	// OpportunityIssuedAtScaleRarelyRequested finds documents in the top
+	// quartile of issuance and the bottom quartile of requestor count.
+	OpportunityIssuedAtScaleRarelyRequested = "issuedAtScaleRarelyRequested"
+	// OpportunitySingleRequestorCategories finds categories where one
+	// requestor accounts for almost all of the pulls.
+	OpportunitySingleRequestorCategories = "singleRequestorCategories"
+	// OpportunityZeroRequestors finds live APIs nobody has onboarded against.
+	OpportunityZeroRequestors = "zeroRequestors"
+	// OpportunityFastestGrowingDemand finds the issuer whose requestors are
+	// growing fastest.
+	OpportunityFastestGrowingDemand = "fastestGrowingDemand"
+)
+
+// SignalKinds and OpportunityKinds are every kind, for validation and for the
+// generated schema.
+var SignalKinds = []string{
+	SignalBelowTargetDays, SignalErrorRisingCategories,
+	SignalLongestOpenIncident, SignalMaintenanceActive,
+}
+
+// OpportunityKinds is the demand-side set.
+var OpportunityKinds = []string{
+	OpportunityIssuedAtScaleRarelyRequested, OpportunitySingleRequestorCategories,
+	OpportunityZeroRequestors, OpportunityFastestGrowingDemand,
+}
+
 // SignalFilter is what the signal card's action applies to the leaderboard.
 type SignalFilter struct {
 	Status   []string `yaml:"status"`
 	Category []string `yaml:"category"`
+	// Role switches the board to the side the finding is about, because half
+	// the demand-side findings are about services the current board does not
+	// contain.
+	Role string `yaml:"role"`
+	// IDs are set by the evaluator rather than configured: some findings are
+	// about a set of services with nothing else in common, and the only honest
+	// filter is the set itself.
+	IDs []string `yaml:"-"`
 }
 
 // --- theme.yaml ------------------------------------------------------------
@@ -416,6 +531,10 @@ type Icon struct {
 // sees on every page was the one part of the product they could not touch.
 type Chrome struct {
 	Header ChromeBar `yaml:"header"`
+	// Strip is a second bar below the header, for what qualifies the whole
+	// dashboard rather than what controls it: whose exchanges these are, and
+	// which side of them is on view. Leave it out and nothing renders.
+	Strip ChromeBar `yaml:"strip"`
 }
 
 // ChromeBar is an ordered list of items. Order is the order they appear.
@@ -442,12 +561,20 @@ const (
 	ChromeLink ChromeKind = "link"
 	// ChromeSpacer pushes everything after it to the far end of the bar.
 	ChromeSpacer ChromeKind = "spacer"
+	// ChromeRoleSwitch is the demand/supply control, one option per configured
+	// role. Like the scope switch, it narrows what the board is about rather
+	// than filtering what is on it.
+	ChromeRoleSwitch ChromeKind = "role-switch"
+	// ChromePlatforms names the exchanges the dashboard covers, and links out
+	// to them.
+	ChromePlatforms ChromeKind = "platforms"
 )
 
 // ChromeKinds is every kind, for validation and for the generated schema.
 var ChromeKinds = []string{
 	string(ChromeWordmark), string(ChromeScopeSwitch), string(ChromeSelect),
 	string(ChromeThemeToggle), string(ChromeLink), string(ChromeSpacer),
+	string(ChromeRoleSwitch), string(ChromePlatforms),
 }
 
 // ChromeStates are the pieces of reader state a select may be bound to.

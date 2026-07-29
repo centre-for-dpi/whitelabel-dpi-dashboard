@@ -90,15 +90,36 @@ func (r *Renderer) Widget(w io.Writer, kind string, view any) error {
 // section template to place it.
 type Rendered struct {
 	Type string
+	// Column is the named grid track this widget joins, if the section declares
+	// any. Empty means the default flow.
+	Column string
+	// Span stretches the widget across every track of an auto-fitted grid.
+	Span bool
 	HTML template.HTML
 }
 
 // Section is a band of the page, ready to render.
 type Section struct {
-	ID      string
-	Swap    string
-	Grid    layout.Grid
+	ID   string
+	Swap string
+	Grid layout.Grid
+	// Aside renders in the heading row, opposite the title.
+	Aside   []Rendered
 	Heading *HeadingBlock
+	Widgets []Rendered
+	// Columns is set only when the section declares named tracks. Grouping
+	// happens here rather than in the template because html/template cannot
+	// partition a list, and because the grouping is the same question the
+	// validator already answered.
+	Columns []RenderedColumn
+}
+
+// RenderedColumn is one named track with the widgets that joined it.
+type RenderedColumn struct {
+	Name  string
+	Basis string
+	// Row lays the column's widgets along a line rather than down one.
+	Row     bool
 	Widgets []Rendered
 }
 

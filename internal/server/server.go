@@ -130,7 +130,10 @@ func (s *Server) routes() {
 	for _, id := range s.layout.SwapTargets() {
 		s.mux.HandleFunc("GET /fragments/"+id, s.handleSection(id))
 	}
+	// Two granularities: the whole drawer, for opening one, and the pane alone,
+	// for changing which tab of an open one is showing.
 	s.mux.HandleFunc("GET /fragments/service/{id}", s.handleDrawer)
+	s.mux.HandleFunc("GET /fragments/service/{id}/pane", s.handleDrawerPane)
 
 	// Registered only when push is configured. An endpoint that exists but
 	// rejects everything is still an endpoint someone can probe.
@@ -176,29 +179,42 @@ func (s *Server) build(r *http.Request) widget.Context {
 		Days:    query.DaysFor(s.cfg.Domain, st.Period),
 	}
 
-	scoped := view.Scope(snap.Services, st.Scope, st.Region)
-	ranked := view.Rank(scoped)
+	// Two populations, because two questions are being asked. The verdict asks
+	// whether the country's services are working, which is the supply side
+	// whatever the reader is currently looking at; the board asks how one side
+	// of the exchange is doing, ranked against its own kind.
+	scoped := view.Scope(view.Role(snap.Services, s.cfg.Domain.DefaultRole), st.Scope, st.Region)
+	roleScoped := scoped
+	if st.Role != s.cfg.Domain.DefaultRole {
+		roleScoped = view.Scope(view.Role(snap.Services, st.Role), st.Scope, st.Region)
+	}
+
+	ranked := view.Rank(roleScoped)
 	ranks := query.Ranks(ranked)
 
-	filtered := view.Apply(scoped, query.Filter{
+	filtered := view.Apply(roleScoped, query.Filter{
 		Statuses:   st.Statuses,
 		Categories: st.Categories,
 		Search:     st.Search,
+		IDs:        st.IDs,
 	})
 	ordered := view.Order(filtered, st.Sort, st.Dir, ranks)
 
 	c := widget.Context{
-		Config:   s.cfg,
-		View:     view,
-		Snapshot: snap,
-		Scoped:   scoped,
-		Filtered: filtered,
-		Ordered:  ordered,
-		Ranks:    ranks,
-		State:    st,
-		Text:     text,
-		Icons:    render.NewIcons(s.iconSet, text),
-		Now:      s.clock.Now(),
+		Config:     s.cfg,
+		Demand:     view.Scope(callers(snap.Services), st.Scope, st.Region),
+		View:       view,
+		Snapshot:   snap,
+		Scoped:     scoped,
+		RoleScoped: roleScoped,
+		Filtered:   filtered,
+		Ordered:    ordered,
+		Ranks:      ranks,
+		State:      st,
+		Params:     readParams(r),
+		Text:       text,
+		Icons:      render.NewIcons(s.iconSet, text),
+		Now:        s.clock.Now(),
 	}
 
 	if st.DrawerID != "" {
@@ -246,6 +262,9 @@ func (s *Server) renderSection(sec layout.Section, c widget.Context) (render.Sec
 		if sec.Heading.Scoped {
 			title += "." + c.State.Scope
 		}
+		if v, ok := sec.Heading.Variants[c.State.SignalTab]; ok {
+			title = v
+		}
 		out.Heading = &render.HeadingBlock{
 			Title: c.Text.Text(title, nil),
 			Level: headingLevel(sec.Heading.Level),
@@ -257,6 +276,13 @@ func (s *Server) renderSection(sec layout.Section, c widget.Context) (render.Sec
 		}
 	}
 
+	for _, w := range sec.Aside {
+		rendered, err := s.renderWidgets(w, c)
+		if err != nil {
+			return render.Section{}, err
+		}
+		out.Aside = append(out.Aside, rendered...)
+	}
 	for _, w := range sec.Widgets {
 		rendered, err := s.renderWidgets(w, c)
 		if err != nil {
@@ -264,7 +290,35 @@ func (s *Server) renderSection(sec layout.Section, c widget.Context) (render.Sec
 		}
 		out.Widgets = append(out.Widgets, rendered...)
 	}
+	groupColumns(&out, sec.Grid)
 	return out, nil
+}
+
+// groupColumns partitions a columned section's widgets into its declared tracks.
+//
+// Widgets keep their configured order within a column, and a widget naming no
+// column joins the first — which is what "the rest of the section" means when
+// only one part has been pulled out of the flow. Validation has already
+// rejected a name no column declares, so nothing can be dropped here.
+func groupColumns(out *render.Section, g layout.Grid) {
+	if len(g.Columns) == 0 {
+		return
+	}
+
+	at := make(map[string]int, len(g.Columns))
+	for i, col := range g.Columns {
+		at[col.Name] = i
+		out.Columns = append(out.Columns, render.RenderedColumn{
+			Name: col.Name, Basis: col.Basis, Row: col.Direction == layout.DirectionRow,
+		})
+	}
+	for _, w := range out.Widgets {
+		i, ok := at[w.Column]
+		if !ok {
+			i = 0
+		}
+		out.Columns[i].Widgets = append(out.Columns[i].Widgets, w)
+	}
 }
 
 func headingLevel(l int) int {
@@ -293,7 +347,10 @@ func (s *Server) renderWidgets(w layout.Widget, c widget.Context) ([]render.Rend
 		if err := s.render.Widget(&buf, w.Type, view); err != nil {
 			return nil, fmt.Errorf("rendering %s: %w", w.Type, err)
 		}
-		out = append(out, render.Rendered{Type: w.Type, HTML: template.HTML(buf.String())})
+		out = append(out, render.Rendered{
+			Type: w.Type, Column: w.Column, Span: w.Span,
+			HTML: template.HTML(buf.String()),
+		})
 	}
 	return out, nil
 }
@@ -307,12 +364,9 @@ func (s *Server) expand(w layout.Widget, c widget.Context) []widget.Bind {
 
 	var out []widget.Bind
 	switch w.RepeatOver {
-	case "config.metrics.rendered":
+	case "config.metrics.drawer":
 		for _, m := range c.Config.Domain.Metrics {
-			// A metric with neither a target nor a framing has nothing to say
-			// beyond its raw number, and the demo deliberately declines to
-			// render one.
-			if m.Target == nil && m.Framing == "" {
+			if !m.ShowInDrawer {
 				continue
 			}
 			b := w.Bind
@@ -429,21 +483,19 @@ type systemClock struct{}
 
 func (systemClock) Now() time.Time { return time.Now() }
 
-// link builds an in-app URL carrying the reader's state.
-//
-// Empty parameters are dropped, so a shared link says only what the sender
-// actually chose. A URL carrying every default communicates nothing.
-func link(path string, params url.Values) string {
-	trimmed := url.Values{}
-	for k, vs := range params {
-		for _, v := range vs {
-			if v != "" {
-				trimmed.Add(k, v)
-			}
+// link builds an in-app URL carrying the reader's state. It lives in the widget
+// package because the builders assemble the same links from the same state.
+func link(path string, params url.Values) string { return widget.Link(path, params) }
+
+// callers are the services that consume another. They are the demand side
+// whatever role they carry, which is what the opportunity rules need: a finding
+// about issuance nobody requests is about both populations at once.
+func callers(services []model.Service) []model.Service {
+	out := make([]model.Service, 0, len(services))
+	for _, sv := range services {
+		if sv.CallsKey != "" {
+			out = append(out, sv)
 		}
 	}
-	if len(trimmed) == 0 {
-		return path
-	}
-	return path + "?" + trimmed.Encode()
+	return out
 }

@@ -613,123 +613,123 @@
         ]
       },
       {
-        "serviceId": "electricity__rj",
-        "displayName": "Electricity",
-        "summary": "Example service record for Electricity.",
-        "category": "MONEY",
-        "region": "RJ",
-        "operator": "STATE",
-        "tier": "STATE",
+        "serviceId": "cbse12",
+        "displayName": "Cbse12",
+        "summary": "Example service record for Cbse12.",
+        "category": "EDUCATION",
+        "region": "NATIONAL",
+        "operator": "CBSE",
+        "tier": "NATIONAL",
         "sla": {
-          "uptimePct": 0.9971,
-          "errorPct": 0.0028
+          "uptimePct": 0.9992,
+          "errorPct": 0.0048
         },
         "latency": {
-          "p50Ms": 183
+          "p50Ms": 164
         },
         "requests": {
-          "total": 66821,
-          "succeeded": 66633
+          "total": 99724,
+          "succeeded": 99245
         },
-        "observedAgeSecs": 176,
+        "observedAgeSecs": 204,
         "daily": [
           {
             "ts": "2026-07-14",
-            "uptime": 0.9971,
-            "errPct": 0.0055,
-            "count": 62033,
-            "p50Ms": 183
+            "uptime": 0.9992,
+            "errPct": 0.0044,
+            "count": 117454,
+            "p50Ms": 168
           },
           {
             "ts": "2026-07-15",
-            "uptime": 0.9975,
-            "errPct": 0.0011,
-            "count": 63052,
-            "p50Ms": 215
+            "uptime": 0.9978,
+            "errPct": 0.0071,
+            "count": 119535,
+            "p50Ms": 179
           },
           {
             "ts": "2026-07-16",
-            "uptime": 0.9961,
-            "errPct": 0.0052,
-            "count": 81119,
-            "p50Ms": 155
+            "uptime": 0.9979,
+            "errPct": 0.0048,
+            "count": 121519,
+            "p50Ms": 166
           },
           {
             "ts": "2026-07-17",
-            "uptime": 0.9988,
-            "errPct": 0.0048,
-            "count": 62645,
-            "p50Ms": 175
+            "uptime": 0.998,
+            "errPct": 0.0069,
+            "count": 101968,
+            "p50Ms": 190
           },
           {
             "ts": "2026-07-18",
-            "uptime": 0.9954,
-            "errPct": 0.0052,
-            "count": 80864,
-            "p50Ms": 180
+            "uptime": 0.9998,
+            "errPct": 0.0077,
+            "count": 130260,
+            "p50Ms": 163
           },
           {
             "ts": "2026-07-19",
-            "uptime": 0.9971,
-            "errPct": 0.0052,
-            "count": 82826,
+            "uptime": 0.9998,
+            "errPct": 0.0028,
+            "count": 86083,
             "p50Ms": 173
           },
           {
             "ts": "2026-07-20",
-            "uptime": 0.9956,
-            "errPct": 0.0009,
-            "count": 65720,
-            "p50Ms": 186
+            "uptime": 0.9993,
+            "errPct": 0.0047,
+            "count": 93862,
+            "p50Ms": 193
           },
           {
             "ts": "2026-07-21",
-            "uptime": 0.9982,
-            "errPct": 0.0036,
-            "count": 76278,
-            "p50Ms": 190
+            "uptime": 0.9986,
+            "errPct": 0.0048,
+            "count": 84791,
+            "p50Ms": 156
           },
           {
             "ts": "2026-07-22",
-            "uptime": 0.9966,
-            "errPct": 0.0031,
-            "count": 78831,
-            "p50Ms": 216
+            "uptime": 0.9983,
+            "errPct": 0.0079,
+            "count": 99510,
+            "p50Ms": 160
           },
           {
             "ts": "2026-07-23",
-            "uptime": 0.9967,
-            "errPct": 0.0037,
-            "count": 53127,
-            "p50Ms": 163
+            "uptime": 0.9996,
+            "errPct": 0.0082,
+            "count": 123069,
+            "p50Ms": 175
           },
           {
             "ts": "2026-07-24",
-            "uptime": 0.9964,
-            "errPct": 0.0017,
-            "count": 56390,
-            "p50Ms": 197
+            "uptime": 0.9978,
+            "errPct": 0.0082,
+            "count": 95681,
+            "p50Ms": 150
           },
           {
             "ts": "2026-07-25",
-            "uptime": 0.9958,
-            "errPct": 0.0007,
-            "count": 73063,
-            "p50Ms": 170
+            "uptime": 0.9992,
+            "errPct": 0.0026,
+            "count": 96410,
+            "p50Ms": 143
           },
           {
             "ts": "2026-07-26",
-            "uptime": 0.9971,
-            "errPct": 0.0043,
-            "count": 78651,
-            "p50Ms": 176
+            "uptime": 0.9998,
+            "errPct": 0.0074,
+            "count": 79816,
+            "p50Ms": 173
           },
           {
             "ts": "2026-07-27",
-            "uptime": 0.9964,
-            "errPct": 0.0047,
-            "count": 77048,
-            "p50Ms": 162
+            "uptime": 0.998,
+            "errPct": 0.0059,
+            "count": 112143,
+            "p50Ms": 189
           }
         ]
       }

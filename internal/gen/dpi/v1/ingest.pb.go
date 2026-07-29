@@ -105,7 +105,20 @@ type IngestService struct {
 	Errors    []*ErrorBucket  `protobuf:"bytes,13,rep,name=errors,proto3" json:"errors,omitempty"`
 	// When the upstream observed these metrics. The server stamps its own
 	// receipt time if this is absent.
-	ObservedAt    *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=observed_at,json=observedAt,proto3" json:"observed_at,omitempty"`
+	ObservedAt *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=observed_at,json=observedAt,proto3" json:"observed_at,omitempty"`
+	// Which side of the exchange this record is: the service that issues a
+	// document, or the organisation that requests one. Must match a role
+	// declared in domain.yaml; empty means the deployment's default.
+	RoleId string `protobuf:"bytes,15,opt,name=role_id,json=roleId,proto3" json:"role_id,omitempty"`
+	// For a requestor: the sector running the use case, and the `key` of the
+	// service it calls. Leave both empty for an issuer.
+	SectorId string `protobuf:"bytes,16,opt,name=sector_id,json=sectorId,proto3" json:"sector_id,omitempty"`
+	CallsKey string `protobuf:"bytes,17,opt,name=calls_key,json=callsKey,proto3" json:"calls_key,omitempty"`
+	// How this requestor is subscribed to the API it calls.
+	SubscriptionType string `protobuf:"bytes,18,opt,name=subscription_type,json=subscriptionType,proto3" json:"subscription_type,omitempty"`
+	// Percent of this requestor's errors that are its own rather than the
+	// publisher's. Optional.
+	OwnErrorShare float64 `protobuf:"fixed64,19,opt,name=own_error_share,json=ownErrorShare,proto3" json:"own_error_share,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -236,6 +249,41 @@ func (x *IngestService) GetObservedAt() *timestamppb.Timestamp {
 		return x.ObservedAt
 	}
 	return nil
+}
+
+func (x *IngestService) GetRoleId() string {
+	if x != nil {
+		return x.RoleId
+	}
+	return ""
+}
+
+func (x *IngestService) GetSectorId() string {
+	if x != nil {
+		return x.SectorId
+	}
+	return ""
+}
+
+func (x *IngestService) GetCallsKey() string {
+	if x != nil {
+		return x.CallsKey
+	}
+	return ""
+}
+
+func (x *IngestService) GetSubscriptionType() string {
+	if x != nil {
+		return x.SubscriptionType
+	}
+	return ""
+}
+
+func (x *IngestService) GetOwnErrorShare() float64 {
+	if x != nil {
+		return x.OwnErrorShare
+	}
+	return 0
 }
 
 type IngestRequest struct {
@@ -435,7 +483,7 @@ var File_dpi_v1_ingest_proto protoreflect.FileDescriptor
 
 const file_dpi_v1_ingest_proto_rawDesc = "" +
 	"\n" +
-	"\x13dpi/v1/ingest.proto\x12\x06dpi.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x16dpi/v1/dashboard.proto\"\x96\x04\n" +
+	"\x13dpi/v1/ingest.proto\x12\x06dpi.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x16dpi/v1/dashboard.proto\"\xbe\x05\n" +
 	"\rIngestService\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x10\n" +
 	"\x03key\x18\x02 \x01(\tR\x03key\x12 \n" +
@@ -456,7 +504,12 @@ const file_dpi_v1_ingest_proto_rawDesc = "" +
 	"\tincidents\x18\f \x03(\v2\x10.dpi.v1.IncidentR\tincidents\x12+\n" +
 	"\x06errors\x18\r \x03(\v2\x13.dpi.v1.ErrorBucketR\x06errors\x12;\n" +
 	"\vobserved_at\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"observedAt\"\x87\x01\n" +
+	"observedAt\x12\x17\n" +
+	"\arole_id\x18\x0f \x01(\tR\x06roleId\x12\x1b\n" +
+	"\tsector_id\x18\x10 \x01(\tR\bsectorId\x12\x1b\n" +
+	"\tcalls_key\x18\x11 \x01(\tR\bcallsKey\x12+\n" +
+	"\x11subscription_type\x18\x12 \x01(\tR\x10subscriptionType\x12&\n" +
+	"\x0fown_error_share\x18\x13 \x01(\x01R\rownErrorShare\"\x87\x01\n" +
 	"\rIngestRequest\x12&\n" +
 	"\x04mode\x18\x01 \x01(\x0e2\x12.dpi.v1.IngestModeR\x04mode\x121\n" +
 	"\bservices\x18\x02 \x03(\v2\x15.dpi.v1.IngestServiceR\bservices\x12\x1b\n" +

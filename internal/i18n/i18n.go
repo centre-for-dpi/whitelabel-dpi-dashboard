@@ -344,7 +344,13 @@ func (r *Resolver) format(v any) string {
 	case int64:
 		return r.Number(float64(t), 0)
 	case float64:
-		return r.Number(t, 2)
+		// The digits the number has, not a fixed two. A threshold of 99 is
+		// stated as "99%", not "99.00%" — the extra zeros claim a precision the
+		// figure does not have, and a published rule that reads more exact than
+		// it is invites an argument about the second decimal place. Formatting
+		// is still the locale's: grouping and the decimal mark come from CLDR.
+		return r.self.printer.Sprint(number.Decimal(t,
+			number.MinFractionDigits(0), number.MaxFractionDigits(6)))
 	case bool:
 		return strconv.FormatBool(t)
 	default:
@@ -434,13 +440,43 @@ func (r *Resolver) RelativeTime(t, now time.Time) string {
 	return r.Text("time.ago."+unit, map[string]any{"n": n})
 }
 
-// Duration renders a span of time, for "open for 3 hours".
+// Duration renders a span of time, for "open for 13 hr 31 min".
+//
+// Two units, not one. How long an incident has been open is a number people act
+// on, and rounding 13h31m down to "13 hours" throws away half an hour of it at
+// exactly the moment somebody is deciding whether to escalate. The second unit
+// appears only when it carries something: a span of exactly two hours reads "2
+// hr", not "2 hr 0 min".
+//
+// Seconds get no second unit. Below a minute there is nothing finer worth
+// showing, and a duration is not a stopwatch.
 func (r *Resolver) Duration(d time.Duration) string {
 	if d < 0 {
 		d = 0
 	}
 	unit, n := breakDown(d)
-	return r.Text("time.for."+unit, map[string]any{"n": n})
+	major := r.Text("time.for."+unit, map[string]any{"n": n})
+
+	next, rem := remainder(d, unit)
+	if next == "" || rem == 0 {
+		return major
+	}
+	minor := r.Text("time.for."+next, map[string]any{"n": rem})
+	return r.Text("time.for.join", map[string]any{"major": major, "minor": minor})
+}
+
+// remainder returns the next unit down and how much of it is left over.
+func remainder(d time.Duration, unit string) (string, int) {
+	switch unit {
+	case "day":
+		return "hour", int(d.Hours()) % 24
+	case "hour":
+		return "minute", int(d.Minutes()) % 60
+	case "minute":
+		return "second", int(d.Seconds()) % 60
+	default:
+		return "", 0
+	}
 }
 
 // breakDown picks the largest unit that gives a number worth reading. Nobody

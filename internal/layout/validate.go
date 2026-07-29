@@ -2,6 +2,7 @@ package layout
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 
 	"gopkg.in/yaml.v3"
@@ -67,11 +68,54 @@ func validate(l Layout, node *yaml.Node, reg *widget.Registry, cfg config.Config
 
 			v.heading(sp, s.Heading)
 
+			// The aside renders in the heading row, so without a heading there
+			// is no row to render it in. Dropping it silently would leave the
+			// author looking for a widget that had been configured correctly
+			// and simply never drawn.
+			if len(s.Aside) > 0 && s.Heading == nil {
+				v.at(append(slices.Clone(sp), "aside"),
+					"section %q has an aside but no heading; the aside renders in the heading row", s.ID)
+			}
+			for k, w := range s.Aside {
+				v.widget(append(slices.Clone(sp), "aside", k), w, false)
+			}
+
+			declared := map[string]bool{}
+			for k, col := range s.Grid.Columns {
+				cp := append(slices.Clone(sp), "grid", "columns", k)
+				if col.Name == "" {
+					v.at(append(slices.Clone(cp), "name"), "grid column has no name; a widget joins a column by naming it")
+				} else if declared[col.Name] {
+					v.at(append(slices.Clone(cp), "name"), "duplicate grid column %q", col.Name)
+				}
+				if col.Basis == "" {
+					v.at(append(slices.Clone(cp), "basis"), "grid column %q has no basis; it needs a flex shorthand such as \"1 1 540px\"", col.Name)
+				}
+				if d := col.Direction; d != "" && d != DirectionColumn && d != DirectionRow {
+					v.at(append(slices.Clone(cp), "direction"),
+						"grid column %q has direction %q; expected %q or %q", col.Name, d, DirectionColumn, DirectionRow)
+				}
+				declared[col.Name] = true
+			}
+
 			if len(s.Widgets) == 0 {
 				v.at(append(slices.Clone(sp), "widgets"), "section %q has no widgets", s.ID)
 			}
 			for k, w := range s.Widgets {
-				v.widget(append(slices.Clone(sp), "widgets", k), w, false)
+				wp := append(slices.Clone(sp), "widgets", k)
+				// A widget naming a column the grid does not declare would land
+				// in the default flow and look like a styling bug rather than
+				// the typo it is.
+				if w.Column != "" && !declared[w.Column] {
+					if len(declared) == 0 {
+						v.at(append(slices.Clone(wp), "column"),
+							"widget names column %q but section %q declares no grid columns", w.Column, s.ID)
+					} else {
+						v.at(append(slices.Clone(wp), "column"),
+							"widget names column %q; section %q declares %v", w.Column, s.ID, slices.Sorted(maps.Keys(declared)))
+					}
+				}
+				v.widget(wp, w, false)
 			}
 		}
 	}

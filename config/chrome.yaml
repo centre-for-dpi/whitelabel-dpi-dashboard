@@ -50,3 +50,22 @@ header:
     #   href: https://example.gov/service-desk
     #   external: true
     #   iconKey: ui.external
+
+# THE SECOND BAR.
+#
+# Not controls for the page but facts about it: whose exchanges these numbers
+# describe, and which side of them is on view. Leave this out entirely and
+# nothing renders — a deployment covering one platform and one role has nothing
+# to say here.
+strip:
+  items:
+    # The platforms from domain.yaml, with their marks. Omitted automatically
+    # when none are declared.
+    - kind: platforms
+
+    - kind: spacer
+
+    # One segment per role in domain.yaml. Omitted automatically when there is
+    # only one, since a switch with a single option is a control that does
+    # nothing.
+    - kind: role-switch

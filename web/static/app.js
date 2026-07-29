@@ -205,10 +205,11 @@
   // Remember the opener before the request goes out, while the trigger is still
   // the element the reader activated.
   //
-  // Only when the drawer is not already open. Switching tabs is also a request
-  // targeting #drawer-host, so without this guard the opener would be
-  // overwritten by the tab link — and that link is inside the drawer, so by the
-  // time it closed there would be nothing left to return focus to.
+  // Only for a request that targets #drawer-host, and only when nothing is open
+  // there yet. A tab link is inside the drawer, so recording it would leave
+  // nothing outside to return focus to once the drawer closed — it targets the
+  // pane rather than the host, which already rules it out, and the open check
+  // covers a request that reopens a drawer over one already showing.
   document.body.addEventListener("htmx:beforeRequest", (e) => {
     const t = e.detail && e.detail.target;
     if (!t || t.id !== "drawer-host") return;
@@ -217,9 +218,10 @@
     drawerOpener = e.detail.elt;
   });
 
-  // Promote the dialog once the fragment is in the document. A tab switch
-  // re-renders the whole drawer, so this runs again on an already-open dialog,
-  // which showDrawer guards against.
+  // Promote the dialog once the fragment is in the document. Changing tab swaps
+  // the pane rather than the host, so it does not come through here at all; the
+  // dialog it is inside stays where it is, focus stays on the tab, and the entry
+  // animation does not replay.
   document.body.addEventListener("htmx:afterSwap", (e) => {
     if (e.detail && e.detail.target && e.detail.target.id === "drawer-host") {
       showDrawer(document.getElementById("drawer"));
@@ -266,9 +268,11 @@
       if (document.documentElement.dir === "rtl") fraction = 1 - fraction;
       fraction = Math.min(Math.max(fraction, 0), 1);
 
-      const point = points[Math.round(fraction * (points.length - 1))];
+      const index = Math.round(fraction * (points.length - 1));
+      const point = points[index];
       const viewBox = svg.viewBox.baseVal;
-      showCrosshair(svg, (point.x / viewBox.width) * 100, (point.y / viewBox.height) * 100);
+      showCrosshair(svg, (point.x / viewBox.width) * 100, (point.y / viewBox.height) * 100,
+        parseReadouts(svg)[index]);
     },
     pointerleave(svg) { hideCrosshair(svg); },
   });
@@ -283,24 +287,42 @@
     return svg._points;
   }
 
-  function showCrosshair(svg, leftPct, topPct) {
-    const figure = svg.closest(".chart");
-    if (!figure) return;
+  // The readouts are formatted by the server, one per point, tab-separated: a
+  // number and a date are the two things this file must not format for itself.
+  function parseReadouts(svg) {
+    if (svg._readouts) return svg._readouts;
+    const raw = svg.dataset.readouts || "";
+    svg._readouts = raw ? raw.split("\t") : [];
+    return svg._readouts;
+  }
 
-    let line = figure.querySelector(".crosshair");
-    let dot = figure.querySelector(".crosshair-dot");
+  function showCrosshair(svg, leftPct, topPct, readout) {
+    const plot = svg.closest(".chart-plot");
+    if (!plot) return;
+
+    let line = plot.querySelector(".crosshair");
+    let dot = plot.querySelector(".crosshair-dot");
+    let tip = plot.querySelector(".crosshair-tip");
     if (!line) {
       line = Object.assign(document.createElement("span"), { className: "crosshair" });
       dot = Object.assign(document.createElement("span"), { className: "crosshair-dot" });
-      figure.append(line, dot);
+      tip = Object.assign(document.createElement("span"), { className: "crosshair-tip tnum" });
+      plot.append(line, dot, tip);
     }
     line.style.insetInlineStart = `${leftPct}%`;
     dot.style.insetInlineStart = `${leftPct}%`;
     dot.style.insetBlockStart = `${topPct}%`;
+    // A crosshair with no value is a line pointing at a number the reader
+    // still cannot read, so the tip only appears when there is one to show.
+    tip.textContent = readout || "";
+    tip.hidden = !readout;
+    tip.style.insetInlineStart = `${leftPct}%`;
   }
 
   function hideCrosshair(svg) {
-    svg.closest(".chart")?.querySelectorAll(".crosshair, .crosshair-dot").forEach((n) => n.remove());
+    svg.closest(".chart-plot")
+      ?.querySelectorAll(".crosshair, .crosshair-dot, .crosshair-tip")
+      .forEach((n) => n.remove());
   }
 
   /* --- HTMX -----------------------------------------------------------------

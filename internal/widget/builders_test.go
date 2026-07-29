@@ -282,8 +282,10 @@ func TestTimestampCarriesBothFormats(t *testing.T) {
 	if v.ISO != now.Add(-4*time.Minute).Format(time.RFC3339) {
 		t.Errorf("ISO = %q", v.ISO)
 	}
-	if !strings.Contains(v.Relative, "ago") {
-		t.Errorf("relative = %q", v.Relative)
+	// The interval goes through the term rather than standing on its own, so
+	// the word in front of it is translatable and can move.
+	if !strings.Contains(v.Text, "verdict.updated{rel=") || !strings.Contains(v.Text, "ago") {
+		t.Errorf("text = %q, want the interval inside the term", v.Text)
 	}
 	if v.Absolute == "" {
 		t.Error("no absolute time, so hovering the relative one shows nothing")
@@ -314,9 +316,10 @@ func TestStaleDataIsCalledOut(t *testing.T) {
 
 // --- disclosure ------------------------------------------------------------
 
-func TestDisclosurePrintsTheRulesInEvaluationOrder(t *testing.T) {
-	// The reader is being told how the verdict was reached, so the order they
-	// are applied in is the order to show them.
+func TestDisclosurePrintsTheRulesInStatusModelOrder(t *testing.T) {
+	// The same order as the legend and the bar. The reader has just met these
+	// five states in that sequence; showing them in the evaluator's internal
+	// precedence instead put the same five in two orders on one screen.
 	v := build[widget.DisclosureView](t, "disclosure", ctx(nil),
 		widget.Options{"summaryTermId": "legend.title"})
 
@@ -326,13 +329,18 @@ func TestDisclosurePrintsTheRulesInEvaluationOrder(t *testing.T) {
 	if len(v.Items) != 5 {
 		t.Fatalf("items = %d, want one per rule", len(v.Items))
 	}
-	if !strings.HasPrefix(v.Items[0], "rule.maintenance") {
-		t.Errorf("first rule = %q, want maintenance, which is evaluated first", v.Items[0])
+	if v.Items[0].Status != "operational" {
+		t.Errorf("first rule = %q, want operational, which statusModel lists first", v.Items[0].Status)
 	}
 	// The live threshold numbers, so the published rule cannot drift from the
 	// applied one.
-	if !strings.Contains(v.Items[0], "partialAvail=99.5") {
-		t.Errorf("rule text carries no threshold values: %q", v.Items[0])
+	if !strings.Contains(v.Items[0].Text, "partialAvail=99.5") {
+		t.Errorf("rule text carries no threshold values: %q", v.Items[0].Text)
+	}
+	// Each rule is marked by the status it decides, so the sentence and the
+	// chip a reader just saw are visibly the same thing.
+	if v.Items[0].Tone == "" || v.Items[0].Icon.Glyph == "" {
+		t.Errorf("rule carries no status marker: %+v", v.Items[0])
 	}
 }
 
@@ -463,8 +471,13 @@ func TestFilterBarOffersEveryChoice(t *testing.T) {
 	if len(v.Statuses) != len(config.Statuses) {
 		t.Errorf("status chips = %d, want one per status", len(v.Statuses))
 	}
-	if len(v.Categories) != 2 {
-		t.Errorf("category chips = %d, want one per category", len(v.Categories))
+	// Only the categories the scope actually contains. Both fixture services
+	// are cat.identity, so cat.money has nothing to offer and is not offered.
+	if len(v.Categories) != 1 || v.Categories[0].Value != "cat.identity" {
+		t.Errorf("category chips = %+v, want only the populated one", v.Categories)
+	}
+	if v.Categories[0].Count != "2" {
+		t.Errorf("category count = %q, want 2", v.Categories[0].Count)
 	}
 	if v.Search != "aadh" || v.SearchLabel != "flt.search" {
 		t.Errorf("search = %+v", v)
@@ -516,6 +529,62 @@ func TestUnfilteredBarOffersNothingToClear(t *testing.T) {
 
 	if v.ClearVisible || v.AppliedCount != 0 {
 		t.Errorf("got applied=%d clear=%v, want neither", v.AppliedCount, v.ClearVisible)
+	}
+}
+
+func TestAnAppliedCategoryChipSurvivesHavingNothingLeftInIt(t *testing.T) {
+	// Otherwise the control the reader is currently filtered by disappears from
+	// under them, and the only way back is to know the URL.
+	c := ctx([]model.Service{svc("a")}) // cat.identity
+	c.State.Categories = []string{"cat.money"}
+
+	v := build[widget.FilterBarView](t, "filter-bar", c, widget.Options{})
+
+	var money widget.Chip
+	for _, ch := range v.Categories {
+		if ch.Value == "cat.money" {
+			money = ch
+		}
+	}
+	if money.Value == "" || !money.Active {
+		t.Errorf("categories = %+v, want the applied empty one kept and active", v.Categories)
+	}
+	if money.Count != "0" {
+		t.Errorf("count = %q, want 0 stated rather than hidden", money.Count)
+	}
+}
+
+func TestTheAllRegionsOptionIsLabelledForWhatItDoes(t *testing.T) {
+	// The default scope's own region doubles as "every region". Reading
+	// "National" while looking at a list of states says the opposite of what
+	// choosing it means.
+	c := ctx(nil)
+	c.State.Scope = "state"
+
+	v := build[widget.FilterBarView](t, "filter-bar", c, widget.Options{})
+
+	if len(v.Regions) == 0 || v.Regions[0].Value != "reg.national" {
+		t.Fatalf("regions = %+v", v.Regions)
+	}
+	if v.Regions[0].Label != "flt.all" {
+		t.Errorf("all-regions label = %q, want the configured flt.all", v.Regions[0].Label)
+	}
+}
+
+func TestTheFilterPanelSaysHowManyFiltersAreApplied(t *testing.T) {
+	// The panel collapses on a narrow screen, so its own name is the only thing
+	// saying the board below it has been narrowed.
+	c := ctx([]model.Service{svc("a")})
+
+	if v := build[widget.FilterBarView](t, "filter-bar", c, widget.Options{}); v.FiltersLabel != "flt.title" {
+		t.Errorf("unfiltered label = %q", v.FiltersLabel)
+	}
+
+	c.State.Statuses = []string{"major"}
+	c.State.Search = "aadh"
+	v := build[widget.FilterBarView](t, "filter-bar", c, widget.Options{})
+	if v.FiltersLabel != "flt.applied{n=2}" {
+		t.Errorf("filtered label = %q, want the count in it", v.FiltersLabel)
 	}
 }
 
@@ -618,20 +687,20 @@ func TestLeaderboardRows(t *testing.T) {
 	if len(v.Rows) != 2 {
 		t.Fatalf("rows = %d", len(v.Rows))
 	}
-	// Rank 1 is the service needing most attention, so the weaker of the two
-	// leads: pan at 99.10% has 0.90 downtime against aadhaar's 0.01.
+	// Rank 1 is the best performer, so the stronger of the two leads: aadhaar at
+	// 99.99% has 0.01 downtime against pan's 0.90.
 	first := v.Rows[0]
-	if first.ID != "pan" || first.Rank != "1" {
+	if first.ID != "aadhaar" || first.Rank != "1" {
 		t.Errorf("first row = %+v", first)
 	}
 	name := cellKind(first, widget.CellName)
-	if first.Name != "svc.pan.name" || name.Description != "svc.pan.desc" {
+	if first.Name != "svc.aadhaar.name" || name.Description != "svc.aadhaar.desc" {
 		t.Errorf("first row names = %+v / %+v", first, name)
 	}
-	if name.Href != "/service/pan" {
+	if name.Href != "/service/aadhaar" {
 		t.Errorf("name href = %q; the name must stay a real focusable link", name.Href)
 	}
-	if first.StatusTone != "partial" || first.StatusIcon.Glyph != "[status.partial]" {
+	if first.StatusTone != "ok" || first.StatusIcon.Glyph != "[status.operational]" {
 		t.Errorf("status presentation = %+v", first)
 	}
 	if name.CategoryIcon.Glyph != "[cat.identity]" {
@@ -640,11 +709,35 @@ func TestLeaderboardRows(t *testing.T) {
 	if got := len(metricCells(first)); got != 1 {
 		t.Fatalf("cells = %d, want one per metric column", got)
 	}
-	if cellOf(first, 0).Value != "99.10%" {
+	if cellOf(first, 0).Value != "99.99%" {
 		t.Errorf("availability = %q", cellOf(first, 0).Value)
 	}
-	if !strings.Contains(cellOf(first, 0).Target, "99.50") {
-		t.Errorf("target = %q, want the configured 99.5", cellOf(first, 0).Target)
+	// The target carries the digits it has, not the reading's precision: a
+	// limit set to 99.5 is not a limit set to two decimal places.
+	if !strings.Contains(cellOf(first, 0).Target, "99.5%") || strings.Contains(cellOf(first, 0).Target, "99.50") {
+		t.Errorf("target = %q, want the configured 99.5 without invented digits", cellOf(first, 0).Target)
+	}
+}
+
+func TestATargetShowsOnlyTheDigitsItHas(t *testing.T) {
+	// "at most 0.50%" reads as a limit set to two decimal places, when what was
+	// set was half of one per cent. Readings keep their precision; the figure
+	// they are measured against keeps its own.
+	c := ctx([]model.Service{svc("a", avail(99.987))})
+	c.Config.Domain.Metrics = []config.Metric{{
+		ID: "metric.availability", TermID: "metric.availability",
+		Field: config.FieldAvailability, Unit: config.UnitPercent,
+		Precision: 2, Target: target(99.5), Direction: config.DirectionHigherIsBetter,
+	}}
+
+	v := leaderboard(t, c, "metric.availability")
+	cell := cellOf(v.Rows[0], 0)
+
+	if cell.Value != "99.99%" {
+		t.Errorf("reading = %q, want the metric's full precision", cell.Value)
+	}
+	if cell.Target != "metric.target{v=99.5%}" {
+		t.Errorf("target = %q, want 99.5%% rather than 99.50%%", cell.Target)
 	}
 }
 

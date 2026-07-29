@@ -26,10 +26,23 @@ import (
 // replaces wholesale.
 var domainPrefixes = []string{"svc.", "prov.", "reg."}
 
+// The demand side shares its prefix with the interface terms that describe it —
+// req.callsLabel is a label and must be translated, req.bankKyc.name is the
+// name of an organisation's use case and must not be. So the exemption is on
+// the shape of the id rather than on the prefix alone.
+var domainNounSuffixes = []string{".name", ".desc"}
+
 func isDomainNoun(id string) bool {
 	for _, p := range domainPrefixes {
 		if strings.HasPrefix(id, p) {
 			return true
+		}
+	}
+	if strings.HasPrefix(id, "req.") {
+		for _, s := range domainNounSuffixes {
+			if strings.HasSuffix(id, s) {
+				return true
+			}
 		}
 	}
 	return false
@@ -342,10 +355,18 @@ func TestNoPlaceholderSurvivesRendering(t *testing.T) {
 	markup := regexp.MustCompile(`<[^>]+>`)
 
 	for _, locale := range catalogue(t).Locales() {
+		// The fragments are here as well as the pages. Every one of them is
+		// something a reader actually sees, and the drawer's opportunity tab
+		// reached production untested by any of these because nothing requested
+		// it — no page load renders a tab the reader has not chosen.
 		for _, path := range []string{
-			"/", "/?q=pan", "/?status=major", "/?scope=state",
-			"/service/aadhaar", "/service/aadhaar?tab=errors",
+			"/", "/?q=pan", "/?status=major", "/?scope=state", "/?signals=opportunity",
+			"/service/aadhaar", "/service/aadhaar?tab=opportunity",
+			"/service/aadhaar?tab=errors",
 			"/service/aadhaar?tab=traffic", "/service/aadhaar?tab=incidents",
+			"/fragments/leaderboard", "/fragments/signals?signals=opportunity",
+			"/fragments/service/aadhaar?tab=opportunity",
+			"/fragments/service/aadhaar/pane?tab=errors",
 		} {
 			t.Run(locale+path, func(t *testing.T) {
 				sep := "?"
@@ -470,8 +491,12 @@ func TestNoTermIDLeaksInAnyLocale(t *testing.T) {
 
 	for _, locale := range catalogue(t).Locales() {
 		for _, path := range []string{
-			"/", "/service/aadhaar", "/service/aadhaar?tab=errors",
+			"/", "/?signals=opportunity",
+			"/service/aadhaar", "/service/aadhaar?tab=opportunity",
+			"/service/aadhaar?tab=errors",
 			"/service/aadhaar?tab=traffic", "/service/aadhaar?tab=incidents",
+			"/fragments/service/aadhaar?tab=opportunity",
+			"/fragments/service/aadhaar/pane?tab=errors",
 		} {
 			t.Run(locale+path, func(t *testing.T) {
 				sep := "?"

@@ -61,7 +61,17 @@ type Section struct {
 	Grid Grid `yaml:"grid"`
 	// Swap names the fragment route that re-renders this section. Empty means
 	// the section is static and never swaps on its own.
-	Swap    string   `yaml:"swap"`
+	Swap string `yaml:"swap"`
+	// Aside is rendered in the heading row, opposite the title: the things that
+	// qualify a section rather than belong to its body — how many rows are
+	// showing, which ranking rule produced them, which set of cards is on view.
+	// Putting them in the grid instead pushed them below the controls they
+	// describe, and reading "Showing 34 of 34" underneath the filter that
+	// produced the 34 states the answer before the question.
+	//
+	// A section with an aside and no heading has nowhere to put it, which
+	// validation rejects rather than silently dropping.
+	Aside   []Widget `yaml:"aside"`
 	Widgets []Widget `yaml:"widgets"`
 }
 
@@ -71,9 +81,15 @@ type Heading struct {
 	TitleTermID   string `yaml:"titleTermId"`
 	// Scoped appends the current scope to the title term, so one heading can
 	// read differently in the national and sub-national views.
-	Scoped bool   `yaml:"scoped"`
-	Level  int    `yaml:"level"`
-	Class  string `yaml:"class"`
+	Scoped bool `yaml:"scoped"`
+	// Variants replace the title when the reader has switched which findings
+	// the band shows, keyed by that selection. It is the one reader choice that
+	// changes what a band is *about* rather than what is in it — "what needs
+	// attention" and "where the opportunities are" are two different questions,
+	// and a heading that answered only the first would mislabel the second.
+	Variants map[string]string `yaml:"variants"`
+	Level    int               `yaml:"level"`
+	Class    string            `yaml:"class"`
 }
 
 // Grid is the section's layout. It is expressed in the same terms CSS grid
@@ -83,7 +99,36 @@ type Grid struct {
 	// Empty means a single full-width column.
 	MinColWidth string `yaml:"minColWidth"`
 	Gap         string `yaml:"gap"`
+	// Columns names tracks, for a section whose parts are not interchangeable:
+	// the verdict's figures want most of the measure and the sentences
+	// explaining them want a column beside it, which a grid of equal
+	// auto-fitted tracks cannot express. A widget joins one by naming it.
+	//
+	// Empty keeps the auto-fitting behaviour, which is right wherever the parts
+	// really are interchangeable — a row of signal cards, a row of stat tiles.
+	Columns []Column `yaml:"columns"`
 }
+
+// Column is one named track of a section's layout.
+type Column struct {
+	Name string `yaml:"name"`
+	// Basis is a CSS flex shorthand: "1 1 540px". The third value is the width
+	// the column wants, and columns stack when they no longer fit side by side
+	// — so a section declares the width its content needs rather than a
+	// breakpoint, and there is no viewport number to keep in step with the
+	// stylesheet.
+	Basis string `yaml:"basis"`
+	// Direction is "column" (the default) or "row". A row is for the few groups
+	// whose parts belong on one line — a button and the two lines qualifying it
+	// — which stacked would read as separate claims.
+	Direction string `yaml:"direction"`
+}
+
+// Column directions.
+const (
+	DirectionColumn = "column"
+	DirectionRow    = "row"
+)
 
 // Widget is one composed part.
 type Widget struct {
@@ -94,6 +139,15 @@ type Widget struct {
 	// one stat tile per declared metric, say — so that adding a metric to
 	// domain.yaml adds a tile without touching the layout.
 	RepeatOver string `yaml:"repeatOver"`
+	// Column names the grid track this widget belongs to. Empty means the
+	// section's default flow; a name the grid does not declare is a startup
+	// error rather than a widget that silently lands in the wrong place.
+	Column string `yaml:"column"`
+	// Span stretches the widget across every track of an auto-fitted grid, for
+	// the parts that label or summarise the rest rather than sit beside them —
+	// a heading over a row of tiles, a chart under it. Ignored by a grid with
+	// named columns, where a widget says which track it is in instead.
+	Span bool `yaml:"span"`
 }
 
 // Drawer is the per-service panel.
@@ -112,7 +166,7 @@ type Tab struct {
 // RepeatSources are the collections a widget may be repeated over.
 var RepeatSources = []string{
 	"config.metrics.leaderboard",
-	"config.metrics.rendered",
+	"config.metrics.drawer",
 	"config.statuses",
 	"config.categories",
 	"config.periods",

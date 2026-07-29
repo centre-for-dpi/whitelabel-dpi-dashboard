@@ -167,6 +167,26 @@ type Service struct {
 	ProviderID string
 	Scope      string
 
+	// RoleID is which side of the exchange this record is: the service that
+	// issues a document, or the organisation that requests one.
+	//
+	// A requestor is structurally the same record — it has availability, an
+	// error rate, a history, incidents — because it is the same exchange seen
+	// from the other end. Modelling it as a second type would duplicate every
+	// metric, every chart and every rule to say the same things about it.
+	RoleID string
+	// SectorID is the requestor's line of business, and CallsKey the Key of the
+	// service it calls. Both are empty for an issuer, which requests nothing.
+	SectorID string
+	CallsKey string
+	// SubscriptionType is how the requestor is subscribed to what it calls.
+	SubscriptionType string
+	// OwnErrorShare is the percent of this requestor's errors that are its own
+	// rather than the publisher's: a request it malformed, not a response that
+	// failed. The distinction is the whole point of showing a requestor its
+	// error rate at all.
+	OwnErrorShare float64
+
 	Status      Status // derived
 	Metrics     Metrics
 	Maintenance Maintenance

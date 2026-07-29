@@ -2,6 +2,7 @@ package widget
 
 import (
 	"fmt"
+	"net/url"
 	"slices"
 	"time"
 
@@ -51,6 +52,10 @@ const (
 	SourceServiceHistory   = "service.history"
 	SourceServiceErrors    = "service.errorBreakdown"
 	SourceServiceIncidents = "service.incidents"
+	// The demand side of the open service: who pulls it, and how that compares
+	// with everything like it.
+	SourceServiceDemand = "service.demand"
+	SourceServicePeers  = "service.peers"
 
 	// Configuration, for widgets that describe the rules rather than the data.
 	SourceConfigThresholdProse = "config.thresholdProse"
@@ -76,6 +81,8 @@ func Sources() []string {
 		SourceServiceHistory,
 		SourceServiceErrors,
 		SourceServiceIncidents,
+		SourceServiceDemand,
+		SourceServicePeers,
 		SourceConfigThresholdProse,
 		SourceConfigMetrics,
 		SourceConfigCategories,
@@ -92,10 +99,19 @@ func Sources() []string {
 func serviceScoped(source string) bool {
 	switch source {
 	case SourceService, SourceServiceMetric, SourceServiceHistory,
-		SourceServiceErrors, SourceServiceIncidents:
+		SourceServiceErrors, SourceServiceIncidents,
+		SourceServiceDemand, SourceServicePeers:
 		return true
 	}
 	return false
+}
+
+// measuredFields are the fields something actually reports.
+func measuredFields() []string {
+	return []string{
+		config.FieldAvailability, config.FieldErrorRate,
+		config.FieldLatencyP50, config.FieldVolume,
+	}
 }
 
 // ValidateBind checks a binding against the closed source set and the
@@ -114,23 +130,17 @@ func ValidateBind(b Bind, d config.Domain, inDrawer bool) []error {
 			"bind source %q reads the service a drawer is open on, so it cannot be used in a page section", b.Source))
 	}
 
-	if b.Field != "" {
-		fields := []string{
-			config.FieldAvailability, config.FieldErrorRate,
-			config.FieldLatencyP50, config.FieldVolume,
-		}
-		if !slices.Contains(fields, b.Field) {
-			errs = append(errs, fmt.Errorf("unknown field %q; expected one of %v", b.Field, fields))
-		}
+	// Downtime is plottable though nothing reports it: it is availability's
+	// complement, derived at the point of drawing. An overlay cannot be it,
+	// because an overlay is drawn against the series beneath and a complement
+	// of that series carries no information the series does not.
+	if b.Field != "" && !slices.Contains(append(measuredFields(), config.FieldDowntime), b.Field) {
+		errs = append(errs, fmt.Errorf("unknown field %q; expected one of %v",
+			b.Field, append(measuredFields(), config.FieldDowntime)))
 	}
-	if b.Overlay != "" {
-		fields := []string{
-			config.FieldAvailability, config.FieldErrorRate,
-			config.FieldLatencyP50, config.FieldVolume,
-		}
-		if !slices.Contains(fields, b.Overlay) {
-			errs = append(errs, fmt.Errorf("unknown overlay field %q; expected one of %v", b.Overlay, fields))
-		}
+	if b.Overlay != "" && !slices.Contains(measuredFields(), b.Overlay) {
+		errs = append(errs, fmt.Errorf("unknown overlay field %q; expected one of %v",
+			b.Overlay, measuredFields()))
 	}
 
 	if b.Metric != "" {
@@ -163,7 +173,20 @@ type Context struct {
 	// The service list at each stage of narrowing. Widgets bind to whichever
 	// stage answers their question: a count of statuses is over the scoped set,
 	// while the table shows what survived the filter.
-	Scoped   []model.Service
+	//
+	// Scoped is deliberately role-agnostic — it is the deployment's default
+	// role, narrowed by scope. The verdict asks whether the country's services
+	// are working, and that question does not change because the reader has
+	// switched the board to look at who is calling them. RoleScoped is the
+	// board's own universe, and everything that qualifies the board — its
+	// ranking, its filter counts, its "showing 12 of 34" — reads that.
+	Scoped     []model.Service
+	RoleScoped []model.Service
+	// Demand is every service in scope that calls another, whichever role it
+	// carries. The opportunity rules are findings about supply and demand
+	// together, so they need both sides regardless of which one is on the
+	// board.
+	Demand   []model.Service
 	Filtered []model.Service
 	Ordered  []model.Service
 	Ranks    map[string]int
@@ -176,15 +199,24 @@ type Context struct {
 	Bind Bind
 
 	State State
-	Text  TextResolver
-	Icons IconResolver
-	Now   time.Time
+	// Params is State as it arrived: the known query parameters this request
+	// carried, and nothing else. State is the validated reading of them, which is
+	// what a builder decides with; Params is what a builder must hand on, because
+	// a link built from defaults silently discards whatever the reader chose that
+	// the link's own control does not name.
+	Params url.Values
+	Text   TextResolver
+	Icons  IconResolver
+	Now    time.Time
 }
 
 // State is what the reader has selected. It round-trips through the URL, so it
 // is also what a shared link carries.
 type State struct {
-	Scope      string
+	Scope string
+	// Role is which side of the exchange is on view: who issues, or who
+	// requests. It narrows the population the same way Scope does.
+	Role       string
 	Region     string
 	Period     string
 	Search     string
@@ -194,8 +226,15 @@ type State struct {
 	Theme      string
 	Statuses   []string
 	Categories []string
-	DrawerID   string
-	DrawerTab  string
+	// IDs narrows the board to an explicit set of services. Set by a signal
+	// card whose finding is about a set with nothing else in common — no shared
+	// status, no shared category — where the only honest filter is the set.
+	IDs []string
+	// SignalTab is which set of findings is on view: what needs attention, or
+	// where the opportunities are.
+	SignalTab string
+	DrawerID  string
+	DrawerTab string
 	// FiltersOpen carries whether the narrow-screen filter panel is showing. It
 	// is reader state like any other, so it rides in the URL: the panel used to
 	// re-collapse on every filter change, because the fragment that replaced it
@@ -235,5 +274,12 @@ type Icon struct {
 // rather than in the builder so that both the signal widget and any future
 // consumer see the same findings.
 func (c Context) Signals() []rules.Signal {
+	// One source, two sets: which findings are on view is a reader selection
+	// like any other, so the binding says "the signals" and the tab decides
+	// which ones those are — the same way services.filtered means "the ones
+	// the filters left".
+	if c.State.SignalTab == query.SignalsOpportunity {
+		return rules.Opportunities(c.Config.Domain, c.Scoped, c.Demand, c.Now)
+	}
 	return rules.Signals(c.Config.Domain, c.Scoped, c.Now)
 }

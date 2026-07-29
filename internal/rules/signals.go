@@ -20,7 +20,10 @@ type Signal struct {
 	Tone        string
 	TitleTermID string
 	RuleTermID  string
-	Params      map[string]any
+	// ActionTermID overrides the shared action label, for a finding that leads
+	// somewhere the shared wording would misdescribe.
+	ActionTermID string
+	Params       map[string]any
 
 	// Filter is what the card's action applies to the leaderboard.
 	Filter *config.SignalFilter
@@ -32,6 +35,12 @@ type Signal struct {
 	// Empty marks the "nothing to report" card.
 	Empty bool
 }
+
+// TermRef is a parameter that names something rather than stating it: the rules
+// layer knows a service by its term id and has no resolver, so it passes the id
+// and the presentation layer translates it. Typed rather than conventional, so
+// a parameter that should be translated cannot be one that merely looks like it.
+type TermRef string
 
 // Focus points at a single service and the drawer tab that explains the finding.
 type Focus struct {
@@ -86,13 +95,14 @@ func evaluateSignal(def config.Signal, d config.Domain, services []model.Service
 // card builds the renderable finding from its definition.
 func card(def config.Signal, params map[string]any) Signal {
 	return Signal{
-		ID:          def.ID,
-		IconKey:     def.IconKey,
-		Tone:        def.Tone,
-		TitleTermID: def.TitleTermID,
-		RuleTermID:  def.RuleTermID,
-		Params:      params,
-		Filter:      def.Filter,
+		ID:           def.ID,
+		IconKey:      def.IconKey,
+		Tone:         def.Tone,
+		TitleTermID:  def.TitleTermID,
+		RuleTermID:   def.RuleTermID,
+		ActionTermID: def.ActionTermID,
+		Params:       params,
+		Filter:       def.Filter,
 	}
 }
 

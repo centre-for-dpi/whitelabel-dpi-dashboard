@@ -3,7 +3,6 @@ package server
 import (
 	"bytes"
 	"net/http"
-	"net/url"
 
 	"github.com/centre-for-dpi/whitelabel-dpi-dashboard/internal/config"
 	"github.com/centre-for-dpi/whitelabel-dpi-dashboard/internal/layout"
@@ -31,6 +30,7 @@ type PageData struct {
 	ExternalIcon widget.Icon
 
 	ScopeLabel  string
+	RoleLabel   string
 	PeriodLabel string
 	LocaleLabel string
 	ApplyLabel  string
@@ -41,14 +41,22 @@ type PageData struct {
 	NewTabText string
 
 	// ChromeItems is the header bar, in configured order. The template switches
-	// on Kind rather than knowing what the bar contains.
+	// on Kind rather than knowing what the bar contains. ChromeStrip is the
+	// second bar below it, and is empty unless the deployment declares one.
 	ChromeItems []ChromeItemView
+	ChromeStrip []ChromeItemView
 
-	Scopes  []Choice
-	Periods []Choice
-	Locales []Choice
-	Hidden  []HiddenField
-	Footer  []FooterLink
+	Scopes    []Choice
+	Roles     []Choice
+	Platforms []PlatformView
+	Periods   []Choice
+	Locales   []Choice
+	Hidden    []widget.Hidden
+	Footer    []FooterLink
+	// FormAction is where the chrome bar submits. It is the address the reader is
+	// already at rather than a hardcoded "/", so changing the language or the
+	// period keeps an open drawer open instead of dismissing it.
+	FormAction string
 
 	Sections []render.Section
 	Drawer   *DrawerData
@@ -61,10 +69,6 @@ type Choice struct {
 	Href   string
 	Active bool
 }
-
-// HiddenField carries state through a form that does not display it, so
-// changing the period does not silently discard the reader's filters.
-type HiddenField struct{ Name, Value string }
 
 // FooterLink is one credit.
 type FooterLink struct {
@@ -79,11 +83,12 @@ func (s *Server) handlePage(w http.ResponseWriter, r *http.Request) {
 	// A path naming a service that no longer exists is a stale bookmark, not an
 	// error worth a 404 page: the dashboard still has everything else to show.
 	if c.State.DrawerID != "" && c.Service == nil {
-		http.Redirect(w, r, link("/", r.URL.Query()), http.StatusSeeOther)
+		// Without the tab, which named a panel of the drawer that is not there.
+		http.Redirect(w, r, c.Href("/", paramTab, ""), http.StatusSeeOther)
 		return
 	}
 
-	page, err := s.pageData(c, r)
+	page, err := s.pageData(c)
 	if err != nil {
 		s.fail(w, r, err)
 		return
@@ -116,6 +121,23 @@ type ChromeItemView struct {
 	// Link, and the wordmark.
 	Href     string
 	External bool
+	// ExternalIcon and NewTabText travel with the item rather than being read
+	// off the page, so one template renders a bar item wherever the bar is.
+	ExternalIcon widget.Icon
+	NewTabText   string
+
+	// Platforms.
+	Platforms []PlatformView
+}
+
+// PlatformView is one exchange named in the strip.
+type PlatformView struct {
+	Name string
+	Href string
+	// Logo is the resolved asset URL, version stamp and all.
+	Logo       string
+	LogoWidth  int
+	LogoHeight int
 }
 
 // pageTerm prefers a page's own term and falls back to the brand's, so adding a
@@ -127,7 +149,7 @@ func pageTerm(pageTerm, fallback string) string {
 	return fallback
 }
 
-func (s *Server) pageData(c widget.Context, r *http.Request) (PageData, error) {
+func (s *Server) pageData(c widget.Context) (PageData, error) {
 	d := s.cfg.Domain
 	text := c.Text
 	icons := c.Icons
@@ -150,33 +172,59 @@ func (s *Server) pageData(c widget.Context, r *http.Request) (PageData, error) {
 		BrandIcon:    icons.Icon(s.cfg.Brand.IconKey),
 		ExternalIcon: icons.Icon("ui.external"),
 		ScopeLabel:   text.Text("chrome.scope.label", nil),
+		RoleLabel:    text.Text("chrome.role.label", nil),
 		PeriodLabel:  text.Text("chrome.period.label", nil),
 		LocaleLabel:  text.Text("chrome.locale.label", nil),
 		ApplyLabel:   text.Text("chrome.apply", nil),
 		NewTabText:   text.Text("chrome.newTab", nil),
 	}
 
+	// Every control below returns the reader to where they already are, drawer
+	// included, rather than to the board.
+	data.FormAction = here(c)
+
 	// The toggle offers the theme you would switch TO, which is what the icon
 	// has to depict for the control to make sense.
 	if c.State.Theme == "dark" {
 		data.ThemeIcon = icons.Icon("ui.themeLight")
-		data.ThemeHref = link("/", withParam(r.URL.Query(), paramTheme, "light"))
+		data.ThemeHref = c.Href(data.FormAction, paramTheme, "light")
 	} else {
 		data.ThemeIcon = icons.Icon("ui.themeDark")
-		data.ThemeHref = link("/", withParam(r.URL.Query(), paramTheme, "dark"))
+		data.ThemeHref = c.Href(data.FormAction, paramTheme, "dark")
 	}
 
 	for _, scope := range d.Scopes {
 		// Switching scope drops the region: a state filter means nothing in the
 		// national view, and carrying it would leave a filter the reader can
 		// neither see nor clear.
-		params := withParam(r.URL.Query(), paramScope, scope)
-		params.Del(paramRegion)
 		data.Scopes = append(data.Scopes, Choice{
 			Value:  scope,
 			Label:  text.Text("chrome.scope."+scope, nil),
-			Href:   link("/", params),
+			Href:   c.Href("/", paramScope, scope, paramRegion, ""),
 			Active: scope == c.State.Scope,
+		})
+	}
+
+	// Switching role keeps the scope but drops the filters: a category chip
+	// counted over issuers means something different over requestors, and a
+	// status filter carried across would silently narrow the new board.
+	for _, role := range d.Roles {
+		data.Roles = append(data.Roles, Choice{
+			Value: role.ID,
+			Label: text.Text(role.TermID, nil),
+			Href: c.Href("/",
+				paramRole, role.ID, paramStatus, "", paramCat, "", paramSearch, ""),
+			Active: role.ID == c.State.Role,
+		})
+	}
+
+	for _, p := range d.Platforms {
+		data.Platforms = append(data.Platforms, PlatformView{
+			Name:       text.Text(p.TermID, nil),
+			Href:       p.Href,
+			Logo:       "/assets/" + p.Logo + "?v=" + data.AssetVersion,
+			LogoWidth:  p.LogoWidth,
+			LogoHeight: p.LogoHeight,
 		})
 	}
 
@@ -195,11 +243,12 @@ func (s *Server) pageData(c widget.Context, r *http.Request) (PageData, error) {
 
 	// The bar, assembled in the order chrome.yaml lists. Built last because each
 	// item draws on the choices above rather than recomputing them.
-	data.ChromeItems = s.chromeItems(data, text, icons)
+	data.ChromeItems = s.chromeBar(s.cfg.Chrome.Header, data, text, icons)
+	data.ChromeStrip = s.chromeBar(s.cfg.Chrome.Strip, data, text, icons)
 
 	// Everything the visible controls do not carry, so submitting the period
 	// selector does not silently clear the filters.
-	data.Hidden = hiddenState(c.State)
+	data.Hidden = hiddenState(c)
 
 	for _, f := range s.cfg.Brand.Footer {
 		data.Footer = append(data.Footer, FooterLink{
@@ -216,7 +265,7 @@ func (s *Server) pageData(c widget.Context, r *http.Request) (PageData, error) {
 	}
 
 	if c.Service != nil {
-		drawer, err := s.drawerData(c, r)
+		drawer, err := s.drawerData(c)
 		if err != nil {
 			return PageData{}, err
 		}
@@ -226,26 +275,29 @@ func (s *Server) pageData(c widget.Context, r *http.Request) (PageData, error) {
 }
 
 // hiddenState is the state the chrome form must carry through a submit.
-func hiddenState(st widget.State) []HiddenField {
-	var out []HiddenField
-	add := func(name, value string) {
-		if value != "" {
-			out = append(out, HiddenField{Name: name, Value: value})
-		}
+//
+// Everything the reader has chosen except the two the bar renders as selects of
+// its own — a hidden input and a <select> of the same name both submit, and the
+// first one wins, which would pin the language to whatever it was when the page
+// was rendered — and except `tab`, which the form's action carries in its path.
+//
+// It used to be assembled by hand from State, and the omissions showed: `role`
+// is a link in the strip outside this form, so changing the language reset the
+// board to the default role.
+func hiddenState(c widget.Context) []widget.Hidden {
+	return c.HiddenExcept(widget.ParamLang, widget.ParamPeriod, widget.ParamTab)
+}
+
+// here is the address the reader is at, as a path.
+//
+// A chrome control that hardcoded "/" dismissed whatever drawer was open the
+// moment the reader changed the theme or the language. The drawer is part of
+// what they were looking at, not something those controls were asked to close.
+func here(c widget.Context) string {
+	if c.Service != nil {
+		return "/service/" + c.Service.ID
 	}
-	add(paramScope, st.Scope)
-	add(paramRegion, st.Region)
-	add(paramSearch, st.Search)
-	add(paramSort, st.Sort)
-	add(paramDir, st.Dir)
-	add(paramTheme, st.Theme)
-	for _, v := range st.Statuses {
-		out = append(out, HiddenField{Name: paramStatus, Value: v})
-	}
-	for _, v := range st.Categories {
-		out = append(out, HiddenField{Name: paramCat, Value: v})
-	}
-	return out
+	return "/"
 }
 
 // handleSection re-renders one band, which is what an HTMX swap asks for.
@@ -257,7 +309,8 @@ func (s *Server) handleSection(id string) http.HandlerFunc {
 			return
 		}
 
-		rendered, err := s.renderSection(sec, s.build(r))
+		c := s.build(r)
+		rendered, err := s.renderSection(sec, c)
 		if err != nil {
 			s.fail(w, r, err)
 			return
@@ -268,6 +321,7 @@ func (s *Server) handleSection(id string) http.HandlerFunc {
 			s.fail(w, r, err)
 			return
 		}
+		s.pushURL(w, c, "/")
 		s.write(w, buf.Bytes())
 	}
 }
@@ -275,7 +329,13 @@ func (s *Server) handleSection(id string) http.HandlerFunc {
 // --- drawer ----------------------------------------------------------------
 
 // DrawerData is the per-service panel.
+//
+// TabsOOB marks the tab strip for an out-of-band swap. Changing tab replaces the
+// pane below the strip and nothing else, so the strip — which is above it, and
+// inside a sticky header the swap must not disturb — travels alongside as its own
+// swap rather than being re-rendered with the panel around it.
 type DrawerData struct {
+	TabsOOB      bool
 	ID           string
 	Name         string
 	Description  string
@@ -295,28 +355,37 @@ type DrawerData struct {
 }
 
 // DrawerTab is one pane's button.
+//
+// Href is the whole page at this tab, for a reader without script and for the
+// address bar; PaneHref is the pane alone, which is all a tab change swaps.
 type DrawerTab struct {
-	ID           string
-	Label        string
-	Href         string
-	FragmentHref string
-	Active       bool
+	ID       string
+	Label    string
+	Href     string
+	PaneHref string
+	Active   bool
+}
+
+// drawerContext builds the rendering context for a drawer fragment.
+//
+// The path carries the id; readState looks under /service/, so the request is
+// rewritten to the address the reader would have used.
+func (s *Server) drawerContext(r *http.Request) (widget.Context, bool) {
+	rewritten := r.Clone(r.Context())
+	rewritten.URL.Path = "/service/" + r.PathValue("id")
+
+	c := s.build(rewritten)
+	return c, c.Service != nil
 }
 
 func (s *Server) handleDrawer(w http.ResponseWriter, r *http.Request) {
-	// The path carries the id; readState looks under /service/, so the request
-	// is rewritten to the address the reader would have used.
-	id := r.PathValue("id")
-	rewritten := r.Clone(r.Context())
-	rewritten.URL.Path = "/service/" + id
-
-	c := s.build(rewritten)
-	if c.Service == nil {
+	c, ok := s.drawerContext(r)
+	if !ok {
 		http.NotFound(w, r)
 		return
 	}
 
-	drawer, err := s.drawerData(c, r)
+	drawer, err := s.drawerData(c)
 	if err != nil {
 		s.fail(w, r, err)
 		return
@@ -327,10 +396,59 @@ func (s *Server) handleDrawer(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
+	s.pushURL(w, c, "/service/"+c.Service.ID)
 	s.write(w, buf.Bytes())
 }
 
-func (s *Server) drawerData(c widget.Context, r *http.Request) (DrawerData, error) {
+// handleDrawerPane re-renders one tab of an open drawer.
+//
+// Everything above the tab strip — the service, its verdict, the rule that
+// produced it — is the same whichever tab is showing, so a tab change used to
+// rebuild a panel that had not changed, replaying its entry animation each time.
+// This returns the pane and the strip alone; the strip travels out-of-band
+// because it sits above the pane inside a sticky header rather than beside it.
+func (s *Server) handleDrawerPane(w http.ResponseWriter, r *http.Request) {
+	c, ok := s.drawerContext(r)
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+
+	drawer, err := s.drawerData(c)
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	drawer.TabsOOB = true
+
+	var buf bytes.Buffer
+	if err := s.render.Fragment(&buf, "drawer-panes", drawer); err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	s.pushURL(w, c, "/service/"+c.Service.ID)
+	s.write(w, buf.Bytes())
+}
+
+// pushURL tells the client what address the fragment it is about to swap in
+// corresponds to.
+//
+// hx-push-url="true" pushes the URL the request went to, which for a fragment is
+// an internal address like /fragments/leaderboard — so filtering the board wrote
+// a path into the reader's history that serves markup rather than a page. htmx
+// checks this header before that attribute, so the server states the address
+// instead, which it is the only party that knows.
+func (s *Server) pushURL(w http.ResponseWriter, c widget.Context, path string) {
+	params := c.ParamsWith()
+	// `tab` names a panel of the drawer. On an address with no drawer in it, it
+	// would describe something that is not on the screen.
+	if c.Service == nil {
+		params.Del(paramTab)
+	}
+	w.Header().Set("HX-Push-Url", widget.Link(path, params))
+}
+
+func (s *Server) drawerData(c widget.Context) (DrawerData, error) {
 	sv := c.Service
 	d := s.cfg.Domain
 	status := string(sv.Status)
@@ -354,7 +472,10 @@ func (s *Server) drawerData(c widget.Context, r *http.Request) (DrawerData, erro
 		StatusTone:   statusTone(status),
 		RuleLabel:    text.Text("dr.why", nil),
 		CloseIcon:    icons.Icon("ui.close"),
-		CloseHref:    link("/", stripDrawer(r.URL.Query())),
+		// Closing drops the tab, which names a panel of the drawer, and keeps
+		// everything else: the reader is going back to the board they came from,
+		// not to a fresh one.
+		CloseHref: c.Href("/", paramTab, ""),
 	}
 
 	// The rule that produced this verdict, in the deployment's own published
@@ -364,13 +485,12 @@ func (s *Server) drawerData(c widget.Context, r *http.Request) (DrawerData, erro
 	}
 
 	for _, tab := range s.layout.Drawer.Tabs {
-		params := withParam(r.URL.Query(), paramTab, tab.ID)
 		data.Tabs = append(data.Tabs, DrawerTab{
-			ID:           tab.ID,
-			Label:        text.Text(tab.TitleTermID, nil),
-			Href:         link("/service/"+sv.ID, params),
-			FragmentHref: link("/fragments/service/"+sv.ID, params),
-			Active:       tab.ID == tabID,
+			ID:       tab.ID,
+			Label:    text.Text(tab.TitleTermID, nil),
+			Href:     c.Href("/service/"+sv.ID, paramTab, tab.ID),
+			PaneHref: c.Href("/fragments/service/"+sv.ID+"/pane", paramTab, tab.ID),
+			Active:   tab.ID == tabID,
 		})
 	}
 
@@ -387,21 +507,6 @@ func (s *Server) drawerData(c widget.Context, r *http.Request) (DrawerData, erro
 }
 
 // --- helpers ---------------------------------------------------------------
-
-func withParam(q url.Values, key, value string) url.Values {
-	out := url.Values{}
-	for k, v := range q {
-		out[k] = append([]string(nil), v...)
-	}
-	out.Set(key, value)
-	return out
-}
-
-func stripDrawer(q url.Values) url.Values {
-	out := withParam(q, paramTab, "")
-	out.Del(paramTab)
-	return out
-}
 
 func statusTone(status string) string {
 	if status == "operational" {
@@ -451,9 +556,9 @@ func (errNoPageErr) Error() string {
 // An unknown kind cannot reach here: config validation rejects it at startup,
 // and skipping it silently rather than panicking means a hot reload that races
 // validation degrades to a missing control instead of a blank page.
-func (s *Server) chromeItems(data PageData, text widget.TextResolver, icons widget.IconResolver) []ChromeItemView {
-	out := make([]ChromeItemView, 0, len(s.cfg.Chrome.Header.Items))
-	for _, item := range s.cfg.Chrome.Header.Items {
+func (s *Server) chromeBar(bar config.ChromeBar, data PageData, text widget.TextResolver, icons widget.IconResolver) []ChromeItemView {
+	out := make([]ChromeItemView, 0, len(bar.Items))
+	for _, item := range bar.Items {
 		v := ChromeItemView{Kind: string(item.Kind)}
 		if item.IconKey != "" {
 			v.Icon = icons.Icon(item.IconKey)
@@ -493,6 +598,25 @@ func (s *Server) chromeItems(data PageData, text widget.TextResolver, icons widg
 			v.Label = text.Text(item.TermID, nil)
 			v.Href = item.Href
 			v.External = item.External
+			v.ExternalIcon, v.NewTabText = data.ExternalIcon, data.NewTabText
+
+		case config.ChromeRoleSwitch:
+			v.Label = data.RoleLabel
+			v.Options = data.Roles
+			// A deployment reporting one side of the exchange is not offering a
+			// choice, and a switch with one option is a control that does
+			// nothing.
+			if len(v.Options) < 2 {
+				continue
+			}
+
+		case config.ChromePlatforms:
+			v.Label = text.Text("chrome.platforms", nil)
+			v.Platforms = data.Platforms
+			if len(v.Platforms) == 0 {
+				continue
+			}
+			v.ExternalIcon, v.NewTabText = data.ExternalIcon, data.NewTabText
 
 		case config.ChromeSpacer:
 			// Nothing to resolve; the template gives it the margin.

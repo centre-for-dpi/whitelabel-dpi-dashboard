@@ -62,58 +62,111 @@
          The form wraps the whole bar rather than a subset, because every control
          in it is a real form field with a real GET target: the dashboard works
          with no JavaScript at all, and HTMX upgrades that rather than enabling
-         it. A control outside the form would not submit. */}}
-    <form class="controls-bar" method="get" action="/" data-dpi-autosubmit>
+         it. A control outside the form would not submit.
+
+         It submits to where the reader already is, not to "/". The action was
+         the board, so choosing a language while reading a service closed the
+         drawer and returned the reader to the top of the page — having asked
+         only to read the same panel in another language. */}}
+    <form class="controls-bar" method="get" action="{{.FormAction}}" data-dpi-autosubmit>
       {{range .Hidden}}<input type="hidden" name="{{.Name}}" value="{{.Value}}">{{end}}
-
-      {{range .ChromeItems}}
-        {{if eq .Kind "wordmark"}}
-          <a class="wordmark" href="{{.Href}}">
-            {{template "icon" .Icon}}
-            <span>{{.Label}}</span>
-          </a>
-
-        {{else if eq .Kind "spacer"}}
-          <span class="chrome-spacer" aria-hidden="true"></span>
-
-        {{else if eq .Kind "scope-switch"}}
-          <div class="segmented" role="group" aria-label="{{.Label}}">
-            {{range .Options}}
-            <a class="segment{{if .Active}} is-active{{end}}"
-               href="{{.Href}}"
-               hx-get="{{.Href}}" hx-target="body" hx-push-url="true"
-               {{if .Active}}aria-current="true"{{end}}>{{.Label}}</a>
-            {{end}}
-          </div>
-
-        {{else if eq .Kind "select"}}
-          {{/* The wrapping label associates implicitly, so the control is named
-               without an id to keep in sync. */}}
-          <label class="field">
-            <span class="field-label">{{.Label}}</span>
-            <select name="{{.Name}}" data-dpi-submit>
-              {{range .Options}}<option value="{{.Value}}"{{if .Active}} selected{{end}}>{{.Label}}</option>{{end}}
-            </select>
-          </label>
-
-        {{else if eq .Kind "theme-toggle"}}
-          <a class="icon-btn" href="{{.Href}}" data-dpi-theme-toggle
-             title="{{.Label}}" aria-label="{{.Label}}">{{template "icon" .Icon}}</a>
-
-        {{else if eq .Kind "link"}}
-          <a class="chrome-link" href="{{.Href}}"
-             {{if .External}}target="_blank" rel="noopener noreferrer"{{end}}>
-            {{template "icon" .Icon}}
-            {{.Label}}
-            {{if .External}}<span class="sr-only">{{$.NewTabText}}</span>{{end}}
-          </a>
-        {{end}}
-      {{end}}
-
+      {{range .ChromeItems}}{{template "chrome-item" .}}{{end}}
       <noscript><button class="btn" type="submit">{{.ApplyLabel}}</button></noscript>
     </form>
   </div>
 </header>
+
+{{/* The second bar: not controls for the page but facts about it — whose
+     exchanges these are, and which side of them is on view. Rendered only when
+     the deployment declares one, and outside the form because everything in it
+     is a link rather than a field. */}}
+{{if .ChromeStrip}}
+<div class="strip">
+  <div class="shell strip-inner">
+    {{range .ChromeStrip}}{{template "chrome-item" .}}{{end}}
+  </div>
+</div>
+{{end}}
+{{end}}
+
+
+{{/* One item of a bar, wherever that bar is. Everything it needs is on the
+     item, so the same template serves the header and the strip. */}}
+{{define "chrome-item"}}
+{{if eq .Kind "wordmark"}}
+  <a class="wordmark" href="{{.Href}}">
+    {{template "icon" .Icon}}
+    <span>{{.Label}}</span>
+  </a>
+
+{{else if eq .Kind "spacer"}}
+  <span class="chrome-spacer" aria-hidden="true"></span>
+
+{{else if eq .Kind "scope-switch"}}
+  <span class="field-label">{{.Label}}</span>
+  <div class="segmented" role="group" aria-label="{{.Label}}">
+    {{range .Options}}
+    <a class="segment{{if .Active}} is-active{{end}}"
+       href="{{.Href}}"
+       hx-get="{{.Href}}" hx-target="body" hx-push-url="true"
+       {{if .Active}}aria-current="true"{{end}}>{{.Label}}</a>
+    {{end}}
+  </div>
+
+{{/* The same control as the scope switch, because it is the same kind of
+     choice: which population the board is about. Labelled in front rather than
+     only by aria, since "issuers" and "requestors" mean nothing without the
+     question they answer. */}}
+{{else if eq .Kind "role-switch"}}
+  <span class="field-label">{{.Label}}</span>
+  <div class="segmented" role="group" aria-label="{{.Label}}">
+    {{range .Options}}
+    <a class="segment{{if .Active}} is-active{{end}}"
+       href="{{.Href}}"
+       hx-get="{{.Href}}" hx-target="body" hx-push-url="true"
+       {{if .Active}}aria-current="true"{{end}}>{{.Label}}</a>
+    {{end}}
+  </div>
+
+{{/* Whose exchanges these numbers describe. The mark is the link text, so its
+     alt carries the name rather than repeating it beside the image. */}}
+{{else if eq .Kind "platforms"}}
+  <span class="field-label">{{.Label}}</span>
+  <ul class="platforms">
+    {{$icon := .ExternalIcon}}{{$newTab := .NewTabText}}
+    {{range .Platforms}}
+    <li>
+      <a href="{{.Href}}" target="_blank" rel="noopener noreferrer">
+        <img src="{{.Logo}}" alt="{{.Name}}" width="{{.LogoWidth}}" height="{{.LogoHeight}}">
+        {{template "icon" $icon}}
+        <span class="sr-only">{{$newTab}}</span>
+      </a>
+    </li>
+    {{end}}
+  </ul>
+
+{{else if eq .Kind "select"}}
+  {{/* The wrapping label associates implicitly, so the control is named
+       without an id to keep in sync. */}}
+  <label class="field">
+    <span class="field-label">{{.Label}}</span>
+    <select name="{{.Name}}" data-dpi-submit>
+      {{range .Options}}<option value="{{.Value}}"{{if .Active}} selected{{end}}>{{.Label}}</option>{{end}}
+    </select>
+  </label>
+
+{{else if eq .Kind "theme-toggle"}}
+  <a class="icon-btn" href="{{.Href}}" data-dpi-theme-toggle
+     title="{{.Label}}" aria-label="{{.Label}}">{{template "icon" .Icon}}</a>
+
+{{else if eq .Kind "link"}}
+  <a class="chrome-link" href="{{.Href}}"
+     {{if .External}}target="_blank" rel="noopener noreferrer"{{end}}>
+    {{template "icon" .Icon}}
+    {{.Label}}
+    {{if .External}}<span class="sr-only">{{.NewTabText}}</span>{{end}}
+  </a>
+{{end}}
 {{end}}
 
 
@@ -134,18 +187,47 @@
 <section id="{{.ID}}" class="band"{{if .Heading}} aria-labelledby="{{.ID}}-title"{{end}}>
   {{if .Heading}}
   <div class="band-head">
-    {{if .Heading.Eyebrow}}<p class="eyebrow">{{.Heading.Eyebrow}}</p>{{end}}
-    {{template "heading-tag" .Heading}}
+    <div class="band-title">
+      {{if .Heading.Eyebrow}}<p class="eyebrow">{{.Heading.Eyebrow}}</p>{{end}}
+      {{template "heading-tag" .Heading}}
+    </div>
+    {{/* What qualifies the section, opposite what names it: how many rows are
+         showing, the rule that ordered them, which set of cards is on view. */}}
+    {{if .Aside}}<div class="band-aside">{{range .Aside}}{{.HTML}}{{end}}</div>{{end}}
   </div>
   {{end}}
 
   {{/* One style attribute, not two. Emitting a second is silently lossy: a
        browser keeps the first and discards the rest, so a section setting both
        grid options lost its gap and nothing said so. */}}
-  <div class="grid" style="{{if .Grid.MinColWidth}}--min-col:{{css .Grid.MinColWidth}};{{end}}{{if .Grid.Gap}}--gap:{{css .Grid.Gap}};{{end}}">
-    {{range .Widgets}}{{.HTML}}{{end}}
+  {{if .Columns}}
+  {{/* Named tracks, for a section whose parts are not interchangeable. Each
+       column is its own stack, so widgets inside one keep their spacing
+       independently of how tall the column beside it happens to be, and the
+       row wraps when the declared bases no longer fit side by side — so the
+       stacking width comes from the content rather than from a breakpoint
+       somebody has to keep in step. */}}
+  <div class="cols" style="{{if .Grid.Gap}}--gap:{{css .Grid.Gap}};{{end}}">
+    {{range .Columns}}
+    <div class="col{{if .Row}} col-row{{end}}" data-column="{{.Name}}" style="flex:{{css .Basis}};">{{range .Widgets}}{{.HTML}}{{end}}</div>
+    {{end}}
   </div>
+  {{else}}
+  <div class="grid" style="{{if .Grid.MinColWidth}}--min-col:{{css .Grid.MinColWidth}};{{end}}{{if .Grid.Gap}}--gap:{{css .Grid.Gap}};{{end}}">
+    {{range .Widgets}}{{template "grid-item" .}}{{end}}
+  </div>
+  {{end}}
 </section>
+{{end}}
+
+
+{{/* A widget that spans the grid is wrapped, because grid-column applies to the
+     item and a widget renders its own root element. Only the ones that ask for
+     it are wrapped, so the markup of everything else is unchanged. */}}
+{{define "grid-item"}}
+{{- if .Span}}<div class="span-all">{{.HTML}}</div>
+{{- else}}{{.HTML}}
+{{- end}}
 {{end}}
 
 

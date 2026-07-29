@@ -74,15 +74,33 @@ func parseMessage(src string) Message {
 			i++
 
 		case '\'':
-			// ICU's escape: '' is a literal quote, and '{' protects a brace.
+			// ICU 4.8 quoting, not the older "any apostrophe quotes" rule.
+			//
+			// An apostrophe only opens a quoted literal when it immediately
+			// precedes a character that would otherwise be syntax. Everywhere
+			// else it is just an apostrophe — which is what almost every
+			// occurrence in a locale file actually is.
+			//
+			// Under the older rule a sentence with two apostrophes lost both of
+			// them and everything between was silently swallowed as a quoted
+			// run: "didn't arrive … didn't get it" rendered as "didnt arrive …
+			// didnt get it". English hid it behind contractions being rare in
+			// one sentence; French, where "l'", "d'" and "n'" appear three or
+			// four times in a line, corrupted almost every string.
 			if i+1 < len(src) && src[i+1] == '\'' {
 				lit.WriteByte('\'')
 				i += 2
 				continue
 			}
-			if end := strings.IndexByte(src[i+1:], '\''); end >= 0 && i+1 < len(src) {
-				lit.WriteString(src[i+1 : i+1+end])
-				i += end + 2
+			if i+1 < len(src) && isICUSyntax(src[i+1]) {
+				if end := strings.IndexByte(src[i+1:], '\''); end >= 0 {
+					lit.WriteString(src[i+1 : i+1+end])
+					i += end + 2
+				} else {
+					// Unterminated quote: the rest is literal rather than lost.
+					lit.WriteString(src[i+1:])
+					i = len(src)
+				}
 				continue
 			}
 			lit.WriteByte('\'')
@@ -107,6 +125,15 @@ func parseMessage(src string) Message {
 	}
 	flush()
 	return msg
+}
+
+// isICUSyntax reports whether a character is one an apostrophe can protect.
+//
+// These are the only four that mean anything to this parser, so they are the
+// only four an author could want to escape. Anything else after an apostrophe
+// means the apostrophe was punctuation.
+func isICUSyntax(c byte) bool {
+	return c == '{' || c == '}' || c == '#' || c == '|'
 }
 
 // readBraced returns the contents of the braced group starting at i.

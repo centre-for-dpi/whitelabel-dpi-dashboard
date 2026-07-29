@@ -31,9 +31,11 @@ import (
 // Catalogue is the example data the generator works from.
 type Catalogue struct {
 	Mix            Mix              `yaml:"mix"`
+	RequestorMix   Mix              `yaml:"requestorMix"`
 	Traffic        map[string]int64 `yaml:"traffic"`
 	DefaultTraffic int64            `yaml:"defaultTraffic"`
 	Services       []Entry          `yaml:"services"`
+	Requestors     []Requestor      `yaml:"requestors"`
 	StateExpansion []string         `yaml:"stateExpansion"`
 }
 
@@ -53,6 +55,22 @@ type Entry struct {
 	Provider       string `yaml:"provider"`
 	Scope          string `yaml:"scope"`
 	StateInstances bool   `yaml:"stateInstances"`
+}
+
+// Requestor is one demand-side entry: an organisation calling a published API
+// to complete a task for someone.
+type Requestor struct {
+	Key      string `yaml:"key"`
+	Sector   string `yaml:"sector"`
+	Category string `yaml:"category"`
+	// Calls is the Key of the service consumed.
+	Calls        string `yaml:"calls"`
+	Subscription string `yaml:"subscription"`
+	// StateInstances expands the requestor once per state, and States caps how
+	// many. Coverage is uneven in the real roster — a lender operating in seven
+	// states is not one operating in twelve — and a cap is how that is said.
+	StateInstances bool `yaml:"stateInstances"`
+	States         int  `yaml:"states"`
 }
 
 // Options tune the generator.
@@ -85,13 +103,24 @@ const (
 )
 
 // Generate builds a full snapshot.
+//
+// Both sides of the exchange land in the same list, distinguished by role. A
+// requestor is the same record as the service it calls — same metrics, same
+// history, same rules — because it is the same exchange seen from the other
+// end, and the dashboard reads one role at a time.
 func Generate(cat Catalogue, d config.Domain, opts Options) model.Snapshot {
 	entries := expand(cat)
 	tiers := assignTiers(len(entries), cat.Mix)
 
-	services := make([]model.Service, len(entries))
+	services := make([]model.Service, 0, len(entries)+len(cat.Requestors))
 	for i, e := range entries {
-		services[i] = generateService(e, tiers[i], cat, d, opts)
+		services = append(services, generateService(e, tiers[i], cat, d, opts))
+	}
+
+	demand := expandRequestors(cat)
+	demandTiers := assignTiers(len(demand), cat.RequestorMix)
+	for i, e := range demand {
+		services = append(services, generateRequestor(e, demandTiers[i], cat, d, opts))
 	}
 
 	return model.Snapshot{Services: services, GeneratedAt: opts.Now}
@@ -128,6 +157,46 @@ func expand(cat Catalogue) []instance {
 				region: region,
 				scope:  e.Scope,
 				index:  len(out),
+			})
+		}
+	}
+	return out
+}
+
+// demandInstance is one requestor after regional expansion.
+type demandInstance struct {
+	Requestor
+	id     string
+	region string
+	scope  string
+	index  int
+}
+
+// expandRequestors is expand() for the demand side, with one difference: a
+// requestor's state coverage is capped rather than complete. A lender operating
+// in seven states is not one operating in twelve, and generating both the same
+// way would flatten exactly the unevenness the demand view exists to show.
+func expandRequestors(cat Catalogue) []demandInstance {
+	var out []demandInstance
+	for _, e := range cat.Requestors {
+		if !e.StateInstances {
+			out = append(out, demandInstance{
+				Requestor: e, id: "req-" + e.Key,
+				region: "reg.national", scope: "national", index: len(out),
+			})
+			continue
+		}
+		regions := cat.StateExpansion
+		if e.States > 0 && e.States < len(regions) {
+			regions = regions[:e.States]
+		}
+		for _, region := range regions {
+			out = append(out, demandInstance{
+				Requestor: e,
+				id:        "req-" + e.Key + "__" + strings.TrimPrefix(region, "reg."),
+				region:    region,
+				scope:     "state",
+				index:     len(out),
 			})
 		}
 	}
@@ -207,26 +276,97 @@ func generateService(in instance, t tier, cat Catalogue, d config.Domain, opts O
 		Maintenance: maint,
 		History:     history,
 		Incidents:   generateIncidents(r, t, in.id, opts.Now),
-		Errors:      generateErrors(r, t, m),
+		Errors:      generateErrors(r, t, m, sideIssuer),
 		ObservedAt:  opts.Now,
+		RoleID:      roleIssuer,
 	}
 
 	// The status comes from the same evaluator the dashboard uses at runtime,
 	// so the demo demonstrates the published rule rather than asserting a label.
 	sv.Status = rules.Evaluate(sv.Metrics, sv.Maintenance, d.Thresholds)
+	sv.Trends = trendsOf(history)
+	sv.RankMovement = int32(r.intBetween(-3, 3))
+	return sv
+}
 
-	sv.Trends = map[string]model.Trend{}
+// The roles the shipped example declares. A deployment can name its own; these
+// are what the generator produces, and what config/domain.yaml lists.
+const (
+	roleIssuer    = "issuer"
+	roleRequestor = "requestor"
+)
+
+func trendsOf(history []model.HistoryPoint) map[string]model.Trend {
+	out := map[string]model.Trend{}
 	for _, field := range []string{
 		config.FieldAvailability,
 		config.FieldErrorRate,
 		config.FieldLatencyP50,
 		config.FieldVolume,
 	} {
-		sv.Trends[field] = rules.Trend(history, field, 30)
+		out[field] = rules.Trend(history, field, 30)
+	}
+	return out
+}
+
+// generateRequestor builds one demand-side record.
+//
+// Seeded from a different offset than the supply side, so that adding or
+// removing a service does not renumber every requestor and redraw half the
+// demo.
+func generateRequestor(in demandInstance, t tier, cat Catalogue, d config.Domain, opts Options) model.Service {
+	r := newRNG(opts.Seed + 6700 + uint32(in.index)*131)
+
+	m, maint := generateMetrics(r, t, in.Key, cat, opts.Now)
+	history := generateHistory(r, m, t, opts)
+	errs := generateErrors(r, t, m, sideRequestor)
+
+	sv := model.Service{
+		ID:         in.id,
+		Key:        in.Key,
+		NameTermID: "req." + in.Key + ".name",
+		DescTermID: "req." + in.Key + ".desc",
+		CategoryID: in.Category,
+		RegionID:   in.region,
+		// A requestor is run by its sector, so that is what stands where a
+		// service's provider does.
+		ProviderID:       in.Sector,
+		Scope:            in.scope,
+		RoleID:           roleRequestor,
+		SectorID:         in.Sector,
+		CallsKey:         in.Calls,
+		SubscriptionType: in.Subscription,
+		OwnErrorShare:    ownErrorShare(errs),
+		Metrics:          m,
+		Maintenance:      maint,
+		History:          history,
+		Incidents:        generateIncidents(r, t, in.id, opts.Now),
+		Errors:           errs,
+		ObservedAt:       opts.Now,
 	}
 
+	sv.Status = rules.Evaluate(sv.Metrics, sv.Maintenance, d.Thresholds)
+	sv.Trends = trendsOf(history)
 	sv.RankMovement = int32(r.intBetween(-3, 3))
 	return sv
+}
+
+// ownErrorShare is the percent of a requestor's errors that are its own: a
+// request it malformed rather than a response that failed. Telling a requestor
+// its error rate without telling it whose errors they are gives it a number it
+// cannot act on.
+func ownErrorShare(errs []model.ErrorBucket) float64 {
+	var own, all int64
+	for _, e := range errs {
+		all += e.Count
+		if e.Class != model.ErrorClassServer {
+			own += e.Count
+		}
+	}
+	if all == 0 {
+		return 0
+	}
+	return math.Round(float64(own)/float64(all)*1000) / 10
 }
 
 func generateMetrics(r *rng, t tier, key string, cat Catalogue, now time.Time) (model.Metrics, model.Maintenance) {
@@ -445,7 +585,17 @@ var errorCodes = []errorCode{
 	{"timeout", "err.timeout", model.ErrorClassNetwork},
 }
 
-func generateErrors(r *rng, t tier, m model.Metrics) []model.ErrorBucket {
+// side is which end of the exchange an error breakdown is being generated for.
+// They fail differently: a publisher's errors are mostly its own servers, a
+// requestor's are mostly its own requests.
+type side int
+
+const (
+	sideIssuer side = iota
+	sideRequestor
+)
+
+func generateErrors(r *rng, t tier, m model.Metrics, sd side) []model.ErrorBucket {
 	totalErrors := int64(float64(m.Volume.Total) * m.ErrorRate / 100)
 	if totalErrors <= 0 {
 		return nil
@@ -463,6 +613,16 @@ func generateErrors(r *rng, t tier, m model.Metrics) []model.ErrorBucket {
 			w *= 3.2
 		case t == tierPartial && c.class == model.ErrorClassClient:
 			w *= 2.4
+		}
+		// What a requestor sees is weighted the other way: most of what fails
+		// on its side is a request it sent badly, not a response that broke.
+		if sd == sideRequestor {
+			switch c.class {
+			case model.ErrorClassClient:
+				w *= 3.0
+			case model.ErrorClassServer:
+				w *= 0.6
+			}
 		}
 		weights[i] = w
 		sum += w

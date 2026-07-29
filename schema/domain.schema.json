@@ -12,6 +12,9 @@
     "defaultPeriod": {
       "type": "string"
     },
+    "defaultRole": {
+      "type": "string"
+    },
     "defaultScope": {
       "type": "string"
     },
@@ -56,6 +59,9 @@
           "precision": {
             "type": "integer"
           },
+          "showInDrawer": {
+            "type": "boolean"
+          },
           "showInLeaderboard": {
             "type": "boolean"
           },
@@ -86,6 +92,87 @@
       "description": "The denominator of the coverage line: \"104 of 812 services onboarded\".",
       "type": "integer"
     },
+    "opportunities": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "actionTermId": {
+            "type": "string"
+          },
+          "concentration": {
+            "type": "number"
+          },
+          "days": {
+            "type": "integer"
+          },
+          "filter": {
+            "additionalProperties": false,
+            "properties": {
+              "category": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "role": {
+                "type": "string"
+              },
+              "status": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "focusTab": {
+            "type": "string"
+          },
+          "iconKey": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "minCategories": {
+            "type": "integer"
+          },
+          "ruleTermId": {
+            "type": "string"
+          },
+          "titleTermId": {
+            "type": "string"
+          },
+          "tone": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "opportunitiesEmpty": {
+      "additionalProperties": false,
+      "properties": {
+        "iconKey": {
+          "type": "string"
+        },
+        "termId": {
+          "type": "string"
+        },
+        "tone": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "periods": {
       "items": {
         "additionalProperties": false,
@@ -93,6 +180,51 @@
           "days": {
             "description": "Lookback in days used for trend deltas.",
             "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "termId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "platforms": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "href": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "logo": {
+            "type": "string"
+          },
+          "logoHeight": {
+            "type": "integer"
+          },
+          "logoWidth": {
+            "type": "integer"
+          },
+          "termId": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "roles": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "captionTermId": {
+            "type": "string"
           },
           "id": {
             "type": "string"
@@ -115,6 +247,12 @@
       "items": {
         "additionalProperties": false,
         "properties": {
+          "actionTermId": {
+            "type": "string"
+          },
+          "concentration": {
+            "type": "number"
+          },
           "days": {
             "type": "integer"
           },
@@ -126,6 +264,9 @@
                   "type": "string"
                 },
                 "type": "array"
+              },
+              "role": {
+                "type": "string"
               },
               "status": {
                 "items": {
@@ -145,6 +286,9 @@
               "object",
               "null"
             ]
+          },
+          "focusTab": {
+            "type": "string"
           },
           "iconKey": {
             "type": "string"
@@ -276,6 +420,21 @@
                 "type": "string"
               },
               "scope": {
+                "type": "string"
+              },
+              "termId": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "sectors": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "id": {
                 "type": "string"
               },
               "termId": {

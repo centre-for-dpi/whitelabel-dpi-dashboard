@@ -27,6 +27,11 @@ type Definition struct {
 	// Sources lists the bind sources this widget can read. An empty list means
 	// the widget reads no data of its own.
 	Sources []string
+	// SourceOptional says the widget can also render from its options alone, so
+	// a missing bind is not by itself an error. The widget's own Validate is
+	// then responsible for saying which combinations make sense — the engine
+	// cannot know that a disclosure with a prose body needs no data.
+	SourceOptional bool
 	// Validate is an optional extra check for constraints the schema cannot
 	// express — a column list naming metrics the deployment declared, say.
 	Validate func(Options, Bind, ValidationContext) []error
@@ -111,7 +116,7 @@ func (r *Registry) ValidateWidget(kind string, opts Options, b Bind, c Validatio
 			errs = append(errs, fmt.Errorf(
 				"widget %q cannot read %q; it accepts %v", kind, b.Source, d.Sources))
 		}
-	} else if len(d.Sources) > 0 {
+	} else if len(d.Sources) > 0 && !d.SourceOptional {
 		errs = append(errs, fmt.Errorf(
 			"widget %q needs a bind source; it accepts %v", kind, d.Sources))
 	}

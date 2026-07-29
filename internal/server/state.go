@@ -13,6 +13,7 @@ package server
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/centre-for-dpi/whitelabel-dpi-dashboard/internal/config"
@@ -22,20 +23,48 @@ import (
 
 // URL parameter names. These are the demo's own, kept deliberately: links
 // already shared against the prototype continue to work.
+//
+// They are declared beside State, in the widget package, because the builders
+// assemble the same links these handlers read. The local names are kept so the
+// handlers below read as they always did.
 const (
-	paramScope   = "scope"
-	paramRegion  = "region"
-	paramPeriod  = "period"
-	paramSearch  = "q"
-	paramStatus  = "status"
-	paramCat     = "cat"
-	paramSort    = "sort"
-	paramDir     = "dir"
-	paramLang    = "lang"
-	paramFilters = "filters"
-	paramTheme   = "theme"
-	paramTab     = "tab"
+	paramScope   = widget.ParamScope
+	paramRole    = widget.ParamRole
+	paramID      = widget.ParamID
+	paramSignals = widget.ParamSignals
+	paramRegion  = widget.ParamRegion
+	paramPeriod  = widget.ParamPeriod
+	paramSearch  = widget.ParamSearch
+	paramStatus  = widget.ParamStatus
+	paramCat     = widget.ParamCat
+	paramSort    = widget.ParamSort
+	paramDir     = widget.ParamDir
+	paramLang    = widget.ParamLang
+	paramFilters = widget.ParamFilters
+	paramTheme   = widget.ParamTheme
+	paramTab     = widget.ParamTab
 )
+
+// readParams is the reader's selections as they travel: every parameter the
+// dashboard knows that this request carried, and nothing it does not.
+//
+// readState is the validated reading of the same query, and is what decides what
+// to show. This is what gets handed on. The two are separate because they answer
+// different questions: readState fills in a default for anything missing, which
+// is right for rendering and wrong for a link — a URL stating every default says
+// nothing about what the reader actually chose.
+func readParams(r *http.Request) url.Values {
+	q := r.URL.Query()
+	out := url.Values{}
+	for _, name := range widget.Params {
+		for _, v := range q[name] {
+			if v != "" {
+				out.Add(name, v)
+			}
+		}
+	}
+	return out
+}
 
 // readState reconstructs the reader's selections from a request.
 //
@@ -49,13 +78,19 @@ func (s *Server) readState(r *http.Request) widget.State {
 
 	st := widget.State{
 		Scope:      oneOf(q.Get(paramScope), d.Scopes, d.DefaultScope),
+		Role:       query.RoleFor(d, q.Get(paramRole)),
 		Period:     periodOr(q.Get(paramPeriod), d),
 		Search:     strings.TrimSpace(q.Get(paramSearch)),
 		Sort:       q.Get(paramSort),
 		Dir:        q.Get(paramDir),
 		Statuses:   knownValues(q[paramStatus], config.Statuses),
 		Categories: knownValues(q[paramCat], categoryIDs(d)),
-		DrawerTab:  q.Get(paramTab),
+		// Not checked against a known set: the ids come from a signal card and
+		// name whichever services its rule found. An id that no longer exists
+		// simply matches nothing, which is the right reading of a stale link.
+		IDs:       splitValues(q[paramID]),
+		SignalTab: query.SignalTabFor(d, q.Get(paramSignals)),
+		DrawerTab: q.Get(paramTab),
 		// Only "open" counts, so a stray value collapses rather than throwing.
 		FiltersOpen: q.Get(paramFilters) == "open",
 	}
@@ -161,6 +196,25 @@ func categoryIDs(d config.Domain) []string {
 	out := make([]string, 0, len(d.Taxonomy.Categories))
 	for _, c := range d.Taxonomy.Categories {
 		out = append(out, c.ID)
+	}
+	return out
+}
+
+// splitValues expands comma-joined repeats into a flat list, dropping blanks.
+//
+// The same shape knownValues accepts, without the closed set: some parameters
+// carry ids the config has never heard of and cannot check.
+func splitValues(raw []string) []string {
+	var out []string
+	seen := map[string]bool{}
+	for _, group := range raw {
+		for _, v := range strings.Split(group, ",") {
+			if v = strings.TrimSpace(v); v == "" || seen[v] {
+				continue
+			}
+			seen[v] = true
+			out = append(out, v)
+		}
 	}
 	return out
 }

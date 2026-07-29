@@ -382,6 +382,12 @@ func ServiceToProto(s model.Service) *dpiv1.Service {
 		Trends:       trendsToProto(s.Trends),
 		RankMovement: s.RankMovement,
 		ObservedAt:   timeToProto(s.ObservedAt),
+
+		RoleId:           s.RoleID,
+		SectorId:         s.SectorID,
+		CallsKey:         s.CallsKey,
+		SubscriptionType: s.SubscriptionType,
+		OwnErrorShare:    s.OwnErrorShare,
 	}
 }
 
@@ -408,6 +414,12 @@ func ServiceFromProto(p *dpiv1.Service) model.Service {
 		Trends:       trendsFromProto(p.GetTrends()),
 		RankMovement: p.GetRankMovement(),
 		ObservedAt:   timeFromProto(p.GetObservedAt()),
+
+		RoleID:           p.GetRoleId(),
+		SectorID:         p.GetSectorId(),
+		CallsKey:         p.GetCallsKey(),
+		SubscriptionType: p.GetSubscriptionType(),
+		OwnErrorShare:    p.GetOwnErrorShare(),
 	}
 }
 
@@ -479,6 +491,12 @@ func ServiceToIngestProto(s model.Service) *dpiv1.IngestService {
 		Incidents:   incidentsToProto(s.Incidents),
 		Errors:      errorsToProto(s.Errors),
 		ObservedAt:  timeToProto(s.ObservedAt),
+
+		RoleId:           s.RoleID,
+		SectorId:         s.SectorID,
+		CallsKey:         s.CallsKey,
+		SubscriptionType: s.SubscriptionType,
+		OwnErrorShare:    s.OwnErrorShare,
 	}
 }
 
@@ -503,5 +521,11 @@ func IngestServiceToModel(p *dpiv1.IngestService) model.Service {
 		Incidents:   incidentsFromProto(p.GetIncidents()),
 		Errors:      errorsFromProto(p.GetErrors()),
 		ObservedAt:  timeFromProto(p.GetObservedAt()),
+
+		RoleID:           p.GetRoleId(),
+		SectorID:         p.GetSectorId(),
+		CallsKey:         p.GetCallsKey(),
+		SubscriptionType: p.GetSubscriptionType(),
+		OwnErrorShare:    p.GetOwnErrorShare(),
 	}
 }

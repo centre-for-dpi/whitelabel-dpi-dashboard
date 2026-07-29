@@ -156,6 +156,21 @@ message Service {
   int32 rank_movement = 16;
 
   google.protobuf.Timestamp observed_at = 17;
+
+  // Which side of the exchange this record is: the service that issues a
+  // document, or the organisation that requests one. Config-declared
+  // vocabulary (domain.roles), so a string rather than an enum. Empty means
+  // the deployment's default role.
+  string role_id = 18;
+  // For a requestor: which sector runs the use case, and which issuer's key it
+  // calls. Both empty for an issuer, which is not a consumer of anything.
+  string sector_id = 19;
+  string calls_key = 20;
+  // How the requestor is subscribed to the API it calls.
+  string subscription_type = 21;
+  // Percent of a requestor's errors that are its own rather than the
+  // publisher's — a 4xx it sent, not a 5xx it received.
+  double own_error_share = 22;
 }
 
 message ListServicesResponse {
