@@ -215,6 +215,7 @@ func build(o options) (*app, error) {
 		Source:   src,
 		Static:   webFS,
 		Log:      log,
+		OpenAPI:  openAPIJSON,
 
 		// Seed mode serves the demonstration data as an HTTP endpoint too, so
 		// the shipped pull configuration has something real to poll. Switching

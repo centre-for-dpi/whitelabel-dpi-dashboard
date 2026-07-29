@@ -43,6 +43,12 @@ Either way it starts on generated demonstration data — 178 services, ninety da
 of history, every status represented — so the dashboard is worth looking at
 before you have integrated anything.
 
+Every deployment also serves its own API reference at
+[`/api`](http://localhost:8080/api), with each request editable and sendable
+against the instance in front of you — including a dry run that answers "given
+this document and this mapping, what would you make of it?" before any of it
+reaches a config file. See [docs/api.md](docs/api.md).
+
 ### Deploy it
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
@@ -109,6 +115,11 @@ and served as both JSON and binary protobuf, negotiated on `Content-Type`. The
 proto exists so the contract is versioned and machine-checkable, and so teams
 who want a generated client can have one. **It is never an obligation.**
 
+What went in comes back out of `GET /api/v1/services`, with the derived status
+alongside it. The whole surface — both feed models, the pages, the probes — is
+described by [`api/openapi.json`](api/openapi.json), generated from those
+contracts and checked by `make drift`, and rendered at `/api`.
+
 ## Keep the history
 
 The dashboard's verdict is about right now, and needs no database. The **charts**
@@ -156,7 +167,7 @@ knowing about because they are the ones that could have gone wrong quietly:
   it into a total outage on every restart.
 
 The drivers are about a third of the binary. `make build-lite` drops all three
-(21 MB → 14 MB); `make build-sqlite` keeps one.
+(22 MB → 14 MB); `make build-sqlite` keeps one.
 
 ## Make it yours
 
@@ -306,9 +317,15 @@ image work, and why the binary has nothing to install alongside it.
 | `github.com/jackc/pgx/v5` | Postgres, through its `database/sql` adapter |
 | `github.com/go-sql-driver/mysql` | MySQL **and** MariaDB — one driver covers both |
 | htmx (vendored) | Fragment swaps |
+| RapiDoc (vendored) | The API reference at `/api` |
+
+Both vendored files are committed, minified, and served from the binary — no
+`package.json` and no build step. RapiDoc is stored gzipped and served as it is
+stored, because the four megabytes it unpacks to would otherwise be a fifth of
+the artefact spent on a documentation page.
 
 The three database drivers are optional at build time: `make build-lite` drops
-them and the binary goes from 21 MB to 14 MB.
+them and the binary goes from 22 MB to 14 MB.
 
 ### Layout
 

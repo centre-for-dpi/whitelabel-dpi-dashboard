@@ -318,3 +318,9 @@ terms:
   req.errorRateDenom: "ya maombi yote"
   req.vsErrorRate: "Kiwango cha makosa kinaonyesha mara ngapi ombi lilishindwa — {errorRate} ya maombi yote.\nHii inaonyesha upande gani mashindwa yalitokea — {own} kwa mwombaji, {publisher} kwa mtoa huduma."
   req.vsErrorRateTitle: "Tofauti na kiwango cha makosa"
+
+  # --- Konsoli ya API kwenye /api. Kifuniko pekee.
+  api.title: "Marejeleo ya API"
+  api.skip: "Rukia hadi marejeleo"
+  api.back: "Rudi kwenye dashibodi"
+  api.noscript: "Marejeleo shirikishi yanahitaji JavaScript; hati yanayoonyesha hayahitaji. Ni maelezo ya OpenAPI 3.1 ya kila mwisho, pamoja na ile inayotolewa na usakinishaji huu."

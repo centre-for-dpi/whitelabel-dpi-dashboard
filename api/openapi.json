@@ -1,0 +1,2128 @@
+{
+  "components": {
+    "parameters": {
+      "cat": {
+        "description": "Keep only these categories, comma-separated or repeated. Unrecognised values fall back rather than erroring.",
+        "in": "query",
+        "name": "cat",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "dir": {
+        "description": "`asc` or `desc`. Unrecognised values fall back rather than erroring.",
+        "in": "query",
+        "name": "dir",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "filters": {
+        "description": "`open` keeps the narrow-screen filter panel expanded. Unrecognised values fall back rather than erroring.",
+        "in": "query",
+        "name": "filters",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "id": {
+        "description": "Narrow the board to an explicit set of service ids, comma-separated or repeated. Set by a finding whose subject has nothing else in common. Unrecognised values fall back rather than erroring.",
+        "in": "query",
+        "name": "id",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "lang": {
+        "description": "A locale code. Falls back to `Accept-Language`, then to the deployment's base locale. Unrecognised values fall back rather than erroring.",
+        "in": "query",
+        "name": "lang",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "period": {
+        "description": "The window the figures and the ranking cover: `24h`, `7d`, `30d` or `90d` as shipped. Unrecognised values fall back rather than erroring.",
+        "in": "query",
+        "name": "period",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "q": {
+        "description": "Free-text search over names and descriptions. Unrecognised values fall back rather than erroring.",
+        "in": "query",
+        "name": "q",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "region": {
+        "description": "A region id. Only meaningful when the scope is sub-national. Unrecognised values fall back rather than erroring.",
+        "in": "query",
+        "name": "region",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "role": {
+        "description": "Which side of the exchange: `issuer` or `requestor`. Unrecognised values fall back rather than erroring.",
+        "in": "query",
+        "name": "role",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "scope": {
+        "description": "Which population is on view. The deployment's declared scopes; as shipped `national` or `state`. Unrecognised values fall back rather than erroring.",
+        "in": "query",
+        "name": "scope",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "signals": {
+        "description": "Which set of findings the signals band shows: `attention` or `opportunity`. Unrecognised values fall back rather than erroring.",
+        "in": "query",
+        "name": "signals",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "sort": {
+        "description": "Which column orders the board: `rank`, `name`, `status`, or a metric id. Unrecognised values fall back rather than erroring.",
+        "in": "query",
+        "name": "sort",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "status": {
+        "description": "Keep only these statuses, comma-separated or repeated. Unrecognised values fall back rather than erroring.",
+        "in": "query",
+        "name": "status",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "tab": {
+        "description": "Which tab of the open drawer is showing. Unrecognised values fall back rather than erroring.",
+        "in": "query",
+        "name": "tab",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "theme": {
+        "description": "`light` or `dark`. Falls back to the `theme` cookie, then to the reader's system preference. Unrecognised values fall back rather than erroring.",
+        "in": "query",
+        "name": "theme",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "schemas": {
+      "ErrorBucket": {
+        "additionalProperties": false,
+        "description": "One error code, and how much of the failure it accounts for.",
+        "properties": {
+          "class": {
+            "description": "Whose failure it is.\n\n`SERVER` is a 5xx, `CLIENT` a 4xx, `NETWORK` a timeout, reset or DNS failure — which is the distinction between a fault the operator can fix and one the caller can.\n\nSent as the name or as the number; always returned as the name.",
+            "enum": [
+              "ERROR_CLASS_UNSPECIFIED",
+              "ERROR_CLASS_SERVER",
+              "ERROR_CLASS_CLIENT",
+              "ERROR_CLASS_NETWORK"
+            ],
+            "type": "string"
+          },
+          "code": {
+            "description": "The code as reported, e.g. `500`, `429`, `timeout`.",
+            "type": "string"
+          },
+          "count": {
+            "description": "How many requests failed this way.\n\nA 64-bit integer. Sent either quoted or bare; always returned quoted.",
+            "format": "int64",
+            "type": [
+              "string",
+              "integer"
+            ]
+          },
+          "share": {
+            "description": "Percent, 0–100, of this service's errors.",
+            "format": "double",
+            "type": "number"
+          },
+          "termId": {
+            "description": "Term id for the human explanation, e.g. `err.500`.",
+            "type": "string"
+          },
+          "trend": {
+            "description": "Which way the count is moving.\n\nWhich way a figure moved. Not whether that is good news — for availability up is better, for error rate it is worse.\n\nSent as the name or as the number; always returned as the name.",
+            "enum": [
+              "TREND_DIRECTION_UNSPECIFIED",
+              "TREND_DIRECTION_FLAT",
+              "TREND_DIRECTION_UP",
+              "TREND_DIRECTION_DOWN"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "HistoryMapping": {
+        "additionalProperties": false,
+        "description": "Where the nested daily series is, if the upstream offers one. Omit it and the dashboard rolls up its own buckets from successive polls instead — which is why a pull deployment need not supply history at all.",
+        "properties": {
+          "availability": {
+            "description": "Path to the day's availability.",
+            "type": "string"
+          },
+          "date": {
+            "description": "Path to the day, within a point. Required: a point that cannot be placed in time is dropped.",
+            "type": "string"
+          },
+          "errorRate": {
+            "description": "Path to the day's error rate.",
+            "type": "string"
+          },
+          "latencyP50": {
+            "description": "Path to the day's median latency.",
+            "type": "string"
+          },
+          "path": {
+            "description": "Path to the array of daily points, relative to each record.",
+            "type": "string"
+          },
+          "volume": {
+            "description": "Path to the day's request count.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "HistoryPoint": {
+        "additionalProperties": false,
+        "description": "One sealed daily bucket.",
+        "properties": {
+          "availability": {
+            "description": "Percent, 0–100, over the day. Absent is not zero.",
+            "format": "double",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "day": {
+            "description": "UTC midnight of the day this bucket covers.\n\nRFC 3339, in UTC.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "errorRate": {
+            "description": "Percent, 0–100, over the day.",
+            "format": "double",
+            "type": "number"
+          },
+          "latencyP50Ms": {
+            "description": "Median response time over the day, in milliseconds.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "samples": {
+            "description": "How many raw readings were folded into this bucket. Zero for a bucket supplied whole by an upstream rather than rolled up locally.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "volume": {
+            "description": "Requests over the day.\n\nA 64-bit integer. Sent either quoted or bare; always returned quoted.",
+            "format": "int64",
+            "type": [
+              "string",
+              "integer"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "Incident": {
+        "additionalProperties": false,
+        "description": "One interruption, with the timeline of what was done about it.",
+        "properties": {
+          "closedAt": {
+            "description": "When it ended. Absent while it is still open.\n\nRFC 3339, in UTC.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "events": {
+            "description": "What happened and when, oldest first.",
+            "items": {
+              "$ref": "#/components/schemas/IncidentEvent"
+            },
+            "type": "array"
+          },
+          "id": {
+            "description": "Stable identifier for the incident.",
+            "type": "string"
+          },
+          "noteTermId": {
+            "description": "Term id for the one-line summary shown to a reader.",
+            "type": "string"
+          },
+          "open": {
+            "description": "Whether it is still open.",
+            "type": "boolean"
+          },
+          "openedAt": {
+            "description": "When it began.\n\nRFC 3339, in UTC.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "serviceId": {
+            "description": "The service it concerns.",
+            "type": "string"
+          },
+          "severity": {
+            "description": "Only `STATUS_MAJOR` and `STATUS_PARTIAL` are meaningful here.\n\nThe verdict. A fixed vocabulary, not a configurable one: the threshold rules are tied to these five outcomes, so a sixth would be a contract change. Config controls each one's label, glyph, colour and thresholds.\n\nSent as the name or as the number; always returned as the name.",
+            "enum": [
+              "STATUS_UNSPECIFIED",
+              "STATUS_OPERATIONAL",
+              "STATUS_PARTIAL",
+              "STATUS_MAJOR",
+              "STATUS_UNKNOWN",
+              "STATUS_MAINTENANCE"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "IncidentEvent": {
+        "additionalProperties": false,
+        "description": "One stage of an incident.",
+        "properties": {
+          "at": {
+            "description": "When the stage was reached.\n\nRFC 3339, in UTC.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "type": {
+            "description": "Free-form, so a deployment can model its own lifecycle. Displayed through the term id `inc.\u003ctype\u003e`, which means adding a stage is a locale key rather than a contract change. Well-known values: `opened`, `acknowledged`, `mitigated`, `resolved`.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "IngestError": {
+        "additionalProperties": false,
+        "description": "One reason one record was dropped. A single record can produce several.",
+        "properties": {
+          "field": {
+            "description": "Which field, as a dotted JSON path — `metrics.availability`, `scope`.",
+            "type": "string"
+          },
+          "message": {
+            "description": "What was wrong with it, in plain words.",
+            "type": "string"
+          },
+          "serviceId": {
+            "description": "The `id` of the record concerned, empty if that was what was missing.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "IngestRequest": {
+        "additionalProperties": false,
+        "description": "One batch of observations. Send as JSON or as binary protobuf; the endpoint decides on `Content-Type` and defaults to JSON, so a collector that sets none at all still works.",
+        "properties": {
+          "mode": {
+            "description": "Whether this payload adds to what the dashboard holds or replaces it. Omitted, it upserts.\n\nHow this payload relates to what the dashboard already holds. `INGEST_MODE_UNSPECIFIED` is treated as an upsert.\n\nSent as the name or as the number; always returned as the name.",
+            "enum": [
+              "INGEST_MODE_UNSPECIFIED",
+              "INGEST_MODE_UPSERT",
+              "INGEST_MODE_REPLACE"
+            ],
+            "type": "string"
+          },
+          "services": {
+            "description": "The observations. An empty list is accepted and changes nothing in upsert mode; in replace mode it empties the dashboard.",
+            "items": {
+              "$ref": "#/components/schemas/IngestService"
+            },
+            "type": "array"
+          },
+          "sourceId": {
+            "description": "Free-form label for the collector, so several feeding one dashboard stay distinguishable in its logs.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "IngestResponse": {
+        "additionalProperties": false,
+        "description": "What was stored, and what was not. Always 200 when the body decoded: a malformed record in a batch of two hundred does not reject the other hundred and ninety-nine.",
+        "properties": {
+          "accepted": {
+            "description": "How many records were stored. Omitted when none were.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "errors": {
+            "description": "Why each dropped record was dropped.",
+            "items": {
+              "$ref": "#/components/schemas/IngestError"
+            },
+            "type": "array"
+          },
+          "receivedAt": {
+            "description": "The server's clock when it handled the request.\n\nRFC 3339, in UTC.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "rejected": {
+            "description": "How many records were dropped. Omitted when none were.",
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "IngestService": {
+        "additionalProperties": false,
+        "description": "One service as its operator observed it. Deliberately smaller than the record the read API returns: status, trends and rank movement are absent rather than ignored, because a deployment reports observations and the dashboard decides verdicts.",
+        "properties": {
+          "callsKey": {
+            "description": "For a requestor, the `key` of the issuer it calls. This is what builds the demand side: who pulls what, and how much of it.",
+            "type": "string"
+          },
+          "categoryId": {
+            "description": "Must be one of the categories declared in the deployment's `domain.yaml`, e.g. `cat.identity`. An undeclared value rejects the record, because a category no filter offers is a service no reader can find.",
+            "type": "string"
+          },
+          "descTermId": {
+            "description": "Term id for the one-line description, resolved like `nameTermId`.",
+            "type": "string"
+          },
+          "errors": {
+            "description": "The error codes behind the error rate, as buckets. Like incidents, reachable only through push.",
+            "items": {
+              "$ref": "#/components/schemas/ErrorBucket"
+            },
+            "type": "array"
+          },
+          "history": {
+            "description": "Sealed daily buckets, oldest first. Optional: supply them to backfill the charts immediately, or omit them and the dashboard rolls its own up from successive observations.",
+            "items": {
+              "$ref": "#/components/schemas/HistoryPoint"
+            },
+            "type": "array"
+          },
+          "id": {
+            "description": "Stable identifier, and the key an upsert merges on. Required — a record without one is rejected and the rest of the batch is still stored.",
+            "type": "string"
+          },
+          "incidents": {
+            "description": "Open and recent incidents, with their timeline. There is no way to express these through a pull mapping, so a deployment that wants them uses push.",
+            "items": {
+              "$ref": "#/components/schemas/Incident"
+            },
+            "type": "array"
+          },
+          "key": {
+            "description": "Short slug. A requestor's `callsKey` names the issuer it calls by this, so an issuer other records point at needs one.",
+            "type": "string"
+          },
+          "maintenance": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Maintenance"
+              }
+            ],
+            "description": "Planned work in progress, which suppresses the outage verdict for its duration."
+          },
+          "metrics": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Metrics"
+              }
+            ],
+            "description": "The current reading. What the status is derived from."
+          },
+          "nameTermId": {
+            "description": "Term id resolved against the reader's locale, e.g. `svc.aadhaar.name`. A deployment that does not translate can send literal text: the resolver falls through to the raw string when no key matches.",
+            "type": "string"
+          },
+          "observedAt": {
+            "description": "When the upstream took this reading. Absent, the server stamps its own receipt time — which is a different claim, so send it if you know it.\n\nRFC 3339, in UTC.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "ownErrorShare": {
+            "description": "Percent, 0–100, of a requestor's errors that are its own rather than the publisher's — a 4xx it sent, not a 5xx it received. A requestor told only its error rate has a number it cannot act on.",
+            "format": "double",
+            "type": "number"
+          },
+          "providerId": {
+            "description": "Term id for the operating body, e.g. `prov.uidai`. Not validated against the taxonomy.",
+            "type": "string"
+          },
+          "regionId": {
+            "description": "Must be one of the regions declared in `domain.yaml`, e.g. `reg.national`. Validated like `categoryId`.",
+            "type": "string"
+          },
+          "roleId": {
+            "description": "Which side of the exchange this is: `issuer` for a service that publishes a document, `requestor` for an organisation that consumes one. Empty means the deployment's default role.",
+            "type": "string"
+          },
+          "scope": {
+            "description": "Which view the service belongs to — the deployment's declared scopes, `national` or `state` as shipped. Validated; an undeclared value rejects the record.",
+            "type": "string"
+          },
+          "sectorId": {
+            "description": "For a requestor, the sector running the use case, e.g. `sec.banking`. Empty for an issuer, which consumes nothing.",
+            "type": "string"
+          },
+          "subscriptionType": {
+            "description": "How a requestor is subscribed to the API it calls, e.g. `document` or `service`.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "ListServicesResponse": {
+        "additionalProperties": false,
+        "description": "Everything the dashboard currently holds.",
+        "properties": {
+          "generatedAt": {
+            "description": "When this snapshot was assembled.\n\nRFC 3339, in UTC.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "services": {
+            "description": "One record per service, in the order the source supplied them.",
+            "items": {
+              "$ref": "#/components/schemas/Service"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "Maintenance": {
+        "additionalProperties": false,
+        "description": "Planned work, which suppresses the outage verdict while it is in progress.",
+        "properties": {
+          "active": {
+            "description": "Whether work is in progress now.",
+            "type": "boolean"
+          },
+          "reasonTermId": {
+            "description": "Term id for the reason shown to a reader, e.g. `maint.scheduled`.",
+            "type": "string"
+          },
+          "until": {
+            "description": "When it is expected to end.\n\nRFC 3339, in UTC.",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "MappingSpec": {
+        "additionalProperties": false,
+        "description": "The same structure `pull.endpoints[].` takes in `config/sources.yaml`, key for key — so a block that works here can be pasted straight into the file, and a block from the file can be pasted here to find out what it does.",
+        "properties": {
+          "history": {
+            "$ref": "#/components/schemas/HistoryMapping"
+          },
+          "itemsPath": {
+            "description": "Path to the array of records, e.g. `$.data.services[*]`. Empty means the document is itself the array. The syntax is deliberately small: `$.a.b`, `$.items[0]`, `$.items[*]` and combinations. No filters, no recursive descent, no expressions.",
+            "type": "string"
+          },
+          "map": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Dashboard field name to a path into each record. `id` must be mapped, because without it services cannot be told apart.",
+            "propertyNames": {
+              "enum": [
+                "id",
+                "key",
+                "name",
+                "description",
+                "categoryId",
+                "regionId",
+                "providerId",
+                "scope",
+                "roleId",
+                "sectorId",
+                "callsKey",
+                "subscriptionType",
+                "ownErrorShare",
+                "metrics.availability",
+                "metrics.errorRate",
+                "metrics.latencyP50",
+                "metrics.staleSeconds",
+                "metrics.volume.total",
+                "metrics.volume.success",
+                "maintenance.active",
+                "maintenance.until",
+                "maintenance.reason",
+                "observedAt",
+                "history.availability",
+                "history.errorRate",
+                "history.latencyP50",
+                "history.volume"
+              ]
+            },
+            "type": "object"
+          },
+          "transform": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/TransformStep"
+              },
+              "type": "array"
+            },
+            "description": "Field name to the chain applied after reading it. Chains run in order, and an absent value skips every step except `default`.",
+            "propertyNames": {
+              "enum": [
+                "id",
+                "key",
+                "name",
+                "description",
+                "categoryId",
+                "regionId",
+                "providerId",
+                "scope",
+                "roleId",
+                "sectorId",
+                "callsKey",
+                "subscriptionType",
+                "ownErrorShare",
+                "metrics.availability",
+                "metrics.errorRate",
+                "metrics.latencyP50",
+                "metrics.staleSeconds",
+                "metrics.volume.total",
+                "metrics.volume.success",
+                "maintenance.active",
+                "maintenance.until",
+                "maintenance.reason",
+                "observedAt",
+                "history.availability",
+                "history.errorRate",
+                "history.latencyP50",
+                "history.volume"
+              ]
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "Metrics": {
+        "additionalProperties": false,
+        "description": "One reading of a service.",
+        "properties": {
+          "availability": {
+            "description": "Percent, 0–100 — `99.92`, not `0.9992`. **Absent is not zero.** A missing reading yields `STATUS_UNKNOWN`; a zero says the service is wholly down. A value between 0 and 1 is accepted, because a genuine 0.9% availability has to stay reportable, but it is logged as a probable ratio-for-percent mistake.",
+            "format": "double",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "errorRate": {
+            "description": "Percent, 0–100, of requests that failed.",
+            "format": "double",
+            "type": "number"
+          },
+          "latencyP50Ms": {
+            "description": "Median response time in milliseconds.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "staleSeconds": {
+            "description": "How old the reading is. Past the deployment's `staleSecondsAbove` threshold the status becomes `STATUS_UNKNOWN`, because a stale reading is not evidence that anything is working.\n\nA 64-bit integer. Sent either quoted or bare; always returned quoted.",
+            "format": "int64",
+            "type": [
+              "string",
+              "integer"
+            ]
+          },
+          "volume": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Volume"
+              }
+            ],
+            "description": "Request counts over the reporting window."
+          }
+        },
+        "type": "object"
+      },
+      "PullPreviewRequest": {
+        "additionalProperties": false,
+        "description": "An upstream's document, and the mapping under consideration. Nothing is fetched: the document travels in the body, so this endpoint cannot be used to make the dashboard issue requests from inside its own network.",
+        "properties": {
+          "document": {
+            "description": "The JSON your upstream would serve, verbatim."
+          },
+          "mapping": {
+            "$ref": "#/components/schemas/MappingSpec"
+          }
+        },
+        "required": [
+          "document",
+          "mapping"
+        ],
+        "type": "object"
+      },
+      "PullPreviewResponse": {
+        "additionalProperties": false,
+        "description": "What the dashboard would make of it — including the status it would derive, which is the part a mapping cannot be checked against by eye.",
+        "properties": {
+          "services": {
+            "description": "One per record the mapping read, evaluated exactly as a poll would evaluate it.",
+            "items": {
+              "$ref": "#/components/schemas/Service"
+            },
+            "type": "array"
+          },
+          "skipped": {
+            "description": "Records the mapping could not read. A poller logs these and carries on; here they are the answer.",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "index": {
+                  "description": "Position in the source array, from zero.",
+                  "type": "integer"
+                },
+                "reason": {
+                  "description": "Why it could not be read.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "index",
+                "reason"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "services"
+        ],
+        "type": "object"
+      },
+      "Service": {
+        "additionalProperties": false,
+        "description": "One service as the dashboard holds it: what was reported, and what it concluded.",
+        "properties": {
+          "callsKey": {
+            "description": "For a requestor, the `key` of the issuer it calls.",
+            "type": "string"
+          },
+          "categoryId": {
+            "description": "A category declared in `domain.yaml`.",
+            "type": "string"
+          },
+          "descTermId": {
+            "description": "Term id for the one-line description.",
+            "type": "string"
+          },
+          "errors": {
+            "description": "The error codes behind the error rate.",
+            "items": {
+              "$ref": "#/components/schemas/ErrorBucket"
+            },
+            "type": "array"
+          },
+          "history": {
+            "description": "Sealed daily buckets, oldest first.",
+            "items": {
+              "$ref": "#/components/schemas/HistoryPoint"
+            },
+            "type": "array"
+          },
+          "id": {
+            "description": "Stable identifier.",
+            "type": "string"
+          },
+          "incidents": {
+            "description": "Open and recent incidents.",
+            "items": {
+              "$ref": "#/components/schemas/Incident"
+            },
+            "type": "array"
+          },
+          "key": {
+            "description": "Short slug. A requestor's `callsKey` matches on this.",
+            "type": "string"
+          },
+          "maintenance": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Maintenance"
+              }
+            ],
+            "description": "Planned work in progress."
+          },
+          "metrics": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Metrics"
+              }
+            ],
+            "description": "The current reading."
+          },
+          "nameTermId": {
+            "description": "Term id for the display name.",
+            "type": "string"
+          },
+          "observedAt": {
+            "description": "When the reading was taken.\n\nRFC 3339, in UTC.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "ownErrorShare": {
+            "description": "Percent of a requestor's errors that are its own.",
+            "format": "double",
+            "type": "number"
+          },
+          "providerId": {
+            "description": "Term id for the operating body.",
+            "type": "string"
+          },
+          "rankMovement": {
+            "description": "**Derived, output only.** Places moved since the previous snapshot.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "regionId": {
+            "description": "A region declared in `domain.yaml`.",
+            "type": "string"
+          },
+          "roleId": {
+            "description": "`issuer` or `requestor`.",
+            "type": "string"
+          },
+          "scope": {
+            "description": "Which view the service belongs to.",
+            "type": "string"
+          },
+          "sectorId": {
+            "description": "For a requestor, the sector running the use case.",
+            "type": "string"
+          },
+          "status": {
+            "description": "**Derived, output only.** Recomputed on every snapshot from `metrics` against the thresholds the deployment publishes, so the rule shown on screen is provably the rule that was applied. Sending one has no effect; the ingest message has no field for it.\n\nThe verdict. A fixed vocabulary, not a configurable one: the threshold rules are tied to these five outcomes, so a sixth would be a contract change. Config controls each one's label, glyph, colour and thresholds.\n\nSent as the name or as the number; always returned as the name.",
+            "enum": [
+              "STATUS_UNSPECIFIED",
+              "STATUS_OPERATIONAL",
+              "STATUS_PARTIAL",
+              "STATUS_MAJOR",
+              "STATUS_UNKNOWN",
+              "STATUS_MAINTENANCE"
+            ],
+            "type": "string"
+          },
+          "subscriptionType": {
+            "description": "How a requestor is subscribed to the API it calls.",
+            "type": "string"
+          },
+          "trends": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Trend"
+            },
+            "description": "**Derived, output only.** Keyed by metric: `availability`, `errorRate`, `latencyP50`, `volume`.",
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "TransformStep": {
+        "additionalProperties": false,
+        "description": "One step of a transform chain.",
+        "properties": {
+          "by": {
+            "description": "For `multiply`, `divide` and `round`. Non-zero for the first two.",
+            "type": "number"
+          },
+          "fn": {
+            "description": "Which transform. A value that cannot be coerced to the type the transform needs passes through untouched rather than becoming zero.",
+            "enum": [
+              "ratioToPercent",
+              "percentToRatio",
+              "multiply",
+              "divide",
+              "round",
+              "secondsToMillis",
+              "millisToSeconds",
+              "enumMap",
+              "lowercase",
+              "uppercase",
+              "trim",
+              "trimPrefix",
+              "default",
+              "negate",
+              "clampPercent"
+            ],
+            "type": "string"
+          },
+          "table": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "For `enumMap`: the lookup. An unmapped value passes through unchanged, so a table that misses a case leaves the original rather than emptying the field.",
+            "type": "object"
+          },
+          "value": {
+            "description": "For `default` and `trimPrefix`. Note that `default` fires only for a field that has a `map` entry: an unmapped field is absent, not defaulted.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fn"
+        ],
+        "type": "object"
+      },
+      "Trend": {
+        "additionalProperties": false,
+        "description": "**Derived, output only.** How a metric has moved over the trend window.",
+        "properties": {
+          "delta": {
+            "description": "The change, in the metric's own units.",
+            "format": "double",
+            "type": "number"
+          },
+          "direction": {
+            "description": "Which way it moved. Better or worse depends on the metric.\n\nWhich way a figure moved. Not whether that is good news — for availability up is better, for error rate it is worse.\n\nSent as the name or as the number; always returned as the name.",
+            "enum": [
+              "TREND_DIRECTION_UNSPECIFIED",
+              "TREND_DIRECTION_FLAT",
+              "TREND_DIRECTION_UP",
+              "TREND_DIRECTION_DOWN"
+            ],
+            "type": "string"
+          },
+          "periodDays": {
+            "description": "How many days the comparison covers.",
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "Volume": {
+        "additionalProperties": false,
+        "description": "Request counts over the reporting window.",
+        "properties": {
+          "success": {
+            "description": "Requests that succeeded. More successes than requests rejects the record.\n\nA 64-bit integer. Sent either quoted or bare; always returned quoted.",
+            "format": "int64",
+            "type": [
+              "string",
+              "integer"
+            ]
+          },
+          "total": {
+            "description": "Requests received.\n\nA 64-bit integer. Sent either quoted or bare; always returned quoted.",
+            "format": "int64",
+            "type": [
+              "string",
+              "integer"
+            ]
+          }
+        },
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "ingestToken": {
+        "description": "The value of the environment variable named by `push.tokenEnvVar` in `config/sources.yaml`, shipped as `DPI_INGEST_TOKEN`. Never a value from a configuration file: a token in a config file ends up in a git history.",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "description": "Two ways to get data in, and they are alternatives rather than layers.\n\n**Push** — your collector calls `POST /api/v1/ingest` whenever it has something to say. It is the richer of the two: incidents and error buckets can only arrive this way, and every record is validated against the deployment's own taxonomy, so a category nothing declares is rejected rather than quietly becoming unreachable.\n\n**Pull** — the dashboard polls an endpoint you already have, on a timer, and maps its shape onto its own with a declarative mapping in `config/sources.yaml`. Nothing to build and nothing to schedule, but it can carry only what a mapping can express. `POST /api/v1/pull/preview` exists so that mapping can be worked out interactively rather than by editing a file and restarting.\n\nExactly one of the two is active, chosen by `driver:` in `config/sources.yaml`, so an operation this deployment does not register says so in its own description.\n\n**What the dashboard decides for itself.** Status is never reported, only derived: a collector sends observations and the dashboard evaluates them against the thresholds it publishes. `status`, `trends` and `rankMovement` are absent from the ingest message rather than ignored, so the contract states it plainly.",
+    "license": {
+      "identifier": "Apache-2.0",
+      "name": "Apache-2.0"
+    },
+    "summary": "Feed a dashboard, read back what it holds, and try a pull mapping before committing to one.",
+    "title": "White-label DPI dashboard",
+    "version": "v1"
+  },
+  "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
+  "openapi": "3.1.0",
+  "paths": {
+    "/": {
+      "get": {
+        "description": "Every reader selection rides in the query string, so a shared link reproduces exactly what the sender was looking at. Unrecognised values fall back to the deployment's defaults rather than erroring: a hand-edited URL or a bookmark that outlived a config change should produce a sensible page, not an empty one.",
+        "operationId": "dashboard",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "$ref": "#/components/parameters/role"
+          },
+          {
+            "$ref": "#/components/parameters/id"
+          },
+          {
+            "$ref": "#/components/parameters/signals"
+          },
+          {
+            "$ref": "#/components/parameters/region"
+          },
+          {
+            "$ref": "#/components/parameters/period"
+          },
+          {
+            "$ref": "#/components/parameters/q"
+          },
+          {
+            "$ref": "#/components/parameters/status"
+          },
+          {
+            "$ref": "#/components/parameters/cat"
+          },
+          {
+            "$ref": "#/components/parameters/sort"
+          },
+          {
+            "$ref": "#/components/parameters/dir"
+          },
+          {
+            "$ref": "#/components/parameters/lang"
+          },
+          {
+            "$ref": "#/components/parameters/filters"
+          },
+          {
+            "$ref": "#/components/parameters/theme"
+          },
+          {
+            "$ref": "#/components/parameters/tab"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The rendered markup."
+          }
+        },
+        "summary": "The dashboard",
+        "tags": [
+          "Dashboard"
+        ]
+      }
+    },
+    "/__example/upstream/services": {
+      "get": {
+        "description": "Deliberately **not** the dashboard's own schema: ratios rather than percentages, `IDENTITY` rather than `cat.identity`, and field names nothing here chose. It exists so the shipped pull mapping has something real to poll, which makes switching to your own service one URL change against a path already proven to work.\n\nServed when the dashboard holds its own data — `driver: seed` or `driver: push`. Under `driver: pull` it is absent, so a deployment cannot re-publish a copy of what it polls.",
+        "operationId": "exampleUpstream",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "An imaginary upstream's response."
+          }
+        },
+        "summary": "The same data in a foreign shape",
+        "tags": [
+          "Read"
+        ]
+      }
+    },
+    "/api": {
+      "get": {
+        "description": "This reference, rendered, with every request editable and sendable against the running deployment. Served everywhere, so a deployment always carries its own documentation.",
+        "operationId": "apiConsole",
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The console."
+          }
+        },
+        "summary": "The API console",
+        "tags": [
+          "Tools"
+        ]
+      }
+    },
+    "/api/openapi.json": {
+      "get": {
+        "description": "The committed document, overlaid with what is true of this particular deployment: the server URL it is being served from, and a note on any operation the configured driver does not register.",
+        "operationId": "openapi",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "An OpenAPI 3.1 document."
+          }
+        },
+        "summary": "This document",
+        "tags": [
+          "Tools"
+        ]
+      }
+    },
+    "/api/v1/ingest": {
+      "post": {
+        "description": "Send what you have observed. Everything else the dashboard shows is derived from it.\n\nPartial acceptance is deliberate: a malformed record in a batch of two hundred does not reject the other hundred and ninety-nine. The response is `200` whenever the body decoded, and says which records were dropped and why — so a collector checks `rejected`, not the status code.\n\nThe complete worked payload is committed at `examples/push/payload.json`; the example below is the first two records of it.",
+        "operationId": "ingest",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "minimal": {
+                  "description": "One service, one reading. Everything else the dashboard shows — the status, the trend, the rank — is worked out from this.",
+                  "summary": "The smallest useful payload",
+                  "value": {
+                    "mode": "INGEST_MODE_UPSERT",
+                    "services": [
+                      {
+                        "categoryId": "cat.identity",
+                        "id": "aadhaar",
+                        "key": "aadhaar",
+                        "metrics": {
+                          "availability": 99.92,
+                          "errorRate": 0.62,
+                          "latencyP50Ms": 264,
+                          "staleSeconds": "195",
+                          "volume": {
+                            "success": "2465112",
+                            "total": "2480492"
+                          }
+                        },
+                        "nameTermId": "Aadhaar",
+                        "observedAt": "2026-07-27T12:00:00Z",
+                        "regionId": "reg.national",
+                        "roleId": "issuer",
+                        "scope": "national"
+                      }
+                    ],
+                    "sourceId": "my-collector"
+                  }
+                },
+                "seeded": {
+                  "description": "The first two records of `examples/push/payload.json`, history and error buckets trimmed. The complete file is what `make demo-push` sends.",
+                  "summary": "The shipped fixture",
+                  "value": {
+                    "mode": "INGEST_MODE_REPLACE",
+                    "services": [
+                      {
+                        "categoryId": "cat.identity",
+                        "descTermId": "svc.aadhaar.desc",
+                        "errors": [
+                          {
+                            "class": "ERROR_CLASS_CLIENT",
+                            "code": "401",
+                            "count": "3134",
+                            "share": 20.4,
+                            "termId": "err.401",
+                            "trend": "TREND_DIRECTION_DOWN"
+                          },
+                          {
+                            "class": "ERROR_CLASS_CLIENT",
+                            "code": "400",
+                            "count": "2741",
+                            "share": 17.8,
+                            "termId": "err.400",
+                            "trend": "TREND_DIRECTION_DOWN"
+                          },
+                          {
+                            "class": "ERROR_CLASS_CLIENT",
+                            "code": "429",
+                            "count": "2578",
+                            "share": 16.8,
+                            "termId": "err.429",
+                            "trend": "TREND_DIRECTION_DOWN"
+                          }
+                        ],
+                        "history": [
+                          {
+                            "availability": 99.89,
+                            "day": "2026-07-14T00:00:00Z",
+                            "errorRate": 0.55,
+                            "latencyP50Ms": 294,
+                            "samples": 96,
+                            "volume": "2102166"
+                          },
+                          {
+                            "availability": 99.99,
+                            "day": "2026-07-15T00:00:00Z",
+                            "errorRate": 0.75,
+                            "latencyP50Ms": 303,
+                            "samples": 96,
+                            "volume": "2213837"
+                          },
+                          {
+                            "availability": 99.92,
+                            "day": "2026-07-16T00:00:00Z",
+                            "errorRate": 0.7,
+                            "latencyP50Ms": 245,
+                            "samples": 96,
+                            "volume": "2048017"
+                          }
+                        ],
+                        "id": "aadhaar",
+                        "key": "aadhaar",
+                        "metrics": {
+                          "availability": 99.92,
+                          "errorRate": 0.62,
+                          "latencyP50Ms": 264,
+                          "staleSeconds": "195",
+                          "volume": {
+                            "success": "2465112",
+                            "total": "2480492"
+                          }
+                        },
+                        "nameTermId": "svc.aadhaar.name",
+                        "observedAt": "2026-07-27T12:00:00Z",
+                        "providerId": "prov.uidai",
+                        "regionId": "reg.national",
+                        "roleId": "issuer",
+                        "scope": "national"
+                      },
+                      {
+                        "categoryId": "cat.identity",
+                        "descTermId": "svc.passport.desc",
+                        "errors": [
+                          {
+                            "class": "ERROR_CLASS_CLIENT",
+                            "code": "401",
+                            "count": "312",
+                            "share": 26.4,
+                            "termId": "err.401",
+                            "trend": "TREND_DIRECTION_UP"
+                          },
+                          {
+                            "class": "ERROR_CLASS_CLIENT",
+                            "code": "400",
+                            "count": "231",
+                            "share": 19.6,
+                            "termId": "err.400",
+                            "trend": "TREND_DIRECTION_DOWN"
+                          },
+                          {
+                            "class": "ERROR_CLASS_NETWORK",
+                            "code": "timeout",
+                            "count": "172",
+                            "share": 14.5,
+                            "termId": "err.timeout",
+                            "trend": "TREND_DIRECTION_UP"
+                          }
+                        ],
+                        "history": [
+                          {
+                            "availability": 99.04,
+                            "day": "2026-07-14T00:00:00Z",
+                            "errorRate": 0.99,
+                            "latencyP50Ms": 357,
+                            "samples": 96,
+                            "volume": "142923"
+                          },
+                          {
+                            "availability": 99.01,
+                            "day": "2026-07-15T00:00:00Z",
+                            "errorRate": 0.86,
+                            "latencyP50Ms": 374,
+                            "samples": 96,
+                            "volume": "156113"
+                          },
+                          {
+                            "availability": 99.26,
+                            "day": "2026-07-16T00:00:00Z",
+                            "errorRate": 0.63,
+                            "latencyP50Ms": 279,
+                            "samples": 96,
+                            "volume": "132566"
+                          }
+                        ],
+                        "id": "passport",
+                        "incidents": [
+                          {
+                            "events": [
+                              {
+                                "at": "2026-07-27T04:23:00.170084630Z",
+                                "type": "opened"
+                              },
+                              {
+                                "at": "2026-07-27T04:42:40.197833134Z",
+                                "type": "acknowledged"
+                              }
+                            ],
+                            "id": "passport-inc-ezab",
+                            "noteTermId": "incident.note.partialRegion",
+                            "open": true,
+                            "openedAt": "2026-07-27T04:23:00.170084630Z",
+                            "serviceId": "passport",
+                            "severity": "STATUS_PARTIAL"
+                          }
+                        ],
+                        "key": "passport",
+                        "metrics": {
+                          "availability": 99.14,
+                          "errorRate": 0.78,
+                          "latencyP50Ms": 327,
+                          "staleSeconds": "68",
+                          "volume": {
+                            "success": "150064",
+                            "total": "151244"
+                          }
+                        },
+                        "nameTermId": "svc.passport.name",
+                        "observedAt": "2026-07-27T12:00:00Z",
+                        "providerId": "prov.mea",
+                        "regionId": "reg.national",
+                        "roleId": "issuer",
+                        "scope": "national"
+                      }
+                    ],
+                    "sourceId": "seedgen"
+                  }
+                }
+              },
+              "schema": {
+                "$ref": "#/components/schemas/IngestRequest"
+              }
+            },
+            "application/x-protobuf": {
+              "schema": {
+                "description": "A binary `dpi.v1.IngestRequest`.",
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "accepted": {
+                    "summary": "Everything stored",
+                    "value": {
+                      "accepted": 2,
+                      "receivedAt": "2026-07-27T12:00:04.113Z"
+                    }
+                  },
+                  "partial": {
+                    "description": "The status is still 200. A collector checks `rejected`, not the status code — which is what lets one bad record out of two hundred stay one bad record.",
+                    "summary": "One record dropped, the rest stored",
+                    "value": {
+                      "accepted": 1,
+                      "errors": [
+                        {
+                          "field": "categoryId",
+                          "message": "\"cat.pensions\" is not declared in domain.yaml",
+                          "serviceId": "pension"
+                        }
+                      ],
+                      "receivedAt": "2026-07-27T12:00:04.113Z",
+                      "rejected": 1
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/IngestResponse"
+                }
+              }
+            },
+            "description": "Decoded. Read `accepted` and `rejected` to find out what happened to it."
+          },
+          "400": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The body could not be decoded: empty, over the size limit, not valid JSON or protobuf, or carrying a field the contract does not declare."
+          },
+          "401": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "No bearer token, or the wrong one. The response says nothing about which, because telling an unauthenticated caller why their token was rejected helps them guess at a valid one."
+          }
+        },
+        "security": [
+          {
+            "ingestToken": []
+          }
+        ],
+        "summary": "Report observations",
+        "tags": [
+          "Ingest"
+        ]
+      }
+    },
+    "/api/v1/pull/preview": {
+      "post": {
+        "description": "Pull is a contract the dashboard consumes rather than an endpoint it serves, so a mapping normally cannot be tried at all: you edit `sources.yaml`, restart, and look at the board. This runs the same three steps a poll runs — compile the mapping, apply it to the document, evaluate the result — with the fetch left out.\n\nLeaving the fetch out is deliberate. An endpoint that accepted a URL and retrieved it would let anyone use the dashboard to make requests from inside its own network, so the document travels in the body.\n\nThe response carries the **derived** status, which is what makes it worth running: a mapping can read every field it was asked to and still produce a board of unknowns, because availability arrived as a ratio where a percentage was expected.\n\nRegistered whatever the configured driver — it touches no state.",
+        "operationId": "previewPullMapping",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "minimal": {
+                  "description": "`id` is the only field a mapping must have — without it, records cannot be told apart. Everything unmapped is absent rather than zero.",
+                  "summary": "The smallest mapping that works",
+                  "value": {
+                    "document": [
+                      {
+                        "svc": "aadhaar",
+                        "up": 0.9992
+                      }
+                    ],
+                    "mapping": {
+                      "map": {
+                        "id": "$.svc",
+                        "metrics.availability": "$.up"
+                      },
+                      "transform": {
+                        "metrics.availability": [
+                          {
+                            "fn": "ratioToPercent"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                "shipped": {
+                  "description": "One record of `examples/upstream/services.json` with the mapping from `config/sources.yaml`. Note what the transforms are for: the upstream reports availability as a ratio and category as `IDENTITY`, and neither would mean anything to the dashboard untranslated.",
+                  "summary": "The mapping this deployment ships",
+                  "value": {
+                    "document": {
+                      "data": {
+                        "services": [
+                          {
+                            "category": "IDENTITY",
+                            "daily": [
+                              {
+                                "count": 2102166,
+                                "errPct": 0.0055,
+                                "p50Ms": 294,
+                                "ts": "2026-07-14",
+                                "uptime": 0.9989
+                              },
+                              {
+                                "count": 2213837,
+                                "errPct": 0.0075,
+                                "p50Ms": 303,
+                                "ts": "2026-07-15",
+                                "uptime": 0.9999
+                              },
+                              {
+                                "count": 2048017,
+                                "errPct": 0.007,
+                                "p50Ms": 245,
+                                "ts": "2026-07-16",
+                                "uptime": 0.9992
+                              }
+                            ],
+                            "displayName": "Aadhaar",
+                            "latency": {
+                              "p50Ms": 264
+                            },
+                            "observedAgeSecs": 195,
+                            "operator": "UIDAI",
+                            "region": "NATIONAL",
+                            "requests": {
+                              "succeeded": 2465112,
+                              "total": 2480492
+                            },
+                            "serviceId": "aadhaar",
+                            "sla": {
+                              "errorPct": 0.0062,
+                              "uptimePct": 0.9992
+                            },
+                            "summary": "Example service record for Aadhaar.",
+                            "tier": "NATIONAL"
+                          }
+                        ]
+                      },
+                      "generatedAt": "2026-07-27T12:00:00Z"
+                    },
+                    "mapping": {
+                      "itemsPath": "$.data.services",
+                      "map": {
+                        "categoryId": "$.category",
+                        "description": "$.summary",
+                        "id": "$.serviceId",
+                        "maintenance.active": "$.maintenance.inProgress",
+                        "maintenance.reason": "$.maintenance.reason",
+                        "maintenance.until": "$.maintenance.endsAt",
+                        "metrics.availability": "$.sla.uptimePct",
+                        "metrics.errorRate": "$.sla.errorPct",
+                        "metrics.latencyP50": "$.latency.p50Ms",
+                        "metrics.staleSeconds": "$.observedAgeSecs",
+                        "metrics.volume.success": "$.requests.succeeded",
+                        "metrics.volume.total": "$.requests.total",
+                        "name": "$.displayName",
+                        "providerId": "$.operator",
+                        "regionId": "$.region",
+                        "scope": "$.tier"
+                      },
+                      "transform": {
+                        "categoryId": [
+                          {
+                            "fn": "enumMap",
+                            "table": {
+                              "AGRICULTURE": "cat.agriculture",
+                              "BUSINESS": "cat.business",
+                              "EDUCATION": "cat.education",
+                              "EMPLOYMENT": "cat.employment",
+                              "HEALTH": "cat.health",
+                              "IDENTITY": "cat.identity",
+                              "MONEY": "cat.money",
+                              "RECORDS": "cat.records",
+                              "TRANSPORT": "cat.transport",
+                              "WELFARE": "cat.welfare"
+                            }
+                          }
+                        ],
+                        "history.availability": [
+                          {
+                            "fn": "ratioToPercent"
+                          },
+                          {
+                            "fn": "clampPercent"
+                          }
+                        ],
+                        "history.errorRate": [
+                          {
+                            "fn": "ratioToPercent"
+                          }
+                        ],
+                        "metrics.availability": [
+                          {
+                            "fn": "ratioToPercent"
+                          },
+                          {
+                            "fn": "clampPercent"
+                          }
+                        ],
+                        "metrics.errorRate": [
+                          {
+                            "fn": "ratioToPercent"
+                          }
+                        ],
+                        "regionId": [
+                          {
+                            "fn": "enumMap",
+                            "table": {
+                              "BR": "reg.br",
+                              "DL": "reg.dl",
+                              "GJ": "reg.gj",
+                              "KA": "reg.ka",
+                              "KL": "reg.kl",
+                              "MH": "reg.mh",
+                              "MP": "reg.mp",
+                              "NATIONAL": "reg.national",
+                              "RJ": "reg.rj",
+                              "TN": "reg.tn",
+                              "TS": "reg.ts",
+                              "UP": "reg.up",
+                              "WB": "reg.wb"
+                            }
+                          },
+                          {
+                            "fn": "default",
+                            "value": "reg.national"
+                          }
+                        ],
+                        "scope": [
+                          {
+                            "fn": "lowercase"
+                          },
+                          {
+                            "fn": "default",
+                            "value": "national"
+                          }
+                        ]
+                      },
+                      "history": {
+                        "path": "$.daily[*]",
+                        "date": "$.ts",
+                        "availability": "$.uptime",
+                        "errorRate": "$.errPct",
+                        "latencyP50": "$.p50Ms",
+                        "volume": "$.count"
+                      }
+                    }
+                  }
+                }
+              },
+              "schema": {
+                "$ref": "#/components/schemas/PullPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PullPreviewResponse"
+                }
+              }
+            },
+            "description": "What the dashboard would make of the document."
+          },
+          "400": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The body could not be read, or the mapping would not compile. The message names the field and lists what was expected — an unknown field name, a path that does not parse, a transform that needs an operand it was not given, or `id` left unmapped."
+          }
+        },
+        "summary": "Try a pull mapping without deploying it",
+        "tags": [
+          "Tools"
+        ]
+      }
+    },
+    "/api/v1/services": {
+      "get": {
+        "description": "The same records the pages are drawn from, with the derived fields included — `status`, `trends` and `rankMovement`, none of which any feed can set.\n\nUnauthenticated, because it returns exactly what the public HTML already shows: gating the machine-readable form of a page anyone can load would be theatre rather than access control.",
+        "operationId": "listServices",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListServicesResponse"
+                }
+              },
+              "application/x-protobuf": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The current snapshot."
+          }
+        },
+        "summary": "Read everything the dashboard holds",
+        "tags": [
+          "Read"
+        ]
+      }
+    },
+    "/assets/theme.css": {
+      "get": {
+        "description": "Built at startup from `config/theme.yaml`, never a file on disk. Served immutable with a fingerprint for an ETag, so a restyled deployment produces a different URL rather than a stale cache.",
+        "operationId": "themeCSS",
+        "responses": {
+          "200": {
+            "content": {
+              "text/css": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "CSS custom properties."
+          },
+          "304": {
+            "description": "Unchanged since the ETag the request carried."
+          }
+        },
+        "summary": "The generated stylesheet",
+        "tags": [
+          "Dashboard"
+        ]
+      }
+    },
+    "/assets/{path}": {
+      "get": {
+        "description": "The stylesheet, the script, htmx, the fonts and the API console's renderer, all compiled into the binary. Served immutable for a year, which is safe because every link carries a `?v=` fingerprint over the whole embedded tree.",
+        "operationId": "asset",
+        "parameters": [
+          {
+            "description": "A path under `web/static`, e.g. `app.css`.",
+            "in": "path",
+            "name": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The asset."
+          },
+          "404": {
+            "description": "No such asset."
+          }
+        },
+        "summary": "A static asset",
+        "tags": [
+          "Dashboard"
+        ]
+      }
+    },
+    "/fragments/service/{id}": {
+      "get": {
+        "description": "The whole panel, for opening one.",
+        "operationId": "drawerFragment",
+        "parameters": [
+          {
+            "description": "A service id, as returned by `GET /api/v1/services`.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "$ref": "#/components/parameters/role"
+          },
+          {
+            "$ref": "#/components/parameters/id"
+          },
+          {
+            "$ref": "#/components/parameters/signals"
+          },
+          {
+            "$ref": "#/components/parameters/region"
+          },
+          {
+            "$ref": "#/components/parameters/period"
+          },
+          {
+            "$ref": "#/components/parameters/q"
+          },
+          {
+            "$ref": "#/components/parameters/status"
+          },
+          {
+            "$ref": "#/components/parameters/cat"
+          },
+          {
+            "$ref": "#/components/parameters/sort"
+          },
+          {
+            "$ref": "#/components/parameters/dir"
+          },
+          {
+            "$ref": "#/components/parameters/lang"
+          },
+          {
+            "$ref": "#/components/parameters/filters"
+          },
+          {
+            "$ref": "#/components/parameters/theme"
+          },
+          {
+            "$ref": "#/components/parameters/tab"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The rendered markup."
+          }
+        },
+        "summary": "One service's drawer",
+        "tags": [
+          "Dashboard"
+        ]
+      }
+    },
+    "/fragments/service/{id}/pane": {
+      "get": {
+        "description": "The pane below the tab strip, plus the strip itself as an out-of-band swap. Everything above it is the same whichever tab is showing, so changing tab does not rebuild it.",
+        "operationId": "drawerPaneFragment",
+        "parameters": [
+          {
+            "description": "A service id, as returned by `GET /api/v1/services`.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "$ref": "#/components/parameters/role"
+          },
+          {
+            "$ref": "#/components/parameters/id"
+          },
+          {
+            "$ref": "#/components/parameters/signals"
+          },
+          {
+            "$ref": "#/components/parameters/region"
+          },
+          {
+            "$ref": "#/components/parameters/period"
+          },
+          {
+            "$ref": "#/components/parameters/q"
+          },
+          {
+            "$ref": "#/components/parameters/status"
+          },
+          {
+            "$ref": "#/components/parameters/cat"
+          },
+          {
+            "$ref": "#/components/parameters/sort"
+          },
+          {
+            "$ref": "#/components/parameters/dir"
+          },
+          {
+            "$ref": "#/components/parameters/lang"
+          },
+          {
+            "$ref": "#/components/parameters/filters"
+          },
+          {
+            "$ref": "#/components/parameters/theme"
+          },
+          {
+            "$ref": "#/components/parameters/tab"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The rendered markup."
+          }
+        },
+        "summary": "One tab of an open drawer",
+        "tags": [
+          "Dashboard"
+        ]
+      }
+    },
+    "/fragments/{section}": {
+      "get": {
+        "description": "What an HTMX swap asks for. The section ids come from the deployment's `layout.yaml`; as shipped they are `verdict`, `signals` and `leaderboard`. The response carries an `HX-Push-Url` header naming the reader-facing address the fragment corresponds to.",
+        "operationId": "sectionFragment",
+        "parameters": [
+          {
+            "description": "A section id declared in `layout.yaml`.",
+            "in": "path",
+            "name": "section",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "$ref": "#/components/parameters/role"
+          },
+          {
+            "$ref": "#/components/parameters/id"
+          },
+          {
+            "$ref": "#/components/parameters/signals"
+          },
+          {
+            "$ref": "#/components/parameters/region"
+          },
+          {
+            "$ref": "#/components/parameters/period"
+          },
+          {
+            "$ref": "#/components/parameters/q"
+          },
+          {
+            "$ref": "#/components/parameters/status"
+          },
+          {
+            "$ref": "#/components/parameters/cat"
+          },
+          {
+            "$ref": "#/components/parameters/sort"
+          },
+          {
+            "$ref": "#/components/parameters/dir"
+          },
+          {
+            "$ref": "#/components/parameters/lang"
+          },
+          {
+            "$ref": "#/components/parameters/filters"
+          },
+          {
+            "$ref": "#/components/parameters/theme"
+          },
+          {
+            "$ref": "#/components/parameters/tab"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The rendered markup."
+          }
+        },
+        "summary": "One band of the page",
+        "tags": [
+          "Dashboard"
+        ]
+      }
+    },
+    "/healthz": {
+      "get": {
+        "description": "Whether the process is running. It never inspects the data, so it stays `200` for a dashboard that has nothing to show — which is what distinguishes it from `/readyz`.",
+        "operationId": "healthz",
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "`ok`"
+          }
+        },
+        "summary": "Liveness",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/readyz": {
+      "get": {
+        "description": "Whether there is anything to serve. A push deployment answers `503` until its first successful ingest, which is what keeps a rolling deploy from cutting traffic over to an empty page.",
+        "operationId": "readyz",
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "`ready`"
+          },
+          "503": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "`no data yet`"
+          }
+        },
+        "summary": "Readiness",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/service/{id}": {
+      "get": {
+        "description": "The same page with the drawer open, so a service is a real address that can be bookmarked and sent.",
+        "operationId": "servicePage",
+        "parameters": [
+          {
+            "description": "A service id, as returned by `GET /api/v1/services`.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "$ref": "#/components/parameters/role"
+          },
+          {
+            "$ref": "#/components/parameters/id"
+          },
+          {
+            "$ref": "#/components/parameters/signals"
+          },
+          {
+            "$ref": "#/components/parameters/region"
+          },
+          {
+            "$ref": "#/components/parameters/period"
+          },
+          {
+            "$ref": "#/components/parameters/q"
+          },
+          {
+            "$ref": "#/components/parameters/status"
+          },
+          {
+            "$ref": "#/components/parameters/cat"
+          },
+          {
+            "$ref": "#/components/parameters/sort"
+          },
+          {
+            "$ref": "#/components/parameters/dir"
+          },
+          {
+            "$ref": "#/components/parameters/lang"
+          },
+          {
+            "$ref": "#/components/parameters/filters"
+          },
+          {
+            "$ref": "#/components/parameters/theme"
+          },
+          {
+            "$ref": "#/components/parameters/tab"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The rendered markup."
+          }
+        },
+        "summary": "The dashboard with one service open",
+        "tags": [
+          "Dashboard"
+        ]
+      }
+    }
+  },
+  "servers": [
+    {
+      "description": "This deployment.",
+      "url": "/"
+    }
+  ],
+  "tags": [
+    {
+      "description": "Getting observations into the dashboard.",
+      "name": "Ingest"
+    },
+    {
+      "description": "Getting them back out.",
+      "name": "Read"
+    },
+    {
+      "description": "Working out a configuration before committing to it.",
+      "name": "Tools"
+    },
+    {
+      "description": "What a load balancer and an orchestrator ask.",
+      "name": "Operations"
+    },
+    {
+      "description": "The reader-facing pages, and the fragments they swap in. HTML rather than JSON, and documented here because a surface that is only partly written down is one nobody can reason about.",
+      "name": "Dashboard"
+    }
+  ]
+}

@@ -318,3 +318,9 @@ terms:
   req.errorRateDenom: "de toutes les requêtes"
   req.vsErrorRate: "Le taux d'erreur dit à quelle fréquence une requête a échoué — {errorRate} de toutes les requêtes.\nCeci dit de quel côté ces échecs ont eu lieu — {own} du demandeur, {publisher} de l'émetteur."
   req.vsErrorRateTitle: "Différence avec le taux d'erreur"
+
+  # --- La console API sur /api. Habillage seulement.
+  api.title: "Référence de l'API"
+  api.skip: "Aller à la référence"
+  api.back: "Retour au tableau de bord"
+  api.noscript: "La référence interactive nécessite JavaScript. Le document qu'elle affiche, non : c'est une description OpenAPI 3.1 de chaque point d'accès, y compris ceux que ce déploiement expose."

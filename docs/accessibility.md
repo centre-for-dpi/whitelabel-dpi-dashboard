@@ -153,6 +153,22 @@ Being explicit about this is part of the claim.
 - **The demonstration data** is generated, so its service names are the example
   domain's rather than a real deployment's, and their translations are not
   reviewed. Replacing `domain.yaml` replaces them.
+- **The API console at `/api`** is the one page here whose interior this project
+  did not write. It renders the published OpenAPI document through a vendored web
+  component, and its markup — inside a shadow root, several levels of custom
+  element deep — is not audited by `internal/a11y` and is not a cell in the
+  browser matrix. Neither suite is suppressed for it; it is simply not in either
+  list, and this is the note that says so rather than leaving it to be noticed.
+
+  What was kept: the shell around it — `lang`, `dir`, the title, the skip link,
+  the single `h1` — is conformant, and the `<noscript>` block carries the same
+  three requests as working `curl` commands, so a reader without script gets the
+  substance rather than an empty page. The renderer was also chosen partly on
+  this: it is the one that puts nothing of its own on the page, so nothing in
+  there is a control the deployment did not intend to offer.
+
+  The dashboard itself — every route a reader reaches from `/` — is unaffected,
+  and the claim above is about those.
 
 ## Reporting a problem
 

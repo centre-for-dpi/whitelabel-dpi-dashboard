@@ -47,6 +47,11 @@ type Options struct {
 	Clock    Clock
 	Log      *slog.Logger
 
+	// OpenAPI is the committed api/openapi.json, embedded. It is served with a
+	// small overlay describing what this particular deployment registers, and
+	// rendered by the console at /api.
+	OpenAPI []byte
+
 	// ExampleUpstream, when set, serves the current data in the shape the pull
 	// contract expects. Seed mode supplies it so the shipped pull
 	// configuration has something real to poll: switching to your own service
@@ -81,6 +86,7 @@ type Server struct {
 	static       fs.FS
 	example      func() any
 	ingest       IngestOptions
+	openAPI      []byte
 }
 
 // Renderer is the subset of render.Renderer the server needs, named separately
@@ -113,6 +119,7 @@ func New(o Options) (*Server, error) {
 		static:       o.Static,
 		example:      o.ExampleUpstream,
 		ingest:       o.Ingest,
+		openAPI:      o.OpenAPI,
 	}
 
 	s.routes()
@@ -121,48 +128,123 @@ func New(o Options) (*Server, error) {
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) { s.mux.ServeHTTP(w, r) }
 
-func (s *Server) routes() {
-	s.mux.HandleFunc("GET /{$}", s.handlePage)
-	s.mux.HandleFunc("GET /service/{id}", s.handlePage)
+// Route is one entry in the server's routing table.
+//
+// The table is data rather than a run of HandleFunc calls so that the router and
+// the published API document cannot disagree. A test walks it in both directions
+// against the committed api/openapi.json, which is what turns "every endpoint is
+// documented" into a gate rather than a hope.
+type Route struct {
+	Method  string
+	Pattern string
+	Handler http.Handler
+	// Spec is the path this route is documented under in api/openapi.json. It
+	// differs from Pattern where several concrete routes share one templated
+	// path — the per-section fragments, and everything under /assets/.
+	Spec string
+	// Available reports whether this deployment registers the route at all. Two
+	// of them depend on which source driver is configured, and a document that
+	// claimed otherwise would send an integrator at an endpoint that 404s.
+	Available bool
+}
+
+// Routes is the whole surface, in the order it is registered.
+//
+// Exported so the OpenAPI drift test can read it. Building it is cheap and has
+// no side effects, so a test may call it on a server it never serves from.
+func (s *Server) Routes() []Route {
+	get := func(pattern, spec string, h http.HandlerFunc) Route {
+		return Route{Method: http.MethodGet, Pattern: pattern, Spec: spec, Handler: h, Available: true}
+	}
+
+	out := []Route{
+		get("/{$}", "/", s.handlePage),
+		get("/service/{id}", "/service/{id}", s.handlePage),
+	}
 
 	// One fragment route per swappable section, named by the layout rather than
-	// hardcoded — a deployment that adds a section gets its route for free.
+	// hardcoded — a deployment that adds a section gets its route for free. The
+	// document describes them as one templated path, because which sections
+	// exist is a deployment's own choice.
 	for _, id := range s.layout.SwapTargets() {
-		s.mux.HandleFunc("GET /fragments/"+id, s.handleSection(id))
+		out = append(out, get("/fragments/"+id, "/fragments/{section}", s.handleSection(id)))
 	}
 	// Two granularities: the whole drawer, for opening one, and the pane alone,
 	// for changing which tab of an open one is showing.
-	s.mux.HandleFunc("GET /fragments/service/{id}", s.handleDrawer)
-	s.mux.HandleFunc("GET /fragments/service/{id}/pane", s.handleDrawerPane)
+	out = append(out,
+		get("/fragments/service/{id}", "/fragments/service/{id}", s.handleDrawer),
+		get("/fragments/service/{id}/pane", "/fragments/service/{id}/pane", s.handleDrawerPane),
 
-	// Registered only when push is configured. An endpoint that exists but
-	// rejects everything is still an endpoint someone can probe.
-	if s.ingest.Sink != nil && s.ingest.Token != "" {
-		s.mux.HandleFunc("POST /api/v1/ingest", s.handleIngest)
-	}
+		// The reader-facing API surface. The console and the document it renders
+		// are served everywhere, so a deployment always carries its own reference
+		// even where an operation in it is switched off.
+		get("/api", "/api", s.handleAPIConsole),
+		get("/api/openapi.json", "/api/openapi.json", s.handleOpenAPI),
+		get("/api/v1/services", "/api/v1/services", s.handleServices),
 
-	if s.example != nil {
-		s.mux.HandleFunc("GET /__example/upstream/services", s.handleExampleUpstream)
-	}
+		// A pure function over the request body: it compiles the mapping, runs it
+		// and evaluates the result, touching no state and fetching nothing. That
+		// is why it is registered whatever the driver — the point is to try a
+		// mapping out before committing to one.
+		Route{
+			Method: http.MethodPost, Pattern: "/api/v1/pull/preview",
+			Spec: "/api/v1/pull/preview", Handler: http.HandlerFunc(s.handlePullPreview),
+			Available: true,
+		},
 
-	s.mux.HandleFunc("GET /assets/theme.css", s.handleThemeCSS)
-	s.mux.Handle("GET /assets/", s.handleStatic())
+		// Registered only when push is configured. An endpoint that exists but
+		// rejects everything is still an endpoint someone can probe.
+		Route{
+			Method: http.MethodPost, Pattern: "/api/v1/ingest",
+			Spec: "/api/v1/ingest", Handler: http.HandlerFunc(s.handleIngest),
+			Available: s.ingest.Sink != nil && s.ingest.Token != "",
+		},
 
-	s.mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("content-type", "text/plain; charset=utf-8")
-		fmt.Fprintln(w, "ok")
-	})
-	s.mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
-		// Ready means there is something to serve. A dashboard with no data is
-		// not yet useful, and saying so keeps a rolling deploy from cutting
-		// traffic over to an empty page.
-		if len(s.source.Snapshot().Services) == 0 {
-			http.Error(w, "no data yet", http.StatusServiceUnavailable)
-			return
+		Route{
+			Method: http.MethodGet, Pattern: "/__example/upstream/services",
+			Spec: "/__example/upstream/services", Handler: http.HandlerFunc(s.handleExampleUpstream),
+			Available: s.example != nil,
+		},
+
+		get("/assets/theme.css", "/assets/theme.css", s.handleThemeCSS),
+		// Committed gzipped and served as it is stored, so the binary carries a
+		// megabyte rather than the four the bundle unpacks to.
+		get("/assets/"+apiReferenceAsset, "/assets/{path}", s.handleAPIReference),
+		Route{
+			Method: http.MethodGet, Pattern: "/assets/", Spec: "/assets/{path}",
+			Handler: s.handleStatic(), Available: true,
+		},
+
+		get("/healthz", "/healthz", s.handleHealth),
+		get("/readyz", "/readyz", s.handleReady),
+	)
+	return out
+}
+
+func (s *Server) routes() {
+	for _, rt := range s.Routes() {
+		if !rt.Available {
+			continue
 		}
-		w.Header().Set("content-type", "text/plain; charset=utf-8")
-		fmt.Fprintln(w, "ready")
-	})
+		s.mux.Handle(rt.Method+" "+rt.Pattern, rt.Handler)
+	}
+}
+
+func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("content-type", "text/plain; charset=utf-8")
+	fmt.Fprintln(w, "ok")
+}
+
+func (s *Server) handleReady(w http.ResponseWriter, r *http.Request) {
+	// Ready means there is something to serve. A dashboard with no data is not
+	// yet useful, and saying so keeps a rolling deploy from cutting traffic over
+	// to an empty page.
+	if len(s.source.Snapshot().Services) == 0 {
+		http.Error(w, "no data yet", http.StatusServiceUnavailable)
+		return
+	}
+	w.Header().Set("content-type", "text/plain; charset=utf-8")
+	fmt.Fprintln(w, "ready")
 }
 
 // --- rendering context -----------------------------------------------------

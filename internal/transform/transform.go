@@ -136,13 +136,13 @@ func (v Value) Time() (time.Time, bool) {
 
 // Spec is one transform as written in config.
 type Spec struct {
-	Fn string `yaml:"fn"`
+	Fn string `yaml:"fn" json:"fn"`
 	// Table is the lookup for enumMap.
-	Table map[string]string `yaml:"table"`
+	Table map[string]string `yaml:"table" json:"table,omitempty"`
 	// By is the operand for arithmetic transforms.
-	By float64 `yaml:"by"`
+	By float64 `yaml:"by" json:"by,omitempty"`
 	// Value is the fallback for `default`.
-	Value string `yaml:"value"`
+	Value string `yaml:"value" json:"value,omitempty"`
 }
 
 // Names lists every transform, for validation and documentation.

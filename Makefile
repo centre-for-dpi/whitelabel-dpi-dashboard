@@ -38,8 +38,8 @@ build: ## Build a static binary with everything embedded
 # has settled on one can drop the others; the tags are additive, so combine
 # whichever you do not need.
 #
-#   all four backends   21 MB
-#   sqlite only         17 MB
+#   all four backends   22 MB
+#   sqlite only         18 MB
 #   memory only         14 MB
 .PHONY: build-lite
 build-lite: ## Build without the database drivers (memory storage only)
@@ -93,8 +93,15 @@ proto: ## Regenerate the protobuf Go from api/**.proto (needs buf)
 	buf lint
 	buf generate
 
+# Depends on seed, because the worked examples in the document are read from the
+# committed fixtures rather than restated: an example that cannot go stale is
+# worth more than one that reads a little better.
+.PHONY: openapi
+openapi: ## Regenerate api/openapi.json from the wire contracts and the fixtures
+	$(GO) run ./cmd/openapigen -out api
+
 .PHONY: generate
-generate: proto schema seed ## Regenerate everything that is committed but derived
+generate: proto schema seed openapi ## Regenerate everything that is committed but derived
 
 # --- containers -------------------------------------------------------------
 
@@ -127,7 +134,7 @@ smoke-image: ## Prove an already-built $(IMAGE):$(TAG) serves
 	  for i in $$(seq 1 60); do \
 	    curl -fsS -o /dev/null http://127.0.0.1:18080/healthz 2>/dev/null && break || sleep 0.5; \
 	  done; \
-	  for path in / /healthz /readyz /assets/app.css /assets/app.js /assets/theme.css; do \
+	  for path in / /healthz /readyz /assets/app.css /assets/app.js /assets/theme.css /api /api/openapi.json /api/v1/services; do \
 	    code=$$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18080$$path); \
 	    test "$$code" = "200" || { echo "GET $$path -> $$code"; docker logs $$name; exit 1; }; \
 	    echo "GET $$path -> $$code"; \
@@ -242,7 +249,13 @@ lint: ## gofmt and vet
 .PHONY: drift
 drift: ## Fail if a committed generated file is out of date
 	@$(GO) run ./cmd/schemagen -check
-	@git diff --quiet -- examples/ || (echo "examples/ is out of date; run make seed" && false)
+	@$(GO) run ./cmd/openapigen -check
+	@# The two files seedgen writes, not the whole directory: examples/README.md
+	@# is prose and examples/seed-catalogue.yaml is the input it is generated
+	@# from, and reporting either as stale output sends the reader at a command
+	@# that would not change it.
+	@git diff --quiet -- examples/push/payload.json examples/upstream/services.json \
+	  || (echo "the example fixtures are out of date; run make seed" && false)
 
 .PHONY: static
 static: ## Prove the binary still builds without cgo, as the scratch image needs

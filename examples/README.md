@@ -81,6 +81,36 @@ own daily buckets from successive polls; the charts fill in over the first few
 days rather than being complete immediately. Supply it if you already have the
 history and want the charts populated from the first request.
 
+### Trying a mapping before you deploy it
+
+The dashboard polls you, so there is nothing to send it, and until the mapping is
+in `sources.yaml` and the process has restarted there is nothing to look at
+either. `POST /api/v1/pull/preview` closes that loop: send the document your API
+would serve plus the mapping you are considering, and get back what the dashboard
+would make of it — including the status it would derive.
+
+```sh
+curl -X POST http://localhost:8080/api/v1/pull/preview \
+  -H "Content-Type: application/json" \
+  --data '{
+    "document": [ { "svc": "aadhaar", "up": 0.9992 } ],
+    "mapping": {
+      "map": { "id": "$.svc", "metrics.availability": "$.up" },
+      "transform": { "metrics.availability": [ { "fn": "ratioToPercent" } ] }
+    }
+  }'
+```
+
+The `mapping` object is the same structure this file describes, key for key, so
+it moves between the two by copy and paste. Drop the `ratioToPercent` and the
+mapping still reads every field it was asked to — and every service comes back a
+major outage, which is the mistake this exists to make visible. Records the
+mapping could not read appear under `skipped` with a reason rather than
+disappearing.
+
+Nothing is fetched: the document is in the body, so the endpoint cannot be used
+to make the dashboard issue requests from inside its own network.
+
 ## Push
 
 `POST /api/v1/ingest` with a bearer token. The body is described by
@@ -139,3 +169,20 @@ honestly rather than inventing values:
 `categoryId`, `regionId`, `providerId` and `scope` must match ids declared in
 your `config/domain.yaml`. Anything unrecognised is reported at startup with the
 file and line, rather than silently producing a service that no filter can reach.
+
+## Reading it back
+
+`GET /api/v1/services` returns everything the dashboard holds, in the same wire
+format, with the derived fields alongside what you sent.
+
+## The whole surface, executable
+
+Both of the above — and the pages, the probes and the example upstream — are
+described by [`api/openapi.json`](../api/openapi.json), which is generated from
+the wire contracts and checked by `make drift`. Every deployment renders it at
+**`/api`** with each request editable and sendable against itself, so the
+comparison this file makes in prose can be made by running both.
+
+The examples on this page are the ones in that document, and the document reads
+them from the fixtures beside it — so an example that stopped working would fail
+the build rather than mislead a reader.

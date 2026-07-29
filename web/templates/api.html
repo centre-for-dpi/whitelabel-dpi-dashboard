@@ -1,0 +1,92 @@
+{{/* The API console.
+
+     A page of its own rather than a band of the dashboard, because it is for a
+     different reader: someone holding an HTTP client, not someone asking whether
+     the country's services are working.
+
+     The reference itself is rendered by a vendored web component, so unlike
+     every other page here the interior is not markup this project wrote. That is
+     a deliberate trade and it is recorded as one in docs/accessibility.md — the
+     shell below stays conformant, and the noscript block means the page still
+     says something useful when the component does not run.
+
+     RapiDoc rather than a better-known renderer for two reasons that matter to a
+     white-label deployment: it is a fifth the size, and it puts nothing of its
+     own on the page. The obvious alternative renders a "Powered by" credit, an
+     AI assistant, and a button that hands your API's address to a hosted service
+     with tracking parameters attached — none of which a government publishing its
+     own service statistics has agreed to. */}}
+{{define "api-console"}}<!doctype html>
+<html lang="{{.Locale}}" dir="{{.Direction}}"{{if .Theme}} data-theme="{{.Theme}}"{{end}}>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Title}}</title>
+<meta name="description" content="Send observations, read them back, and try a pull mapping before deploying it.">
+{{if .Favicon}}<link rel="icon" href="{{.Favicon}}">{{end}}
+<link rel="stylesheet" href="/assets/theme.css?v={{.AssetVersion}}">
+<link rel="stylesheet" href="/assets/app.css?v={{.AssetVersion}}">
+<script type="module" src="{{.ScriptURL}}"></script>
+</head>
+<body class="api-page">
+<a class="skip" href="#api">{{.SkipText}}</a>
+
+{{/* load-fonts is the one setting that must not be lost: left on, the component
+     fetches a typeface from a third party on every load, which is a request the
+     reader did not make to a host the deployment did not choose. Everything the
+     page needs is already embedded in the binary.
+
+     server-url and the two allow-* settings are what make the reference
+     executable: requests go back to the origin that served the page, so the
+     console tests the deployment it documents rather than a copy of it. */}}
+<rapi-doc
+  id="api"
+  spec-url="{{.SpecURL}}"
+  server-url="/"
+  default-api-server="/"
+  load-fonts="false"
+  render-style="focused"
+  schema-style="table"
+  show-header="false"
+  show-method-in-nav-bar="as-colored-text"
+  allow-server-selection="false"
+  allow-spec-url-load="false"
+  allow-spec-file-load="false"
+  allow-spec-file-download="true"
+  allow-authentication="true"
+  allow-try="true"
+  persist-auth="false"
+  theme="{{if eq .Theme "dark"}}dark{{else}}light{{end}}"
+  bg-color="{{.Colours.Bg}}"
+  text-color="{{.Colours.Fg}}"
+  header-color="{{.Colours.Card}}"
+  primary-color="{{.Colours.Accent}}"
+  nav-bg-color="{{.Colours.Card}}"
+  nav-text-color="{{.Colours.MutedFg}}"
+  nav-hover-text-color="{{.Colours.Fg}}"
+  nav-accent-color="{{.Colours.Accent}}"
+  regular-font="{{.Fonts.Body}}"
+  mono-font="{{.Fonts.Mono}}"
+  font-size="default">
+
+  {{/* Slotted into the component's own navigation, so the way back to the
+       dashboard survives whichever pane the reader is in. */}}
+  <div slot="nav-logo" class="api-nav-head">
+    <a class="link" href="/">{{.BackLabel}}</a>
+  </div>
+</rapi-doc>
+
+<noscript>
+  <div class="shell api-noscript">
+    <h1>{{.Title}}</h1>
+    <p>{{.NoScriptText}}</p>
+    <p><a class="link" href="{{.SpecURL}}">{{.SpecURL}}</a></p>
+
+    <pre><code>{{.CurlIngest}}</code></pre>
+    <pre><code>{{.CurlServices}}</code></pre>
+    <pre><code>{{.CurlPreview}}</code></pre>
+  </div>
+</noscript>
+</body>
+</html>
+{{end}}

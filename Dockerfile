@@ -1,4 +1,4 @@
-# A two-stage build producing a scratch image of about 21 MB.
+# A two-stage build producing a scratch image of about 22 MB.
 #
 # Scratch is possible because every dependency is pure Go — that is why
 # modernc.org/sqlite was chosen over mattn/go-sqlite3, and why CGO_ENABLED=0
