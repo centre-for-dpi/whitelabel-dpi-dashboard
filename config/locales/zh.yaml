@@ -321,3 +321,9 @@ terms:
   req.errorRateDenom: "占全部请求"
   req.vsErrorRate: "错误率说明请求多久失败一次——占全部请求的 {errorRate}。\n这项说明失败出在谁那一端——{own} 在请求方，{publisher} 在提供方。"
   req.vsErrorRateTitle: "与错误率有何不同"
+
+  # --- /api 上的 API 控制台，仅外框。
+  api.title: "API 参考"
+  api.skip: "跳到参考"
+  api.back: "返回仪表板"
+  api.noscript: "交互式参考需要 JavaScript，它所呈现的文档则不需要：那是每个端点的 OpenAPI 3.1 描述，包括本次部署实际提供的那些。"

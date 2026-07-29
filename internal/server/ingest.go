@@ -64,7 +64,7 @@ func (s *Server) handleIngest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := s.applyIngest(req)
-	s.writeIngestResponse(w, r, resp)
+	s.writeProto(w, r, resp)
 }
 
 // authorised compares the bearer token in constant time.

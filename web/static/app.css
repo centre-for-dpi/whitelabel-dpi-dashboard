@@ -614,3 +614,43 @@ table.data th { font-weight: 600; color: var(--muted-fg); }
 .requestor-facts dd { margin: 0; }
 .w-requestor .disclosure-body p { margin: 0 0 8px; }
 .w-requestor .disclosure-body p:last-child { margin: 0; }
+
+/* --- the API console -------------------------------------------------------
+ *
+ * The page at /api is a vendored renderer inside a shell this project wrote.
+ * What is here styles the shell and hands the renderer the deployment's own
+ * palette, so the reference looks like the dashboard it documents rather than
+ * like a third-party widget dropped into it.
+ */
+
+.api-head { border-block-end: 1px solid var(--border-subtle); background: var(--card); }
+.api-head-inner { display: flex; align-items: baseline; justify-content: space-between; gap: 18px; flex-wrap: wrap; padding-block: 16px; }
+.api-head h1 { margin: 0; font-size: 1.3rem; }
+
+.api-noscript { padding-block: 24px; max-width: 80ch; }
+.api-noscript h2 { font-size: 1.1rem; margin: 0 0 10px; }
+.api-noscript h3 { font-size: .92rem; margin: 22px 0 8px; }
+.api-noscript p { font-size: .9rem; line-height: 1.6; }
+.api-noscript pre {
+  overflow-x: auto; padding: 12px 14px; font-size: .8rem; line-height: 1.5;
+  background: var(--bg); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);
+}
+
+/* The renderer reads these rather than its own defaults, so a deployment that
+ * restyles theme.yaml restyles its API reference with it. Both halves are set
+ * because the renderer picks one by its own dark-mode state, which follows the
+ * `theme` cookie the rest of the dashboard already honours. */
+.api-page .light-mode,
+.api-page .dark-mode {
+  --scalar-background-1: var(--bg);
+  --scalar-background-2: var(--card);
+  --scalar-background-3: var(--border-subtle);
+  --scalar-border-color: var(--border-subtle);
+  --scalar-color-1: var(--fg);
+  --scalar-color-2: var(--muted-fg);
+  --scalar-color-3: var(--muted-fg);
+  --scalar-color-accent: var(--accent);
+  --scalar-background-accent: var(--card);
+  --scalar-radius: var(--radius-sm);
+  --scalar-radius-lg: var(--radius-lg);
+}

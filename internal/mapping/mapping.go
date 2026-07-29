@@ -29,29 +29,34 @@ import (
 )
 
 // Spec is a mapping as written in config.
+//
+// The JSON tags mirror the YAML keys exactly, because the same mapping is also
+// the body of the dry-run endpoint: a deployment trying a mapping out over HTTP
+// should be able to paste what worked straight into sources.yaml, and paste a
+// block out of sources.yaml to find out what it does.
 type Spec struct {
 	// ItemsPath selects the array of records. Empty means the document is
 	// itself the array.
-	ItemsPath string `yaml:"itemsPath"`
+	ItemsPath string `yaml:"itemsPath" json:"itemsPath,omitempty"`
 
 	// Map is field name to path into each record.
-	Map map[string]string `yaml:"map"`
+	Map map[string]string `yaml:"map" json:"map,omitempty"`
 
 	// Transform is field name to the chain applied after reading it.
-	Transform map[string][]transform.Spec `yaml:"transform"`
+	Transform map[string][]transform.Spec `yaml:"transform" json:"transform,omitempty"`
 
 	// History maps the nested daily series, if the upstream offers one.
-	History *HistorySpec `yaml:"history"`
+	History *HistorySpec `yaml:"history" json:"history,omitempty"`
 }
 
 // HistorySpec maps a nested series of daily points.
 type HistorySpec struct {
-	Path         string `yaml:"path"`
-	Date         string `yaml:"date"`
-	Availability string `yaml:"availability"`
-	ErrorRate    string `yaml:"errorRate"`
-	LatencyP50   string `yaml:"latencyP50"`
-	Volume       string `yaml:"volume"`
+	Path         string `yaml:"path" json:"path,omitempty"`
+	Date         string `yaml:"date" json:"date,omitempty"`
+	Availability string `yaml:"availability" json:"availability,omitempty"`
+	ErrorRate    string `yaml:"errorRate" json:"errorRate,omitempty"`
+	LatencyP50   string `yaml:"latencyP50" json:"latencyP50,omitempty"`
+	Volume       string `yaml:"volume" json:"volume,omitempty"`
 }
 
 // Fields lists every mappable field, for validation and documentation.

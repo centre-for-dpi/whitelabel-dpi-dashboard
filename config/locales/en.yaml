@@ -583,3 +583,10 @@ terms:
   req.errorRateDenom: "of all requests"
   req.vsErrorRate: "Error rate says how often a request failed — {errorRate} of all requests.\nThis says whose end those failures happened at — {own} the requestor's, {publisher} the issuer's."
   req.vsErrorRateTitle: "How this differs from error rate"
+
+  # --- The API console at /api. Chrome only: the reference it frames documents
+  #     an English wire contract, and is not translated. See docs/api.md.
+  api.title: "API reference"
+  api.skip: "Skip to the reference"
+  api.back: "Back to the dashboard"
+  api.noscript: "The interactive reference needs JavaScript. The document it renders does not: it is an OpenAPI 3.1 description of every endpoint, including which ones this deployment registers."

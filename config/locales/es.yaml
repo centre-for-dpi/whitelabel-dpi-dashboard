@@ -318,3 +318,9 @@ terms:
   req.errorRateDenom: "de todas las solicitudes"
   req.vsErrorRate: "La tasa de error dice con qué frecuencia falló una solicitud: {errorRate} de todas.\nEsto dice en qué lado ocurrieron esos fallos: {own} del solicitante, {publisher} del emisor."
   req.vsErrorRateTitle: "En qué se diferencia de la tasa de error"
+
+  # --- La consola de API en /api. Solo el marco.
+  api.title: "Referencia de la API"
+  api.skip: "Ir a la referencia"
+  api.back: "Volver al panel"
+  api.noscript: "La referencia interactiva necesita JavaScript. El documento que muestra, no: es una descripción OpenAPI 3.1 de cada punto de acceso, incluidos los que este despliegue registra."

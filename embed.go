@@ -31,3 +31,10 @@ var webFS embed.FS
 //
 //go:embed examples/seed-catalogue.yaml
 var examplesFS embed.FS
+
+// The published API document, so a deployment carries its own reference. It is
+// generated from the wire contracts by `make openapi` and committed, which is
+// what lets this be an embed rather than a build step.
+//
+//go:embed api/openapi.json
+var openAPIJSON []byte
