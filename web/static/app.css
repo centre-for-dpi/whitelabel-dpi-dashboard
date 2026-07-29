@@ -77,7 +77,21 @@ button, input, select { font: inherit; color: inherit; }
 .chrome-spacer { flex: 1 1 auto; }
 .chrome-link { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; font-size: .82rem; color: var(--accent); }
 .field { display: inline-flex; align-items: center; gap: 6px; font-size: .82rem; }
-.field-label { color: var(--muted-fg); }
+/* A micro-label, matching the ones over the filter groups: it names the control
+ * beside it without competing with the value the reader is actually looking
+ * for. */
+.field-label {
+  color: var(--muted-fg); font-size: .72rem; font-weight: 500;
+  letter-spacing: .16em; text-transform: uppercase;
+}
+
+/* The second bar. Sits on the page background rather than the card, so it reads
+ * as a caption on the whole dashboard rather than as another row of controls. */
+.strip { border-block-end: 1px solid var(--border-subtle); background: var(--bg); }
+.strip-inner { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding-block: 11px; }
+.platforms { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; list-style: none; margin: 0; padding: 0; }
+.platforms a { display: inline-flex; align-items: center; gap: 7px; color: var(--accent); }
+.platforms img { height: 30px; width: auto; display: block; }
 
 select, .search {
   padding: 6px 10px; border-radius: var(--radius-sm);
@@ -109,20 +123,53 @@ select:disabled { opacity: .5; cursor: not-allowed; }
 
 .band { padding-block: 40px; }
 .band:first-child { padding-block-start: 48px; }
-.band-head { margin-block-end: 18px; }
-.eyebrow { margin: 0 0 4px; font-size: .74rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted-fg); }
+.band-head {
+  margin-block-end: 18px;
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap;
+}
+.band-title { min-width: 0; }
+/* The aside reads as a footnote to the title, so it aligns to the end and its
+ * own contents stack tight against that edge. */
+.band-aside { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; text-align: end; }
+.eyebrow {
+  margin: 0 0 6px; font-size: .75rem; font-weight: 500;
+  letter-spacing: .18em; text-transform: uppercase; color: var(--muted-fg);
+}
 
+/* A display line needs display leading. Body copy is set at 1.5 for reading a
+ * paragraph; inherited by a 52px heading it opens the lines to 78px and the
+ * question stops reading as one sentence. Headings therefore set their own.
+ *
+ * pre-line is load-bearing, not cosmetic: the h1 term carries its own line
+ * breaks so a translator decides where the question folds. Balancing it
+ * automatically would override that judgement in every language at once. */
 .band h1 {
   font-size: clamp(2rem, 1.4rem + 2.4vw, 3.25rem);
-  max-width: 20ch; text-wrap: balance; margin: 0 0 8px;
+  line-height: 1.08; max-width: 22ch; white-space: pre-line; margin: 0;
 }
-.band h2 { font-size: 1.5rem; margin: 0; }
+.band h2 { font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2rem); line-height: 1.15; margin: 0; }
+/* A band whose whole name is its eyebrow. Still an h2, so the document outline
+ * has the section in it, but sized as the label it is rather than as a second
+ * headline arguing with the question above it. */
+.band h2.eyebrow { font-size: .75rem; font-weight: 500; letter-spacing: .18em; text-transform: uppercase; color: var(--muted-fg); margin: 0; }
 
 .grid {
   display: grid;
   gap: var(--gap, 14px);
   grid-template-columns: repeat(auto-fit, minmax(var(--min-col, 100%), 1fr));
 }
+/* The parts that label or summarise a grid rather than sit inside it. */
+.span-all { grid-column: 1 / -1; }
+
+/* Named columns, for a section whose parts are not interchangeable. Flex rather
+ * than grid because each column declares the width it wants and the row wraps
+ * when they no longer fit: the stacking point is then a property of the content
+ * rather than a breakpoint in this file that has to be kept in step with a
+ * layout it cannot see. */
+.cols { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--gap, 14px); }
+.col { display: flex; flex-direction: column; gap: var(--gap, 14px); min-width: 0; }
+.col-row { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 14px 20px; }
 
 .card {
   background: var(--card); border: 1px solid var(--border-subtle);
@@ -182,47 +229,115 @@ select:disabled { opacity: .5; cursor: not-allowed; }
 .w-timestamp.is-stale time { color: var(--status-partial); font-weight: 600; }
 
 .w-disclosure { font-size: .86rem; max-width: 70ch; }
-/* WCAG 2.2 SC 2.5.8 asks for 24x24 CSS px. A summary is as wide as its
+
+/* One affordance for every disclosure, wherever it appears.
+ *
+ * The table behind a chart used to be styled as muted body text with no marker,
+ * which reads as a caption rather than as a control: nothing about it said it
+ * could be opened. Setting `display` on a <summary> also suppresses the marker
+ * the browser would otherwise draw, so opting out of that default obliges us to
+ * put the affordance back.
+ *
+ * WCAG 2.2 SC 2.5.8 asks for 24x24 CSS px. A summary is as wide as its
  * container, so only the height is ever in question, and inline-flex plus a
  * min-height is what gives a one-line label a 24px box. The same reasoning
  * applies to every small control below. */
-.w-disclosure summary { cursor: pointer; color: var(--muted-fg); display: inline-flex; align-items: center; min-height: 24px; }
-.w-disclosure ul { margin: 10px 0 0; padding-inline-start: 18px; color: var(--muted-fg); }
-.w-disclosure li { margin-block: 4px; }
+.w-disclosure summary,
+.w-datatable summary {
+  cursor: pointer; color: var(--accent); font-size: .85rem; font-weight: 500;
+  display: inline-flex; align-items: center; gap: 4px; min-height: 24px;
+  list-style: none;
+}
+.w-disclosure summary::-webkit-details-marker,
+.w-datatable summary::-webkit-details-marker { display: none; }
+/* The empty alt text after the slash is the point: this arrow is a rendering of
+ * the open/closed state that <summary> already announces, so giving it an
+ * accessible name would have a reader hear the state twice. */
+.w-disclosure summary::after,
+.w-datatable summary::after { content: "▾" / ""; font-size: .8em; transition: transform var(--dur) var(--ease); }
+.w-disclosure[open] summary::after,
+.w-datatable[open] summary::after { transform: rotate(180deg); }
+/* The arrow says it is a disclosure; the underline confirms the pointer is on
+ * it. Reduced motion is handled globally, so the rotation degrades on its own. */
+.w-disclosure summary:hover,
+.w-datatable summary:hover { text-decoration: underline; }
+
+/* A disclosure whose body floats over the page rather than pushing it down.
+ * Used where the explanation qualifies something already on screen — the
+ * ranking rule beside the leaderboard title — and reflowing the whole band to
+ * make room for two sentences would move the thing being explained. */
+.w-disclosure.popover { position: relative; }
+.w-disclosure.popover .disclosure-body {
+  position: absolute; inset-inline-end: 0; top: calc(100% + 6px); z-index: 5;
+  width: max-content; max-width: min(44ch, 78vw); margin: 0; padding: 11px 13px;
+  background: var(--card); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);
+  font-size: .8rem; line-height: 1.45; color: var(--muted-fg); text-align: start;
+}
+.disclosure-body { margin: 10px 0 0; font-size: .84rem; line-height: 1.5; color: var(--muted-fg); max-width: 62ch; }
+
+.w-result-count { margin: 0; font-size: .85rem; }
+
+.w-disclosure ul { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; }
+.w-disclosure li { display: flex; gap: 10px; align-items: baseline; font-size: .86rem; line-height: 1.45; color: var(--muted-fg); }
+/* Fixed width and centred, so five glyphs of different widths still leave the
+ * sentences starting on one vertical line. */
+.rule-glyph { flex-shrink: 0; width: 1.1em; text-align: center; color: var(--status-fg); }
 
 /* --- signals -------------------------------------------------------------- */
 
 .w-signals { display: contents; }
-.signal { display: flex; gap: 12px; align-items: flex-start; }
+.signal { display: flex; flex-direction: column; gap: 10px; padding: 18px 18px 16px; }
+.signal-head { display: flex; gap: 10px; align-items: flex-start; }
 .signal-icon {
   flex-shrink: 0; width: 26px; height: 26px; border-radius: 7px;
   display: inline-flex; align-items: center; justify-content: center;
   color: var(--status-fg);
   background: color-mix(in srgb, var(--status-fg) 14%, transparent);
 }
-.signal-title { margin: 0; font-weight: 600; font-size: .92rem; }
-.signal-rule { margin: 6px 0; font-size: .8rem; border-block-start: 1px solid var(--border-subtle); padding-block-start: 6px; }
+.signal-title { margin: 0; font-weight: 600; font-size: 1.02rem; line-height: 1.25; }
+.signal-rule { margin: 0; font-size: .8rem; line-height: 1.45; border-block-start: 1px solid var(--border-subtle); padding-block-start: 10px; }
+.signal-action {
+  align-self: flex-start; margin-block-start: 2px;
+  font-size: .82rem; font-weight: 600; color: var(--accent);
+  display: inline-flex; align-items: center; gap: 4px; min-height: 24px;
+}
 
 /* --- filters -------------------------------------------------------------- */
 
 .w-filters { background: var(--card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 14px; }
 .filter-toggle { display: none; width: 100%; text-align: start; background: none; border: 0; padding: 4px; font-weight: 600; }
-.filter-row { display: flex; gap: 10px; flex-wrap: wrap; margin-block-end: 12px; }
-.search { flex: 1 1 260px; }
+.filter-row { display: flex; gap: 12px; flex-wrap: wrap; margin-block-end: 14px; align-items: flex-end; }
+.filter-field { display: flex; flex-direction: column; gap: 6px; flex: 1 1 260px; min-width: 0; }
+.filter-field-region { flex: 0 1 180px; }
+.filter-field .search, .filter-field select { width: 100%; }
+/* Every group name in the panel, whether it labels a box or a row of pills. */
+.field-legend {
+  padding: 0; font-size: .72rem; font-weight: 500;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--muted-fg);
+}
 
-.chips { display: flex; flex-wrap: wrap; gap: 8px; border: 0; padding: 0; margin: 0 0 10px; }
+.chip-group { border: 0; padding: 0; margin: 0 0 14px; min-width: 0; }
+.chip-group .field-legend { margin-block-end: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+/* Every value here has to survive a chip with no tone — the category chips carry
+ * none. An undefined custom property makes the whole declaration invalid at
+ * computed-value time, so `border: 1px solid color-mix(…var(--status-fg)…)`
+ * collapsed to border-style:none and the category pills rendered as bare text.
+ * The tone-dependent part is therefore a property of its own, set only where a
+ * tone exists, and every reference carries the untoned fallback. */
 .chip, .chip-static {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 6px 12px; border-radius: var(--radius-full); font-size: .8rem;
-  background: var(--status-bg); color: var(--status-fg);
-  border: 1px solid color-mix(in srgb, var(--status-fg) 28%, transparent);
+  background: var(--status-bg, var(--card)); color: var(--status-fg, var(--fg));
+  border: 1px solid var(--chip-border, var(--border-strong));
   cursor: pointer;
 }
+.chip[data-tone], .chip-static[data-tone] { --chip-border: color-mix(in srgb, var(--status-fg) 28%, transparent); }
 .chip input { position: absolute; opacity: 0; width: 0; height: 0; }
 .chip:has(input:checked) { box-shadow: 0 0 0 1px var(--status-fg) inset; font-weight: 600; }
 .chip:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
-.chip-cat { background: var(--card); color: var(--fg); border-color: var(--border-strong); }
-.chip-cat:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.chip-cat:has(input:checked) { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .chip-static { cursor: default; }
 /* The count is secondary to the label, but opacity is the wrong way to say so:
  * it multiplies the text towards the background, and a chip colour chosen to
@@ -234,10 +349,19 @@ select:disabled { opacity: .5; cursor: not-allowed; }
 
 /* --- leaderboard ---------------------------------------------------------- */
 
-.lb-meta { margin: 0 0 10px; font-size: .82rem; }
 .lb-period { color: var(--accent); }
 
+/* The frame is on a wrapper rather than the table: a table cannot clip its own
+ * corners, so the rounded card and the caption's full-bleed rule need an element
+ * around it. It wraps only the table, since the narrow-screen cards and the
+ * empty state carry their own. */
+.lb-frame { background: var(--card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); overflow: hidden; }
 .lb { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.lb caption {
+  caption-side: top; text-align: start; padding: 14px 16px;
+  font-size: .82rem; color: var(--muted-fg);
+  border-block-end: 1px solid var(--border-subtle);
+}
 .lb th, .lb td { padding: 10px 12px; border-block-end: 1px solid var(--border-subtle); vertical-align: top; }
 .lb th { font-size: .74rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted-fg); font-weight: 600; }
 [data-align="end"] { text-align: end; }
@@ -250,7 +374,7 @@ select:disabled { opacity: .5; cursor: not-allowed; }
 .lb-title { font-weight: 600; }
 .lb-desc, .lb-meta-line { font-size: .78rem; }
 .cell-value { display: block; font-weight: 600; }
-.cell-target, .cell-trend { display: block; font-size: .76rem; }
+.cell-target, .cell-trend, .cell-note { display: block; font-size: .76rem; }
 .cell-trend { color: var(--status-fg); }
 .rank-move { font-size: .7rem; color: var(--muted-fg); margin-inline-start: 4px; }
 
@@ -259,8 +383,11 @@ select:disabled { opacity: .5; cursor: not-allowed; }
  * rank, a service name, a status chip and a figure do not fit on one line, and
  * a nowrap row here is what pushed the whole document into horizontal
  * scrolling. min-width:0 on the name is what lets it be the part that gives. */
-.lb-card { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.lb-card { display: flex; flex-direction: column; gap: 8px; }
+.lb-card-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .lb-card-name { flex: 1 1 auto; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+.lb-card-rank { color: var(--muted-fg); font-size: .9rem; }
+.lb-card-metric { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: .82rem; }
 
 .empty { padding: 24px; text-align: center; border: 1px dashed var(--border-strong); border-radius: var(--radius-lg); color: var(--muted-fg); }
 
@@ -291,8 +418,16 @@ html.js .drawer-panel {
 @keyframes slide-in-rtl { from { transform: translateX(-100%); } }
 
 .drawer-head { position: sticky; inset-block-start: 0; background: var(--card); padding: 18px; border-block-end: 1px solid var(--border-subtle); }
-.drawer-head-row { display: flex; justify-content: space-between; align-items: center; margin-block-end: 10px; }
-.drawer-head h2 { margin: 6px 0; font-size: 1.4rem; }
+.drawer-head-row { display: flex; align-items: center; gap: 10px; margin-block-end: 6px; }
+.drawer-head-row p { margin: 0; font-size: .84rem; min-width: 0; }
+.drawer-head-row .icon-btn { margin-inline-start: auto; flex: none; }
+.drawer-head h2 { margin: 0 0 4px; font-size: 1.4rem; }
+/* The panel announces itself from its heading rather than from its close
+ * button, so opening it moves focus there. The heading is not in the tab order
+ * and cannot be reached by keyboard, so the ring the browser paints on that
+ * programmatic focus indicates nothing a reader can act on — it just outlines
+ * the title of every service anyone opens. */
+.drawer-head h2:focus, .drawer-head h2:focus-visible { outline: none; }
 .drawer-rule { font-size: .8rem; background: var(--bg); padding: 8px 10px; border-radius: var(--radius-sm); }
 .drawer-body { padding: 18px; }
 
@@ -307,20 +442,37 @@ html.js .drawer-panel {
 
 /* --- charts --------------------------------------------------------------- */
 
-.chart { margin: 0; position: relative; }
+.chart { margin: 0; }
+.chart-plot { position: relative; cursor: crosshair; touch-action: none; }
 .spark, .bars { width: 100%; display: block; }
 .spark { height: 70px; }
 .bars { height: 96px; }
-.spark-area { fill: var(--status-ok-bg); stroke: none; }
-.spark-line { fill: none; stroke: var(--accent); stroke-width: 1.6; }
 .bars rect { fill: var(--accent); }
 .overlay { fill: none; stroke: var(--status-major); stroke-width: 1.4; stroke-dasharray: 3 2; }
-.chart-axis { display: flex; justify-content: space-between; gap: 10px; font-size: .74rem; margin-block-start: 4px; flex-wrap: wrap; }
+.chart-axis { display: flex; justify-content: space-between; gap: 10px; font-size: .74rem; margin: 6px 0 0; flex-wrap: wrap; }
 
-/* Drawn by app.js on hover. Absolutely positioned against the figure, which is
- * why .chart is the positioning context. */
+/* The trace is downtime, so it is drawn in the vocabulary of a fault rather
+ * than of a reading: the area is the tint the status chips use for a major
+ * outage, and the dashed rule is the limit it is held to. */
+.spark-area { fill: var(--status-major-bg); stroke: none; }
+.spark-line { fill: none; stroke: var(--status-major); stroke-width: 1.6; }
+.spark-target { stroke: var(--status-partial); stroke-width: 1; stroke-dasharray: 4 3; }
+.spark-key { color: var(--status-partial); }
+.spark-key::before { content: "\2504"; margin-inline-end: 5px; }
+.w-spark { margin: 0; display: grid; gap: 12px; }
+.w-spark figcaption { font-size: .84rem; line-height: 1.5; }
+
+/* Drawn by app.js on hover. Absolutely positioned against the plot, which is
+ * why .chart-plot is the positioning context — against the whole figure the
+ * line would run down past the chart and through its axis labels. */
 .crosshair { position: absolute; inset-block: 0; width: 1px; background: var(--muted-fg); opacity: .4; pointer-events: none; }
 .crosshair-dot { position: absolute; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--card); transform: translate(-50%, -50%); pointer-events: none; }
+.crosshair-tip {
+  position: absolute; inset-block-start: -2px; transform: translateX(-50%);
+  background: var(--fg); color: var(--bg); font-size: .72rem; padding: 3px 8px;
+  border-radius: 6px; white-space: nowrap; pointer-events: none; z-index: 3;
+  box-shadow: var(--shadow-lg);
+}
 
 .w-barlist ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
 .w-barlist li { display: grid; grid-template-columns: auto 1fr auto auto; gap: 8px; align-items: center; font-size: .82rem; }
@@ -338,18 +490,24 @@ html.js .drawer-panel {
 .stages li.is-last .stage-dot { background: var(--accent); }
 
 .w-datatable { margin-block-start: 12px; font-size: .8rem; }
-.w-datatable summary { cursor: pointer; color: var(--muted-fg); display: inline-flex; align-items: center; min-height: 24px; }
-.w-datatable table { width: 100%; border-collapse: collapse; margin-block-start: 8px; }
-.w-datatable th, .w-datatable td { padding: 5px 8px; border-block-end: 1px solid var(--border-subtle); text-align: start; }
+
+/* The numbers behind a chart, wherever they are disclosed. Scoped to the table
+ * rather than to one widget's wrapper: the drawer builds this table twice — once
+ * from the shared data-table widget and once inline in the demand mix — and a
+ * rule keyed on the wrapper left the second one with browser defaults, so the
+ * same figures arrived unpadded and unruled on the opportunity tab. */
+table.data { width: 100%; border-collapse: collapse; margin-block-start: 8px; font-size: .8rem; }
+table.data th, table.data td { padding: 5px 8px; border-block-end: 1px solid var(--border-subtle); text-align: start; }
+table.data th { font-weight: 600; color: var(--muted-fg); }
 
 .footer { border-block-start: 1px solid var(--border-subtle); padding-block: 20px; }
-.footer-inner { display: flex; gap: 18px; flex-wrap: wrap; font-size: .8rem; color: var(--muted-fg); }
+.footer-inner { display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap; font-size: .8rem; color: var(--muted-fg); }
 .footer-inner a { display: inline-flex; align-items: center; gap: 5px; min-height: 24px; }
 
 /* --- narrow screens -------------------------------------------------------- */
 
 @media (max-width: 760px) {
-  .lb { display: none; }
+  .lb-frame { display: none; }
   .lb-cards { display: grid; }
   .filter-toggle { display: block; }
   /* Collapsed by default on a small screen, where the filters would otherwise
@@ -420,3 +578,39 @@ html.js .drawer-panel {
   .bar-seg + .bar-seg { border-inline-start-width: 2px; }
   :focus-visible { outline-width: 3px; }
 }
+
+/* --- the demand side ------------------------------------------------------ */
+
+.w-demand, .w-peers { display: grid; gap: 16px; }
+.demand-summary { margin: 0; font-size: .84rem; line-height: 1.5; }
+.demand-stats { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+.demand-chart { display: grid; gap: 8px; }
+.demand-chart .eyebrow, .w-peers .eyebrow { margin: 0; }
+
+.demand-bars, .peer-bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.demand-bars li, .peer-bars li {
+  display: grid; grid-template-columns: 1fr auto; gap: 4px 10px;
+  align-items: baseline; font-size: .84rem;
+}
+.demand-label, .peer-label { min-width: 0; overflow-wrap: anywhere; }
+.demand-count, .peer-value { white-space: nowrap; font-weight: 600; }
+.demand-track, .peer-track {
+  grid-column: 1 / -1; height: 6px; background: var(--border-subtle);
+  border-radius: var(--radius-full); overflow: hidden;
+}
+.demand-fill, .peer-fill { display: block; height: 100%; width: var(--w); background: var(--muted-fg); }
+
+/* The bar the reader came here about. Marked by weight and by the accent, not
+ * by colour alone — the same distinction has to survive a greyscale print and a
+ * reader who cannot separate the two hues. */
+.demand-bars .is-mine, .peer-bars .is-mine { font-weight: 700; color: var(--accent); }
+.demand-bars .is-mine .demand-fill, .peer-bars .is-mine .peer-fill { background: var(--accent); }
+
+.demand-note, .peer-rule { margin: 0; font-size: .78rem; line-height: 1.45; }
+.peer-group { display: grid; gap: 8px; }
+.peer-title { margin: 0; font-size: .84rem; font-weight: 600; }
+.w-requestor { display: grid; gap: 12px; }
+.requestor-facts { display: grid; gap: 10px; margin: 0; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.requestor-facts dd { margin: 0; }
+.w-requestor .disclosure-body p { margin: 0 0 8px; }
+.w-requestor .disclosure-body p:last-child { margin: 0; }

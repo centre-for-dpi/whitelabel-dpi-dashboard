@@ -21,6 +21,32 @@ onboardedDenominator: 812
 scopes: [national, state]
 defaultScope: national
 
+# The two sides of a data exchange. An issuer publishes a document or a
+# verification API; a requestor is an organisation that calls it to complete a
+# task for someone.
+#
+# The role narrows what the board ranks, exactly as scope does: requestors are
+# ranked against requestors. A deployment that only reports one side declares
+# one role here and never renders the switch.
+roles:
+  - { id: issuer, termId: chrome.role.issuer, captionTermId: lb.caption.issuer }
+  - { id: requestor, termId: chrome.role.requestor, captionTermId: lb.caption.requestor }
+defaultRole: issuer
+
+# The exchanges this dashboard reports on. Named and linked in the strip under
+# the header, so a reader can tell whose numbers these are and go and look.
+#
+# The mark is a file under web/static rather than a data URI: the prototype had
+# to inline it to stay a single file, and a served asset is cacheable, themable
+# and inspectable in a way an escaped blob in a config file is not.
+platforms:
+  - id: plat.digilocker
+    termId: plat.digilocker
+    href: https://www.digilocker.gov.in/
+    logo: logos/digilocker.svg
+    logoWidth: 212
+    logoHeight: 52
+
 # Selectable comparison windows. `days` is the lookback used for trend deltas
 # and is data rather than a parsed suffix, so a deployment can add "quarter" or
 # "sinceLaunch" without a code change.
@@ -66,6 +92,23 @@ taxonomy:
     - { id: reg.mp, termId: reg.mp, scope: state }
     - { id: reg.br, termId: reg.br, scope: state }
 
+  # What line of business a requestor is in. Only the demand side has one: a
+  # bank and a lender pulling the same document are two sectors making the same
+  # request, and that is the shape of demand a publisher needs to see.
+  sectors:
+    - { id: sec.banking, termId: sec.banking }
+    - { id: sec.lending, termId: sec.lending }
+    - { id: sec.insurance, termId: sec.insurance }
+    - { id: sec.fintech, termId: sec.fintech }
+    - { id: sec.telecom, termId: sec.telecom }
+    - { id: sec.education, termId: sec.education }
+    - { id: sec.hr, termId: sec.hr }
+    - { id: sec.enterprise, termId: sec.enterprise }
+    - { id: sec.logistics, termId: sec.logistics }
+    - { id: sec.health, termId: sec.health }
+    - { id: sec.publicSector, termId: sec.publicSector }
+    - { id: sec.utilities, termId: sec.utilities }
+
   providers:
     - { id: prov.uidai, termId: prov.uidai }
     - { id: prov.meity, termId: prov.meity }
@@ -106,9 +149,11 @@ metrics:
     precision: 2
     target: 99.5
     direction: higher-is-better
-    # Shown in the drawer, not on the board: the board speaks in downtime, and
-    # showing both would be the same fact twice in adjacent columns.
+    # Declared but shown nowhere: it is the number the targets are set against
+    # and the number downtime is derived from, and the reader is shown the
+    # derivation rather than both halves of it.
     showInLeaderboard: false
+    showInDrawer: false
 
   # Downtime is availability's complement, and it is what the leaderboard shows.
   #
@@ -125,6 +170,7 @@ metrics:
     complementOf: metric.availability
     direction: lower-is-better
     showInLeaderboard: true
+    showInDrawer: true
 
   - id: metric.errorRate
     termId: metric.errorRate
@@ -134,6 +180,7 @@ metrics:
     target: 1.0
     direction: lower-is-better
     showInLeaderboard: true
+    showInDrawer: true
 
   - id: metric.latencyP50
     termId: metric.latencyP50
@@ -143,18 +190,21 @@ metrics:
     target: 300
     direction: lower-is-better
     showInLeaderboard: false
+    showInDrawer: true
 
-  # Traffic has no target — more requests is neither good nor bad. It earns its
-  # place by framing the success count: "2,900,000 of 2,920,000 succeeded".
+  # Traffic has no target — more requests is neither good nor bad. What earns
+  # the tile its place is the share of them that succeeded, framed by the two
+  # counts it was computed from: "99.8%", over "40,961 of 41,039".
   - id: metric.volume
     termId: metric.volume
     field: volume
-    unit: count
-    precision: 0
+    unit: percent
+    precision: 1
     direction: neutral
     framing: denominator
     denominatorOf: metric.availability
     showInLeaderboard: false
+    showInDrawer: true
 
 # ---------------------------------------------------------------------------
 # THRESHOLDS
@@ -254,6 +304,73 @@ signals:
     tone: maintenance
     filter:
       status: [maintenance]
+
+# ---------------------------------------------------------------------------
+# OPPORTUNITIES
+#
+# The demand-side mirror of the signals above, and deliberately the same
+# contract: each rule is evaluated independently, and each card prints the rule
+# it applied. What differs is the question. An attention signal asks who is not
+# getting a service; an opportunity asks what is being issued that nobody is
+# consuming.
+#
+# Drop this list and the dashboard has no demand side — which is the right
+# answer for a deployment that only reports one end of the exchange.
+# ---------------------------------------------------------------------------
+opportunities:
+  - id: opp.rarelyRequested
+    kind: issuedAtScaleRarelyRequested
+    titleTermId: opp.rarelyRequested.title
+    ruleTermId: opp.rarelyRequested.rule
+    actionTermId: opp.viewDocuments
+    iconKey: opp.rarelyRequested
+    tone: accent
+    filter:
+      role: issuer
+
+  - id: opp.singleRequestor
+    kind: singleRequestorCategories
+    titleTermId: opp.singleRequestor.title
+    ruleTermId: opp.singleRequestor.rule
+    actionTermId: opp.viewSectors
+    iconKey: opp.singleRequestor
+    tone: accent
+    # A category resting this heavily on one caller loses the whole category
+    # when that caller stops.
+    concentration: 90
+    filter:
+      role: requestor
+
+  - id: opp.zeroRequestors
+    kind: zeroRequestors
+    titleTermId: opp.zeroRequestors.title
+    ruleTermId: opp.zeroRequestors.rule
+    actionTermId: opp.viewDocuments
+    iconKey: opp.zeroRequestors
+    tone: accent
+    # Long enough to have been adopted. An API published last week with no
+    # requestors is not a finding, it is a new API.
+    days: 90
+    filter:
+      role: issuer
+
+  - id: opp.fastestGrowing
+    kind: fastestGrowingDemand
+    titleTermId: opp.fastestGrowing.title
+    ruleTermId: opp.fastestGrowing.rule
+    actionTermId: opp.viewTrend
+    iconKey: opp.growing
+    tone: ok
+    days: 30
+    # One service, so the card points at it rather than at a filter that would
+    # show it beside services the finding is not about.
+    focusTab: opportunity
+
+# The same for the demand side.
+opportunitiesEmpty:
+  termId: opp.empty
+  iconKey: ui.check
+  tone: ok
 
 # Shown when no signal fired. Configured rather than hardcoded for the same
 # reason every other card is: "nothing to report" is a statement the deployment

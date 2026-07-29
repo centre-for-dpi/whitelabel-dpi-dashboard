@@ -3,6 +3,7 @@ package widget
 import (
 	"errors"
 	"fmt"
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -24,10 +25,11 @@ func Default() *Registry {
 	r := NewRegistry()
 	for _, d := range []Definition{
 		headingDef(), statusSummaryDef(), segmentedBarDef(), legendDef(),
-		coverageDef(), timestampDef(), disclosureDef(), ctaButtonDef(),
-		signalCardsDef(), filterBarDef(), leaderboardDef(),
+		coverageDef(), timestampDef(), disclosureDef(), resultCountDef(), ctaButtonDef(),
+		signalCardsDef(), signalTabsDef(), filterBarDef(), leaderboardDef(),
 		statTileDef(), sparklineDef(), barChartDef(), barListDef(),
 		timelineDef(), dataTableDef(), proseDef(),
+		demandMixDef(), peerBarsDef(), requestorDetailDef(),
 	} {
 		r.Register(d)
 	}
@@ -296,13 +298,16 @@ func coverageDef() Definition {
 type TimestampView struct {
 	ISO      string
 	Absolute string
-	Relative string
-	Stale    bool
+	// Text is the whole sentence — "Updated 4 minutes ago" — because the word
+	// in front of the interval is not the same word, or in the same place, in
+	// every language.
+	Text  string
+	Stale bool
 }
 
 func timestampDef() Definition {
 	schema := OptionSchema{
-		"termId":     {Kind: KindString, Doc: "Term receiving {when}."},
+		"termId":     {Kind: KindString, Required: true, Doc: "Term receiving {rel}."},
 		"staleAfter": {Kind: KindInt, Doc: "Seconds after which the timestamp is marked stale."},
 	}
 	return Definition{
@@ -314,7 +319,9 @@ func timestampDef() Definition {
 			v := TimestampView{
 				ISO:      at.UTC().Format(time.RFC3339),
 				Absolute: c.Text.DateTime(at),
-				Relative: c.Text.RelativeTime(at, c.Now),
+				Text: c.Text.Text(o.String(schema, "termId"), map[string]any{
+					"rel": c.Text.RelativeTime(at, c.Now),
+				}),
 			}
 			// Data quietly going stale is the failure mode a status dashboard
 			// can least afford, so it is called out rather than left to be
@@ -329,38 +336,123 @@ func timestampDef() Definition {
 
 // --- disclosure ------------------------------------------------------------
 
+// DisclosureRule is one published threshold, marked by the status it decides.
+type DisclosureRule struct {
+	Status string
+	Tone   string
+	Icon   Icon
+	Text   string
+}
+
 // DisclosureView is the collapsible "how status is decided" block.
 type DisclosureView struct {
 	Summary string
-	Items   []string
-	Open    bool
+	Items   []DisclosureRule
+	// Body is a single paragraph, for a disclosure that explains one thing
+	// rather than listing the five status rules.
+	Body  string
+	Class string
+	Open  bool
 }
 
 func disclosureDef() Definition {
 	schema := OptionSchema{
 		"summaryTermId": {Kind: KindString, Required: true, Doc: "Term for the clickable summary line."},
+		"bodyTermId":    {Kind: KindString, Doc: "Term for a single-paragraph body, instead of the threshold rules."},
+		"class":         {Kind: KindString, Doc: "Extra class, e.g. \"popover\" to float the body over the page."},
 		"open":          {Kind: KindBool, Doc: "Start expanded."},
 	}
 	return Definition{
 		Type: "disclosure", Template: "disclosure", Schema: schema,
-		Sources: []string{SourceConfigThresholdProse},
-		Doc:     "The published rules, with the live threshold numbers filled in.",
+		Sources: []string{SourceConfigThresholdProse}, SourceOptional: true,
+		Doc: "A collapsible explanation: either the published threshold rules, or one configured paragraph.",
+		Validate: func(o Options, b Bind, _ ValidationContext) []error {
+			// One or the other. With neither, the disclosure opens onto
+			// nothing; with both, a paragraph would be followed by an unrelated
+			// list of five rules it had already answered.
+			hasBody := o.String(schema, "bodyTermId") != ""
+			if !hasBody && b.Source == "" {
+				return []error{fmt.Errorf(
+					"disclosure needs either a bodyTermId or a bind to %s; with neither it has nothing to show",
+					SourceConfigThresholdProse)}
+			}
+			if hasBody && b.Source != "" {
+				return []error{fmt.Errorf(
+					"disclosure has both a bodyTermId and a bind to %q; it renders one or the other, so only one can be meant",
+					b.Source)}
+			}
+			return nil
+		},
 		Build: func(c Context, o Options) (any, error) {
 			d := c.Config.Domain
 			params := rules.ProseParams(d.Thresholds.Values)
 
 			v := DisclosureView{
 				Summary: c.Text.Text(o.String(schema, "summaryTermId"), nil),
+				Class:   o.String(schema, "class"),
 				Open:    o.Bool(schema, "open"),
 			}
-			// In evaluation order, because that is the order they are applied
-			// and the reader is being told how the verdict was reached.
-			for _, status := range d.Thresholds.EvaluationOrder {
+			// A prose body and the threshold list are alternatives: one explains
+			// a single rule, the other enumerates five. Rendering both would put
+			// an unrelated list under a paragraph that had already answered.
+			if term := o.String(schema, "bodyTermId"); term != "" {
+				v.Body = c.Text.Text(term, params)
+				return v, nil
+			}
+			// In statusModel order, the same order the legend and the bar use.
+			// The reader has just read that sequence twice; reversing it here
+			// to expose the evaluator's internal precedence made the same five
+			// states appear in two different orders on one screen.
+			sm := d.StatusModel
+			for _, status := range sm.Order {
 				term, ok := d.Thresholds.Prose[status]
 				if !ok {
 					continue
 				}
-				v.Items = append(v.Items, c.Text.Text(term, params))
+				v.Items = append(v.Items, DisclosureRule{
+					Status: status,
+					Tone:   tone(status),
+					Icon:   c.Icons.Icon(sm.IconKey[status]),
+					Text:   c.Text.Text(term, params),
+				})
+			}
+			return v, nil
+		},
+	}
+}
+
+// --- result count ----------------------------------------------------------
+
+// ResultCountView says how much of the scope is on screen, and over what window.
+type ResultCountView struct {
+	Text        string
+	PeriodLabel string
+}
+
+func resultCountDef() Definition {
+	schema := OptionSchema{
+		"termId": {Kind: KindString, Required: true, Doc: "Term receiving {shown} and {total}."},
+		"showPeriod": {Kind: KindBool, Default: true,
+			Doc: "Append the window the figures cover."},
+	}
+	return Definition{
+		Type: "result-count", Template: "result-count", Schema: schema,
+		Sources: []string{SourceServicesFiltered, SourceServicesScoped},
+		Doc:     "How many services are showing out of the scope, and the window they are measured over.",
+		Build: func(c Context, o Options) (any, error) {
+			v := ResultCountView{
+				Text: c.Text.Text(o.String(schema, "termId"), map[string]any{
+					"shown": len(c.Ordered), "total": len(c.RoleScoped),
+				}),
+			}
+			// The window belongs next to the count because every figure in the
+			// table is read over it, and so is the ranking.
+			if o.Bool(schema, "showPeriod") {
+				for _, p := range c.Config.Domain.Periods {
+					if p.ID == c.State.Period {
+						v.PeriodLabel = c.Text.Text(p.TermID, nil)
+					}
+				}
 			}
 			return v, nil
 		},
@@ -409,17 +501,38 @@ type SignalCard struct {
 	// or open one service.
 	FilterStatuses   []string
 	FilterCategories []string
-	ServiceID        string
-	ServiceTab       string
-	Empty            bool
+	// FilterIDs names services with nothing else in common, and FilterRole the
+	// side of the exchange the finding is about — which may not be the side the
+	// board is currently showing.
+	FilterIDs  []string
+	FilterRole string
+	ServiceID  string
+	ServiceTab string
+	Empty      bool
+
+	// Href and FragmentHref are where the action goes, as a page and as a swap.
+	//
+	// A card's filter replaces the reader's rather than narrowing it further: the
+	// card claims a count, and merging its filter into an existing search would
+	// show fewer than it claimed. Everything that is not a filter — the language,
+	// the scope, the period, the role — is carried, because none of that changes
+	// what the finding is about.
+	Href         string
+	FragmentHref string
 }
 
 // SignalCardsView is the row of findings.
-type SignalCardsView struct{ Cards []SignalCard }
+type SignalCardsView struct {
+	Cards []SignalCard
+	// ActionIcon is shared by every card, so it is resolved once here rather
+	// than per card.
+	ActionIcon Icon
+}
 
 func signalCardsDef() Definition {
 	schema := OptionSchema{
-		"actionTermId": {Kind: KindString, Doc: "Term for the card's action link."},
+		"actionTermId":  {Kind: KindString, Doc: "Term for the card's action link."},
+		"actionIconKey": {Kind: KindString, Doc: "Icon rendered after the action label."},
 	}
 	return Definition{
 		Type: "signal-cards", Template: "signal-cards", Schema: schema,
@@ -431,12 +544,12 @@ func signalCardsDef() Definition {
 				action = c.Text.Text(term, nil)
 			}
 
-			v := SignalCardsView{}
+			v := SignalCardsView{ActionIcon: c.Icons.Icon(o.String(schema, "actionIconKey"))}
 			for _, s := range c.Signals() {
 				// rules reports a raw span because it has no formatter and
 				// should not acquire one; turning it into "3 hours" in the
 				// reader's language is presentation, and belongs here.
-				params := s.Params
+				params := resolveTerms(c, s.Params)
 				if secs, ok := params["seconds"].(int64); ok {
 					params = withDuration(params, c.Text.Duration(time.Duration(secs)*time.Second))
 				}
@@ -454,19 +567,142 @@ func signalCardsDef() Definition {
 					card.Rule = c.Text.Text(s.RuleTermID, params)
 				}
 				if !s.Empty {
+					// A card's own action label wins: an opportunity leads
+					// somewhere different from a fault — to a list of documents,
+					// or to a trend — and "view affected" would be a guess.
 					card.ActionLabel = action
+					if s.ActionTermID != "" {
+						card.ActionLabel = c.Text.Text(s.ActionTermID, nil)
+					}
 				}
 				if s.Filter != nil {
 					card.FilterStatuses = s.Filter.Status
 					card.FilterCategories = s.Filter.Category
+					card.FilterIDs = s.Filter.IDs
+					card.FilterRole = s.Filter.Role
 				}
 				if s.Focus != nil {
 					card.ServiceID = s.Focus.ServiceID
 					card.ServiceTab = s.Focus.Tab
 				}
+				card.Href, card.FragmentHref = signalAction(c, card)
 				v.Cards = append(v.Cards, card)
 			}
 			return v, nil
+		},
+	}
+}
+
+// signalAction is where a card's action goes, in the three shapes it takes:
+// open one service, switch the board's role and narrow it, or narrow it in
+// place.
+//
+// The filter parameters are set from the card even when the card names none,
+// because an empty value deletes: the card is stating the whole filter, so
+// whatever the reader had applied before has to go with it. The search box goes
+// too, for the same reason.
+func signalAction(c Context, card SignalCard) (href, fragment string) {
+	if card.ServiceID != "" {
+		return c.Href("/service/"+card.ServiceID, ParamTab, card.ServiceTab),
+			c.Href("/fragments/service/"+card.ServiceID, ParamTab, card.ServiceTab)
+	}
+
+	filter := []string{
+		ParamStatus, strings.Join(card.FilterStatuses, ","),
+		ParamCat, strings.Join(card.FilterCategories, ","),
+		ParamID, strings.Join(card.FilterIDs, ","),
+		ParamSearch, "",
+	}
+	if card.FilterRole != "" {
+		// A finding about the other side of the exchange. The whole page has to
+		// change, not just the board: the role switch above it, the counts beside
+		// it and the caption under it are all about the population the reader is
+		// being sent to.
+		withRole := append([]string{ParamRole, card.FilterRole}, filter...)
+		return c.Href("/", withRole...), c.Href("/", withRole...)
+	}
+	return c.Href("/", filter...), c.Href("/fragments/leaderboard", filter...)
+}
+
+// resolveTerms translates the parameters that name something rather than
+// stating it. A finding about one service knows it by its term id, because the
+// rules layer has no resolver and should not acquire one.
+func resolveTerms(c Context, params map[string]any) map[string]any {
+	var out map[string]any
+	for k, v := range params {
+		ref, ok := v.(rules.TermRef)
+		if !ok {
+			continue
+		}
+		if out == nil {
+			out = make(map[string]any, len(params))
+			for k2, v2 := range params {
+				out[k2] = v2
+			}
+		}
+		out[k] = c.Text.Text(string(ref), nil)
+	}
+	if out == nil {
+		return params
+	}
+	return out
+}
+
+// --- signal tabs -----------------------------------------------------------
+
+// SignalTab is one set of findings a reader can switch to.
+type SignalTab struct {
+	Value  string
+	Label  string
+	Active bool
+	// Href and FragmentHref select this set. Which findings are on view says
+	// nothing about which services are, so the board's filters are carried
+	// rather than cleared.
+	Href         string
+	FragmentHref string
+}
+
+// SignalTabsView is the control that chooses which findings the band shows.
+type SignalTabsView struct {
+	Label string
+	Tabs  []SignalTab
+}
+
+func signalTabsDef() Definition {
+	schema := OptionSchema{
+		"labelTermId":       {Kind: KindString, Required: true, Doc: "Accessible name for the group."},
+		"attentionTermId":   {Kind: KindString, Required: true, Doc: "Term for the what-is-broken tab."},
+		"opportunityTermId": {Kind: KindString, Required: true, Doc: "Term for the unmet-demand tab."},
+	}
+	return Definition{
+		Type: "signal-tabs", Template: "signal-tabs", Schema: schema,
+		Doc: "Which set of findings the signals band shows: faults, or unmet demand.",
+		Build: func(c Context, o Options) (any, error) {
+			// Two rules, two tabs. A deployment reporting only supply declares
+			// no opportunities, and gets no control it cannot use.
+			if len(c.Config.Domain.Opportunities) == 0 {
+				return SignalTabsView{}, nil
+			}
+			active := c.State.SignalTab
+			return SignalTabsView{
+				Label: c.Text.Text(o.String(schema, "labelTermId"), nil),
+				Tabs: []SignalTab{
+					{
+						Value:        query.SignalsAttention,
+						Label:        c.Text.Text(o.String(schema, "attentionTermId"), nil),
+						Active:       active != query.SignalsOpportunity,
+						Href:         c.Href("/", ParamSignals, query.SignalsAttention),
+						FragmentHref: c.Href("/fragments/signals", ParamSignals, query.SignalsAttention),
+					},
+					{
+						Value:        query.SignalsOpportunity,
+						Label:        c.Text.Text(o.String(schema, "opportunityTermId"), nil),
+						Active:       active == query.SignalsOpportunity,
+						Href:         c.Href("/", ParamSignals, query.SignalsOpportunity),
+						FragmentHref: c.Href("/fragments/signals", ParamSignals, query.SignalsOpportunity),
+					},
+				},
+			}, nil
 		},
 	}
 }
@@ -497,6 +733,11 @@ type FilterBarView struct {
 	ResultText    string
 	ApplyLabel    string
 	ClearLabel    string
+	// ClearHref and ClearFragmentHref drop the filters and nothing else. Pointed
+	// at a bare "/" they also dropped the language, the period and the role,
+	// which are not filters and were never what the reader asked to clear.
+	ClearHref         string
+	ClearFragmentHref string
 	// The fieldset legends, which are visually hidden and read aloud. They were
 	// hardcoded English for as long as they were, because nothing that appears
 	// on screen shows them — an Arabic screen-reader user heard "status".
@@ -506,15 +747,30 @@ type FilterBarView struct {
 	// in English, on a page translated into eight languages — and it is an
 	// accessible name, so it is the one string on that control anybody hears.
 	RegionLabel string
+	// SearchPlaceholder is the hint inside the box, which says what is
+	// searchable. The label above says only what the box is.
+	SearchPlaceholder string
+	// FiltersLabel names the narrow-screen panel, carrying how many filters are
+	// applied so a collapsed panel still says the board is narrowed.
+	FiltersLabel string
 	// Expanded is whether the narrow-screen panel is showing.
 	Expanded bool
+	// Hidden is everything the reader has chosen that this form has no control
+	// for. A GET form submits its own fields and nothing else, so without these
+	// narrowing the board silently reset the language, the period, the role and
+	// the sort to the deployment's defaults.
+	Hidden []Hidden
 }
 
 func filterBarDef() Definition {
 	schema := OptionSchema{
-		"searchTermId": {Kind: KindString, Doc: "Placeholder term for the search box."},
-		"resultTermId": {Kind: KindString, Doc: "Term receiving {n}, announced to screen readers."},
-		"showRegions":  {Kind: KindBool, Default: true, Doc: "Offer the region selector."},
+		"searchTermId":            {Kind: KindString, Doc: "Label term for the search box."},
+		"searchPlaceholderTermId": {Kind: KindString, Doc: "Placeholder term saying what is searchable."},
+		"resultTermId":            {Kind: KindString, Doc: "Term receiving {n}, announced to screen readers."},
+		"showRegions":             {Kind: KindBool, Default: true, Doc: "Offer the region selector."},
+		"allRegionsTermId":        {Kind: KindString, Default: "flt.all", Doc: "Label for the region option meaning every region."},
+		"filtersTermId":           {Kind: KindString, Default: "flt.title", Doc: "Name of the narrow-screen filter panel."},
+		"filtersAppliedTermId":    {Kind: KindString, Default: "flt.applied", Doc: "Panel name receiving {n} when filters are applied."},
 		// Both controls exist only without JavaScript, which is exactly why
 		// their labels were still hardcoded English: nothing that renders in a
 		// normal browser session shows them.
@@ -529,7 +785,7 @@ func filterBarDef() Definition {
 		Doc: "Search, status chips, category chips and the region selector.",
 		Build: func(c Context, o Options) (any, error) {
 			d := c.Config.Domain
-			counts := c.View.Counts(c.Scoped)
+			counts := c.View.Counts(c.RoleScoped)
 
 			v := FilterBarView{
 				Search:      c.State.Search,
@@ -541,6 +797,9 @@ func filterBarDef() Definition {
 			}
 			if term := o.String(schema, "searchTermId"); term != "" {
 				v.SearchLabel = c.Text.Text(term, nil)
+			}
+			if term := o.String(schema, "searchPlaceholderTermId"); term != "" {
+				v.SearchPlaceholder = c.Text.Text(term, nil)
 			}
 			if term := o.String(schema, "resultTermId"); term != "" {
 				// {n}, not {count}: the shipped term is a plural whose argument
@@ -571,12 +830,26 @@ func filterBarDef() Definition {
 					Active: slices.Contains(c.State.Statuses, s),
 				})
 			}
+			// Categories are counted over the same population the status chips
+			// are, and one with nothing in it is dropped: a chip that can only
+			// ever lead to the empty state is an offer the data cannot keep.
+			// An active one stays whatever its count, or the reader would lose
+			// the control they are currently filtered by.
+			catCounts := make(map[string]int, len(d.Taxonomy.Categories))
+			for _, sv := range c.RoleScoped {
+				catCounts[sv.CategoryID]++
+			}
 			for _, cat := range d.Taxonomy.Categories {
+				active := slices.Contains(c.State.Categories, cat.ID)
+				if catCounts[cat.ID] == 0 && !active {
+					continue
+				}
 				v.Categories = append(v.Categories, Chip{
 					Value:  cat.ID,
 					Label:  c.Text.Text(cat.TermID, nil),
 					Icon:   c.Icons.Icon(cat.IconKey),
-					Active: slices.Contains(c.State.Categories, cat.ID),
+					Count:  c.Text.Number(float64(catCounts[cat.ID]), 0),
+					Active: active,
 				})
 			}
 
@@ -588,9 +861,20 @@ func filterBarDef() Definition {
 					if r.Scope != c.State.Scope && r.Scope != d.DefaultScope {
 						continue
 					}
+					// The default scope's own region doubles as the "every
+					// region" choice, so it is labelled as what it does here —
+					// "All" — rather than as the bucket it happens to be.
+					// Reading "National" while looking at a list of states says
+					// the opposite of what choosing it means.
+					label := c.Text.Text(r.TermID, nil)
+					if r.Scope == d.DefaultScope {
+						if term := o.String(schema, "allRegionsTermId"); term != "" {
+							label = c.Text.Text(term, nil)
+						}
+					}
 					v.Regions = append(v.Regions, Chip{
 						Value:  r.ID,
-						Label:  c.Text.Text(r.TermID, nil),
+						Label:  label,
 						Active: c.State.Region == r.ID,
 					})
 				}
@@ -603,6 +887,23 @@ func filterBarDef() Definition {
 			}
 			v.AppliedCount = f.Count()
 			v.ClearVisible = f.Active()
+
+			// Everything except what this form renders itself, plus `tab`: the
+			// form's action is the board, and a tab names a panel of a drawer
+			// that submitting it closes.
+			v.Hidden = c.HiddenExcept(
+				ParamSearch, ParamRegion, ParamStatus, ParamCat, ParamFilters, ParamTab)
+
+			cleared := []string{ParamSearch, "", ParamStatus, "", ParamCat, "", ParamID, ""}
+			v.ClearHref = c.Href("/", cleared...)
+			v.ClearFragmentHref = c.Href("/fragments/leaderboard", cleared...)
+
+			v.FiltersLabel = c.Text.Text(o.String(schema, "filtersTermId"), nil)
+			if v.AppliedCount > 0 {
+				if term := o.String(schema, "filtersAppliedTermId"); term != "" {
+					v.FiltersLabel = c.Text.Text(term, map[string]any{"n": v.AppliedCount})
+				}
+			}
 			return v, nil
 		},
 	}
@@ -622,10 +923,20 @@ type Column struct {
 	// screen reader; nothing was telling anyone looking at the screen, so the
 	// two glyphs icons.yaml has always declared for this went unused.
 	SortIcon Icon
+	// Href and FragmentHref reorder the board. They carry the whole reader
+	// state, filters included, which is why the link needs nothing included from
+	// the filter form: a request assembled from two sources would send `sort`
+	// twice and the reader's language not at all.
+	Href         string
+	FragmentHref string
 }
 
 // Cell is one measurement in a row.
 type Cell struct {
+	// Label names the measurement. The table has column headers and does not
+	// need it; a narrow-screen card has no header row, and a bare "0.28%" there
+	// says nothing about what was measured.
+	Label     string
 	Value     string
 	Target    string
 	Trend     string
@@ -653,8 +964,11 @@ type RowCell struct {
 	Align string
 
 	// Rank.
-	Rank          string
-	RankMove      Icon
+	Rank     string
+	RankMove Icon
+	// RankMoveBy is how many places, shown beside the arrow. Empty when the
+	// rank did not move, where a number would be noise.
+	RankMoveBy    string
 	RankMoveLabel string
 
 	// Name.
@@ -694,6 +1008,12 @@ type Row struct {
 	Rank        string
 	Cells       []RowCell
 
+	// Href and FragmentHref open this service's drawer, as a page and as a
+	// fragment. They are on the row as well as on its name cell because a narrow
+	// screen renders the row as one card-shaped link rather than as cells.
+	Href         string
+	FragmentHref string
+
 	// Worst is the single figure a screen too narrow for a table shows.
 	Worst Cell
 }
@@ -716,7 +1036,7 @@ type LeaderboardView struct {
 func leaderboardDef() Definition {
 	schema := OptionSchema{
 		"columns":       {Kind: KindStringList, Required: true, Doc: "Column keys, in order: rank, name, status, or a metric id."},
-		"captionTermId": {Kind: KindString, Doc: "Term describing the table, for screen readers."},
+		"captionTermId": {Kind: KindString, Doc: "Term describing the table. A role declaring its own caption overrides this."},
 		"emptyTermId":   {Kind: KindString, Doc: "Term shown when the filter matches nothing."},
 		"showingTermId": {Kind: KindString, Doc: "Term receiving {shown} and {total}."},
 		"mobileCards":   {Kind: KindBool, Default: true, Doc: "Fall back to cards on a narrow screen."},
@@ -751,19 +1071,29 @@ func leaderboardDef() Definition {
 			keys := o.StringList(schema, "columns")
 
 			v := LeaderboardView{
-				Total: len(c.Scoped),
+				Total: len(c.RoleScoped),
 				Shown: len(c.Ordered),
 				Empty: len(c.Ordered) == 0,
 			}
-			if term := o.String(schema, "captionTermId"); term != "" {
-				v.Caption = c.Text.Text(term, nil)
+			// The rule that ordered the board is the same whichever role is on
+			// view, but what is being ordered is not — so the sentence saying
+			// so comes from the role when the role has one.
+			caption := o.String(schema, "captionTermId")
+			for _, role := range d.Roles {
+				if role.ID == c.State.Role && role.CaptionTermID != "" {
+					caption = role.CaptionTermID
+					break
+				}
+			}
+			if caption != "" {
+				v.Caption = c.Text.Text(caption, nil)
 			}
 			if term := o.String(schema, "emptyTermId"); term != "" {
-				v.EmptyText = c.Text.Text(term, map[string]any{"total": len(c.Scoped)})
+				v.EmptyText = c.Text.Text(term, map[string]any{"total": len(c.RoleScoped)})
 			}
 			if term := o.String(schema, "showingTermId"); term != "" {
 				v.ShowingText = c.Text.Text(term, map[string]any{
-					"shown": len(c.Ordered), "total": len(c.Scoped),
+					"shown": len(c.Ordered), "total": len(c.RoleScoped),
 				})
 			}
 			for _, p := range d.Periods {
@@ -795,6 +1125,8 @@ func leaderboardDef() Definition {
 				} else {
 					col.NextDir = query.DefaultDirection(key)
 				}
+				col.Href = c.Href("/", ParamSort, key, ParamDir, col.NextDir)
+				col.FragmentHref = c.Href("/fragments/leaderboard", ParamSort, key, ParamDir, col.NextDir)
 				v.Columns = append(v.Columns, col)
 			}
 
@@ -842,6 +1174,12 @@ func buildRow(c Context, sv model.Service, keys []string) Row {
 		StatusIcon:  c.Icons.Icon(sm.IconKey[status]),
 		StatusTone:  tone(status),
 		Rank:        c.Text.Number(float64(c.Ranks[sv.ID]), 0),
+		// Both routes to the drawer carry the reader's state. Built without it,
+		// the fragment request arrives with an empty query and the drawer is
+		// rendered from the deployment's defaults — in English, at the default
+		// period, for the default role — beside a page that is none of those.
+		Href:         c.Href("/service/" + sv.ID),
+		FragmentHref: c.Href("/fragments/service/" + sv.ID),
 	}
 
 	var metrics []Cell
@@ -854,8 +1192,8 @@ func buildRow(c Context, sv model.Service, keys []string) Row {
 				Kind:         CellName,
 				Align:        "start",
 				Name:         r.Name,
-				Href:         "/service/" + sv.ID,
-				FragmentHref: "/fragments/service/" + sv.ID,
+				Href:         r.Href,
+				FragmentHref: r.FragmentHref,
 				Description:  c.Text.Text(sv.DescTermID, nil),
 				Category:     c.Text.Text(sv.CategoryID, nil),
 				CategoryIcon: c.Icons.Icon(categoryIcon(d, sv.CategoryID)),
@@ -887,12 +1225,17 @@ func buildRow(c Context, sv model.Service, keys []string) Row {
 func rankCell(c Context, sv model.Service, rank string) RowCell {
 	cell := RowCell{Kind: CellRank, Align: "start", Rank: rank}
 
+	// The size of the move is shown, not only announced. An arrow alone says a
+	// service moved; whether it moved one place or eleven is the part worth
+	// reading, and it was reaching screen readers and nobody else.
 	switch {
 	case sv.RankMovement > 0:
 		cell.RankMove = c.Icons.Icon("rank.up")
+		cell.RankMoveBy = c.Text.Number(float64(sv.RankMovement), 0)
 		cell.RankMoveLabel = c.Text.Text("lb.rank.up", map[string]any{"n": int(sv.RankMovement)})
 	case sv.RankMovement < 0:
 		cell.RankMove = c.Icons.Icon("rank.down")
+		cell.RankMoveBy = c.Text.Number(float64(-sv.RankMovement), 0)
 		cell.RankMoveLabel = c.Text.Text("lb.rank.down", map[string]any{"n": int(-sv.RankMovement)})
 	default:
 		cell.RankMove = c.Icons.Icon("rank.same")
@@ -904,7 +1247,7 @@ func rankCell(c Context, sv model.Service, rank string) RowCell {
 func buildCell(c Context, sv model.Service, m config.Metric) Cell {
 	st := c.View.Standing(sv)
 
-	cell := Cell{}
+	cell := Cell{Label: c.Text.Text(m.TermID, nil)}
 	// Downtime is derived from availability, so an absent availability leaves it
 	// just as unknown as availability itself.
 	if !st.Availability.Valid && (m.Field == config.FieldAvailability || m.Field == config.FieldDowntime) {
@@ -916,6 +1259,17 @@ func buildCell(c Context, sv model.Service, m config.Metric) Cell {
 	}
 
 	cell.Value = formatMetric(c, m, st)
+	// A count framed by another figure renders as the share it represents:
+	// "Successful requests — 99.8%", over "40,961 of 41,039". Both come from
+	// the same two numbers, which a window-summed volume could not manage:
+	// history keeps daily totals, not how many of them succeeded, so summing
+	// it and framing it with the latest reading printed two figures that
+	// disagreed.
+	if m.Framing == config.FramingDenominator {
+		if vol := sv.Metrics.Volume; vol.Total > 0 {
+			cell.Value = formatValue(c, m, float64(vol.Success)/float64(vol.Total)*100)
+		}
+	}
 	// ResolvedTarget rather than m.Target, or a complement renders with no target
 	// at all — the number it is measured against lives on the metric it
 	// complements.
@@ -926,14 +1280,28 @@ func buildCell(c Context, sv model.Service, m config.Metric) Cell {
 			term = "metric.targetMax"
 		}
 		cell.Target = c.Text.Text(term, map[string]any{
-			"v": formatValue(c, m, *target),
+			"v": formatTarget(c, m, *target),
 		})
 	}
 
 	tr := rules.Trend(sv.History, m.Field, c.View.Days)
 	if tr.Direction != model.DirectionFlat {
+		// A movement is in the units of the field, which is not always what the
+		// value is in: a denominator-framed metric renders a share to a decimal
+		// place and moves in whole requests.
+		precision := m.Precision
+		if m.Framing == config.FramingDenominator {
+			precision = 0
+		}
+		// Signed, so the figure stands on its own. The arrow beside it says
+		// which way and whether that is good news; the number should not need
+		// the arrow to be read as a movement rather than a level.
+		delta := c.Text.Number(tr.Delta, precision)
+		if tr.Delta > 0 {
+			delta = "+" + delta
+		}
 		cell.Trend = c.Text.Text("metric.trend", map[string]any{
-			"delta": c.Text.Number(tr.Delta, m.Precision),
+			"delta": delta,
 			"days":  int(tr.PeriodDays),
 		})
 		cell.TrendIcon = c.Icons.Icon("trend." + string(tr.Direction))
@@ -979,14 +1347,40 @@ func formatMetric(c Context, m config.Metric, st query.Standing) string {
 }
 
 func formatValue(c Context, m config.Metric, v float64) string {
+	return formatAt(c, m, v, m.Precision)
+}
+
+// formatTarget renders the figure a reading is measured against.
+//
+// A target is a round number somebody chose, and printing it at the reading's
+// precision misrepresents it: "at most 0.50%" reads as a limit set to two
+// decimal places, when what was set was a half of one per cent. So it carries
+// only the digits it has, capped at the metric's precision — 0.5 stays "0.5%",
+// 1.0 becomes "1%", and a target of 99.55 is not rounded away.
+func formatTarget(c Context, m config.Metric, v float64) string {
+	return formatAt(c, m, v, significantDigits(v, m.Precision))
+}
+
+func formatAt(c Context, m config.Metric, v float64, precision int) string {
 	switch m.Unit {
 	case config.UnitPercent:
-		return c.Text.Percent(v, m.Precision)
+		return c.Text.Percent(v, precision)
 	case config.UnitMillisecond:
-		return c.Text.Unit(v, "millisecond", m.Precision)
+		return c.Text.Unit(v, "millisecond", precision)
 	default:
-		return c.Text.Number(v, m.Precision)
+		return c.Text.Number(v, precision)
 	}
+}
+
+// significantDigits is how many decimal places v actually uses, up to max.
+func significantDigits(v float64, max int) int {
+	for d := range max {
+		scale := math.Pow(10, float64(d))
+		if math.Abs(math.Round(v*scale)-v*scale) < 1e-9 {
+			return d
+		}
+	}
+	return max
 }
 
 func worstCell(cells []Cell) Cell {
@@ -1054,14 +1448,17 @@ func statTileDef() Definition {
 
 // --- sparkline -------------------------------------------------------------
 
-// SparklineView is the availability trace.
+// SparklineView is one measurement traced over the window.
 type SparklineView struct {
 	chart.Sparkline
 	ViewBox  string
 	MinLabel string
 	MaxLabel string
-	Summary  string
-	Days     int
+	// TargetLabel names the dashed rule — "target 0.5%" — so the line is not a
+	// decoration whose meaning the reader has to guess.
+	TargetLabel string
+	Summary     string
+	Days        int
 
 	// PointData is the plotted positions as "x,y;x,y", for the crosshair.
 	//
@@ -1069,11 +1466,17 @@ type SparklineView struct {
 	// re-deriving the scale, and far smaller than the data it came from — the
 	// alternative is shipping ninety days of history to draw one dot.
 	PointData string
+	// ReadData is what the crosshair says, one entry per point, in the same
+	// order: "0.05% · 12 Jun". Formatted here rather than in the browser
+	// because a number and a date are the two things a page must not format
+	// for itself — the reader's locale decides both.
+	ReadData string
 }
 
 func sparklineDef() Definition {
 	schema := OptionSchema{
 		"summaryTermId": {Kind: KindString, Doc: "Term describing the chart, for screen readers."},
+		"targetTermId":  {Kind: KindString, Doc: "Term labelling the target line, receiving {v}."},
 	}
 	return Definition{
 		Type: "sparkline", Template: "sparkline", Schema: schema,
@@ -1087,8 +1490,24 @@ func sparklineDef() Definition {
 			if days == 0 {
 				days = c.View.Days
 			}
+
+			// The series is stored as availability whichever way it is drawn;
+			// downtime is its complement, held to the complement of its target.
+			opts := chart.DefaultSparkOptions()
+			var target *float64
+			if c.Bind.Field == config.FieldDowntime {
+				if m := metricByField(c.Config.Domain, config.FieldDowntime); m != nil {
+					target = c.Config.Domain.ResolvedTarget(*m)
+				}
+				if target != nil {
+					opts = chart.DowntimeSparkOptions(*target)
+				} else {
+					opts.Complement = true
+				}
+			}
+
 			history := lastN(c.Service.History, days)
-			s := chart.Spark(history, chart.DefaultSparkOptions(), chart.SparkViewport)
+			s := chart.Spark(history, opts, chart.SparkViewport)
 
 			v := SparklineView{
 				Sparkline: s,
@@ -1100,6 +1519,12 @@ func sparklineDef() Definition {
 				v.MinLabel = c.Text.Percent(s.Min, 2)
 				v.MaxLabel = c.Text.Percent(s.Max, 2)
 				v.PointData = encodePoints(s.Points)
+				v.ReadData = encodeReadouts(c, s)
+			}
+			if term := o.String(schema, "targetTermId"); term != "" && target != nil {
+				v.TargetLabel = c.Text.Text(term, map[string]any{
+					"v": c.Text.Percent(*target, significantDigits(*target, 2)),
+				})
 			}
 			if term := o.String(schema, "summaryTermId"); term != "" {
 				v.Summary = c.Text.Text(term, map[string]any{
@@ -1109,6 +1534,32 @@ func sparklineDef() Definition {
 			return v, nil
 		},
 	}
+}
+
+// encodeReadouts renders what the crosshair says at each point.
+//
+// Tab-separated, because a middot and a comma are both plausible inside a
+// localised date and a tab is not.
+func encodeReadouts(c Context, s chart.Sparkline) string {
+	var b strings.Builder
+	for i, v := range s.Values {
+		if i > 0 {
+			b.WriteByte('\t')
+		}
+		b.WriteString(c.Text.Percent(v, 2))
+		b.WriteString(" · ")
+		b.WriteString(c.Text.Date(s.Days[i]))
+	}
+	return b.String()
+}
+
+func metricByField(d config.Domain, field string) *config.Metric {
+	for i := range d.Metrics {
+		if d.Metrics[i].Field == field {
+			return &d.Metrics[i]
+		}
+	}
+	return nil
 }
 
 func lastN(h []model.HistoryPoint, n int) []model.HistoryPoint {

@@ -51,7 +51,7 @@
      "4 minutes ago" stays readable without hiding when that actually was. */}}
 {{define "widget/timestamp"}}
 <p class="w w-timestamp muted{{if .Stale}} is-stale{{end}}">
-  <time datetime="{{.ISO}}" title="{{.Absolute}}">{{.Relative}}</time>
+  <time datetime="{{.ISO}}" title="{{.Absolute}}">{{.Text}}</time>
 </p>
 {{end}}
 
@@ -68,35 +68,63 @@
 {{/* The published rules, with the live numbers in them. A reader who disagrees
      with a verdict can read exactly what produced it. */}}
 {{define "widget/disclosure"}}
-<details class="w w-disclosure"{{if .Open}} open{{end}}>
+<details class="w w-disclosure{{if .Class}} {{.Class}}{{end}}"{{if .Open}} open{{end}}>
   <summary>{{.Summary}}</summary>
+  {{if .Body}}
+  <p class="disclosure-body">{{.Body}}</p>
+  {{else}}
   <ul>
-    {{range .Items}}<li>{{.}}</li>{{end}}
+    {{range .Items}}<li data-tone="{{.Tone}}"><span class="rule-glyph">{{template "icon" .Icon}}</span><span>{{.Text}}</span></li>{{end}}
   </ul>
+  {{end}}
 </details>
+{{end}}
+
+
+{{/* How much of the scope is on screen, and the window every figure beside it
+     is read over. */}}
+{{define "widget/result-count"}}
+<p class="w w-result-count muted tnum">
+  {{.Text}}{{if .PeriodLabel}} · <span class="lb-period">{{.PeriodLabel}}</span>{{end}}
+</p>
 {{end}}
 
 
 {{define "widget/signal-cards"}}
 <div class="w w-signals">
   {{range .Cards}}
+  {{/* The rule is the card's evidence, so it spans the card rather than being
+       indented under the title as a caption would be. That means the icon and
+       the title are their own row, not siblings of everything below. */}}
   <article class="card signal" data-tone="{{.Tone}}">
-    <span class="signal-icon" data-tone="{{.Tone}}">{{template "icon" .Icon}}</span>
-    <div class="signal-body">
+    <div class="signal-head">
+      <span class="signal-icon" data-tone="{{.Tone}}">{{template "icon" .Icon}}</span>
       <p class="signal-title">{{.Title}}</p>
-      {{if .Rule}}<p class="signal-rule muted">{{.Rule}}</p>{{end}}
-      {{if .ActionLabel}}
-        {{if .ServiceID}}
-        <a class="link" href="/service/{{.ServiceID}}{{query "tab" .ServiceTab}}"
-           hx-get="/fragments/service/{{.ServiceID}}{{query "tab" .ServiceTab}}"
-           hx-target="#drawer-host" hx-swap="innerHTML" hx-push-url="true">{{.ActionLabel}}</a>
-        {{else}}
-        <a class="link" href="/{{query "status" (join .FilterStatuses ",") "cat" (join .FilterCategories ",")}}#leaderboard"
-           hx-get="/fragments/leaderboard{{query "status" (join .FilterStatuses ",") "cat" (join .FilterCategories ",")}}"
-           hx-target="#leaderboard" hx-swap="outerHTML" hx-push-url="true">{{.ActionLabel}}</a>
-        {{end}}
-      {{end}}
     </div>
+    {{if .Rule}}<p class="signal-rule muted">{{.Rule}}</p>{{end}}
+    {{if .ActionLabel}}
+      {{/* Both addresses are assembled in Go, from the reader's state. Built
+           here from the card's filter alone, they stated the finding and
+           discarded the language, the scope and the period it was found
+           under — so the board arrived narrowed and in the wrong language. */}}
+      {{if .ServiceID}}
+      <a class="signal-action" href="{{.Href}}"
+         hx-get="{{.FragmentHref}}"
+         hx-target="#drawer-host" hx-swap="innerHTML" hx-push-url="true">{{.ActionLabel}} {{template "icon" $.ActionIcon}}</a>
+      {{else if .FilterRole}}
+      {{/* A finding about the other side of the exchange. The whole page has to
+           change, not just the board: the role switch above it, the counts
+           beside it and the caption under it are all about the population the
+           reader is being sent to. */}}
+      <a class="signal-action" href="{{.Href}}#leaderboard"
+         hx-get="{{.FragmentHref}}"
+         hx-target="body" hx-push-url="true">{{.ActionLabel}} {{template "icon" $.ActionIcon}}</a>
+      {{else}}
+      <a class="signal-action" href="{{.Href}}#leaderboard"
+         hx-get="{{.FragmentHref}}"
+         hx-target="#leaderboard" hx-swap="outerHTML" hx-push-url="true">{{.ActionLabel}} {{template "icon" $.ActionIcon}}</a>
+      {{end}}
+    {{end}}
   </article>
   {{end}}
 </div>
@@ -124,4 +152,22 @@
   </p>
   {{end}}
 </div>
+{{end}}
+
+
+{{/* Which findings are on view. A segmented group of real links, like the scope
+     and role switches, because it selects what the band is about rather than
+     filtering what is already in it. */}}
+{{define "widget/signal-tabs"}}
+{{if .Tabs}}
+<div class="w segmented" role="group" aria-label="{{.Label}}">
+  {{range .Tabs}}
+  <a class="segment{{if .Active}} is-active{{end}}"
+     href="{{.Href}}#signals"
+     hx-get="{{.FragmentHref}}"
+     hx-target="#signals" hx-swap="outerHTML" hx-push-url="true"
+     {{if .Active}}aria-current="true"{{end}}>{{.Label}}</a>
+  {{end}}
+</div>
+{{end}}
 {{end}}

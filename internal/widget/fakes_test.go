@@ -217,9 +217,13 @@ func ctx(services []model.Service, mutate ...func(*widget.Context)) widget.Conte
 		View:     v,
 		Snapshot: model.Snapshot{Services: services, GeneratedAt: now.Add(-4 * time.Minute)},
 		Scoped:   scoped,
-		Filtered: filtered,
-		Ordered:  ordered,
-		Ranks:    ranks,
+		// The board's own universe. The fixture declares one role, so it is
+		// the same list as Scoped — which is exactly what a deployment
+		// reporting one side of the exchange sees.
+		RoleScoped: scoped,
+		Filtered:   filtered,
+		Ordered:    ordered,
+		Ranks:      ranks,
 		State: widget.State{
 			Scope: "national", Period: "30d",
 			Sort: query.SortRank, Dir: query.Asc,

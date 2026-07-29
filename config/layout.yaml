@@ -37,9 +37,27 @@ pages:
       # -------------------------------------------------------------------
       - id: verdict
         swap: /fragments/verdict
-        grid: { gap: 18px }
+        # The parts of this band are not interchangeable, so its tracks are
+        # named rather than auto-fitted: the question spans the measure, the
+        # figures want most of what is left, and the sentences explaining what
+        # the words mean want a column beside them rather than a paragraph
+        # wedged between a tally and the bar that restates it.
+        grid:
+          gap: 20px 48px
+          columns:
+            - { name: question, basis: "1 1 100%" }
+            - { name: figures, basis: "1 1 540px" }
+            - { name: meaning, basis: "1 1 260px" }
+            # Full width, so it wraps onto its own line under both, and laid out
+            # as a row so the button and the two lines beside it read as one
+            # statement rather than a stack.
+            - { name: actions, basis: "1 1 100%", direction: row }
+            # The published rules, last: an answer to a question the reader only
+            # has once they have seen the verdict.
+            - { name: notes, basis: "1 1 100%" }
         widgets:
           - type: heading
+            column: question
             options:
               termId: verdict.h1
               scoped: true # reads differently in the national and state views
@@ -48,6 +66,7 @@ pages:
               id: verdict-title
 
           - type: status-summary
+            column: figures
             bind: { source: aggregate.statusCounts }
             options:
               allWellTermId: verdict.allClear
@@ -59,6 +78,7 @@ pages:
           # Each term may pick out words with <strong>, <em> or
           # <mark tone="…">, and nothing else. See internal/prose.
           - type: prose
+            column: meaning
             options:
               termIds:
                 - verdict.kicker1
@@ -66,6 +86,7 @@ pages:
                 - verdict.kicker3
 
           - type: segmented-bar
+            column: figures
             bind: { source: aggregate.statusCounts }
             options:
               labelTermId: verdict.barLabel
@@ -74,15 +95,21 @@ pages:
               hideBelow: 480px
 
           - type: legend
+            column: figures
             bind: { source: aggregate.statusCounts }
 
+          # The button and the two lines qualifying it share a row rather than
+          # stacking: they are one statement about the verdict above, and three
+          # separate lines of grey read as three separate claims.
           - type: cta-button
+            column: actions
             options:
               termId: verdict.findService
               target: "#leaderboard"
               iconKey: ui.arrow
 
           - type: timestamp
+            column: actions
             bind: { source: aggregate.updatedAt }
             options:
               termId: verdict.updated
@@ -91,6 +118,7 @@ pages:
               staleAfter: 900
 
           - type: coverage
+            column: actions
             bind: { source: aggregate.coverage }
             options:
               termId: verdict.coverage
@@ -98,6 +126,7 @@ pages:
           # The published rules, with the live threshold numbers filled in from
           # domain.yaml — so the rule shown is provably the rule applied.
           - type: disclosure
+            column: notes
             bind: { source: config.thresholdProse }
             options:
               summaryTermId: legend.title
@@ -110,12 +139,34 @@ pages:
       # -------------------------------------------------------------------
       - id: signals
         swap: /fragments/signals
+        # The band's own name is set as an eyebrow rather than a title: it is a
+        # label for the cards below, not a second headline competing with the
+        # question at the top of the page. It is still a real h2, so the outline
+        # a screen reader builds has the section in it.
+        heading:
+          titleTermId: sig.eyebrow
+          # The band names what it is showing, and it shows two different
+          # things.
+          variants:
+            opportunity: opp.eyebrow
+          level: 2
+          class: eyebrow
+        # Which set of findings is on view — beside the band's name rather than
+        # under it, because it qualifies the heading rather than belonging to
+        # the cards.
+        aside:
+          - type: signal-tabs
+            options:
+              labelTermId: sig.tabsLabel
+              attentionTermId: sig.tab.attention
+              opportunityTermId: sig.tab.opportunity
         grid: { minColWidth: 240px, gap: 14px }
         widgets:
           - type: signal-cards
             bind: { source: aggregate.signals }
             options:
               actionTermId: sig.viewAffected
+              actionIconKey: ui.arrow
 
       # -------------------------------------------------------------------
       # THE LEADERBOARD
@@ -132,10 +183,25 @@ pages:
           titleTermId: lb.title
           level: 2
           class: serif
+        # Beside the title rather than under the filters: how much of the scope
+        # is showing, and the rule that decided the order. Both qualify the
+        # board, and reading them after the controls that produced them states
+        # the answer before the question.
+        aside:
+          - type: result-count
+            bind: { source: services.filtered }
+            options:
+              termId: lb.showing
+          - type: disclosure
+            options:
+              summaryTermId: lb.rankRuleTitle
+              bodyTermId: lb.rankRule
+              class: popover
         widgets:
           - type: filter-bar
             options:
               searchTermId: flt.searchLabel
+              searchPlaceholderTermId: flt.searchPlaceholder
               resultTermId: flt.results
               showRegions: true
 
@@ -146,9 +212,10 @@ pages:
               # Anything that is not rank, name or status must be a metric id
               # the deployment actually declares.
               columns: [rank, name, status, metric.downtime, metric.errorRate]
-              captionTermId: lb.caption
+              # Shown above the table, not only announced. A leaderboard is
+              # ambiguous about which end is good, and this is where it says.
+              captionTermId: lb.caption.issuer
               emptyTermId: flt.empty
-              showingTermId: lb.showing
               mobileCards: true
 
 # -----------------------------------------------------------------------------
@@ -162,16 +229,105 @@ drawer:
       titleTermId: dr.tab.overview
       grid: { minColWidth: 150px, gap: 12px }
       widgets:
-        # One tile per metric, so adding a metric to domain.yaml adds a tile
-        # without touching this file.
+        # What a requestor is, rather than how it is doing: what it calls, how
+        # it subscribes, and whose failures its error rate is counting. Renders
+        # as nothing for an issuer, which requests nothing.
+        - type: requestor-detail
+          span: true
+          bind: { source: service.demand }
+          options:
+            callsTermId: req.callsLabel
+            subscriptionTermId: req.subscription
+            ownErrorsTermId: req.ownErrors
+            ownDenomTermId: req.ownErrorsDenom
+            publisherTermId: req.publisherErrors
+            titleTermId: req.vsErrorRateTitle
+            explainTermId: req.vsErrorRate
+            ruleTermId: req.ownErrorsRule
+
+        # The label above the tiles rather than a caption under them: a reader
+        # scanning down the panel needs to know what the four numbers are
+        # before reading them.
+        - type: heading
+          span: true
+          options:
+            termId: dr.metrics
+            level: 3
+            class: eyebrow
+
+        # One tile per metric the deployment shows here, so adding a metric to
+        # domain.yaml adds a tile without touching this file.
         - type: stat-tile
-          repeatOver: config.metrics.rendered
+          repeatOver: config.metrics.drawer
           bind: { source: service.metric }
 
+        - type: heading
+          span: true
+          options:
+            termId: dr.spark
+            level: 3
+            class: eyebrow
+
+        # Downtime, not availability: the drawer then speaks the same
+        # vocabulary as the board that led the reader here, and higher on the
+        # chart means worse on both.
         - type: sparkline
-          bind: { source: service.history, field: availability }
+          span: true
+          bind:
+            source: service.history
+            field: downtime
+            # Fixed at the full history regardless of the period control: this
+            # is the long view the tiles above do not give, and a trace that
+            # shrank to a week when the reader narrowed the board would answer
+            # the same question twice instead.
+            days: 90
           options:
             summaryTermId: dr.spark.summary
+            # The same phrase as a tile's target note, and the same term, so the
+            # chart and the number beside it can never word it differently.
+            targetTermId: metric.target
+
+    # THE DEMAND SIDE OF ONE SERVICE.
+    #
+    # Who pulls this document, and how that compares with everything like it.
+    # The peer block is the backbone rather than a footnote: most APIs have one
+    # requestor or none, so a mix of callers has nothing to say about them,
+    # while every service — including one nobody has onboarded against — can be
+    # read against its own category's median and best.
+    - id: opportunity
+      titleTermId: dr.tab.opportunity
+      grid: { gap: 20px }
+      widgets:
+        - type: demand-mix
+          bind: { source: service.demand }
+          options:
+            days: 30
+            requestorsTermId: dr.opp.requestors
+            growthTermId: dr.opp.growth
+            bySectorTermId: dr.opp.bySector
+            byRequestorTermId: dr.opp.byNamedRequestor
+            byPublisherTermId: dr.opp.byRequestor
+            sectorColTermId: dr.opp.sector
+            requestorColTermId: dr.opp.requestorCol
+            countColTermId: dr.opp.pulls
+            shareColTermId: dr.opp.share
+            tableTermId: dr.datatable
+            truncatedTermId: dr.opp.truncated
+            issuerTermId: dr.opp.summary.issuer
+            requestorTermId: dr.opp.summary.requestor
+            noneTermId: dr.opp.summary.none
+
+        - type: peer-bars
+          bind: { source: service.peers }
+          options:
+            titleTermId: dr.opp.peers
+            issuanceTermId: dr.opp.peerIssuance
+            requestorsTermId: dr.opp.peerRequestors
+            thisTermId: dr.opp.thisOne
+            medianTermId: dr.opp.median
+            bestTermId: dr.opp.best
+            ruleTermId: dr.opp.peerRule
+            noPeersTermId: dr.opp.noPeers
 
     - id: errors
       titleTermId: dr.tab.errors

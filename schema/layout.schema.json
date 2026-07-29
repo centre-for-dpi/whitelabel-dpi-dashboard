@@ -13,6 +13,24 @@
               "grid": {
                 "additionalProperties": false,
                 "properties": {
+                  "columns": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "basis": {
+                          "type": "string"
+                        },
+                        "direction": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
                   "gap": {
                     "type": "string"
                   },
@@ -62,6 +80,8 @@
                             "service.history",
                             "service.errorBreakdown",
                             "service.incidents",
+                            "service.demand",
+                            "service.peers",
                             "config.thresholdProse",
                             "config.metrics",
                             "config.categories",
@@ -74,6 +94,9 @@
                       },
                       "type": "object"
                     },
+                    "column": {
+                      "type": "string"
+                    },
                     "options": {
                       "additionalProperties": {},
                       "type": "object"
@@ -81,13 +104,16 @@
                     "repeatOver": {
                       "enum": [
                         "config.metrics.leaderboard",
-                        "config.metrics.rendered",
+                        "config.metrics.drawer",
                         "config.statuses",
                         "config.categories",
                         "config.periods",
                         "config.regions"
                       ],
                       "type": "string"
+                    },
+                    "span": {
+                      "type": "boolean"
                     },
                     "type": {
                       "enum": [
@@ -96,14 +122,19 @@
                         "coverage",
                         "cta-button",
                         "data-table",
+                        "demand-mix",
                         "disclosure",
                         "filter-bar",
                         "heading",
                         "leaderboard-table",
                         "legend",
+                        "peer-bars",
                         "prose",
+                        "requestor-detail",
+                        "result-count",
                         "segmented-bar",
                         "signal-cards",
+                        "signal-tabs",
                         "sparkline",
                         "stat-tile",
                         "status-summary",
@@ -142,9 +173,73 @@
             "items": {
               "additionalProperties": false,
               "properties": {
+                "aside": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "bind": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "days": {
+                            "type": "integer"
+                          },
+                          "field": {
+                            "type": "string"
+                          },
+                          "metric": {
+                            "type": "string"
+                          },
+                          "overlay": {
+                            "type": "string"
+                          },
+                          "source": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "column": {
+                        "type": "string"
+                      },
+                      "options": {
+                        "additionalProperties": {},
+                        "type": "object"
+                      },
+                      "repeatOver": {
+                        "type": "string"
+                      },
+                      "span": {
+                        "type": "boolean"
+                      },
+                      "type": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
                 "grid": {
                   "additionalProperties": false,
                   "properties": {
+                    "columns": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "basis": {
+                            "type": "string"
+                          },
+                          "direction": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
                     "gap": {
                       "type": "string"
                     },
@@ -173,6 +268,12 @@
                     },
                     "titleTermId": {
                       "type": "string"
+                    },
+                    "variants": {
+                      "additionalProperties": {
+                        "type": "string"
+                      },
+                      "type": "object"
                     }
                   },
                   "type": [
@@ -222,6 +323,8 @@
                               "service.history",
                               "service.errorBreakdown",
                               "service.incidents",
+                              "service.demand",
+                              "service.peers",
                               "config.thresholdProse",
                               "config.metrics",
                               "config.categories",
@@ -234,6 +337,9 @@
                         },
                         "type": "object"
                       },
+                      "column": {
+                        "type": "string"
+                      },
                       "options": {
                         "additionalProperties": {},
                         "description": "Settings for this widget type. Unknown options are rejected at startup; run `make validate` to see what each accepts.",
@@ -243,13 +349,16 @@
                         "description": "Render once per item of a configured collection, so adding a metric to domain.yaml adds a tile without touching the layout.",
                         "enum": [
                           "config.metrics.leaderboard",
-                          "config.metrics.rendered",
+                          "config.metrics.drawer",
                           "config.statuses",
                           "config.categories",
                           "config.periods",
                           "config.regions"
                         ],
                         "type": "string"
+                      },
+                      "span": {
+                        "type": "boolean"
                       },
                       "type": {
                         "enum": [
@@ -258,14 +367,19 @@
                           "coverage",
                           "cta-button",
                           "data-table",
+                          "demand-mix",
                           "disclosure",
                           "filter-bar",
                           "heading",
                           "leaderboard-table",
                           "legend",
+                          "peer-bars",
                           "prose",
+                          "requestor-detail",
+                          "result-count",
                           "segmented-bar",
                           "signal-cards",
+                          "signal-tabs",
                           "sparkline",
                           "stat-tile",
                           "status-summary",

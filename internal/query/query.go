@@ -158,12 +158,17 @@ type Filter struct {
 	Statuses   []string
 	Categories []string
 	Search     string
+	// IDs narrows to an explicit set. A finding can be about services with
+	// nothing else in common — no shared status, no shared category — and the
+	// only honest way to show exactly those is to name them.
+	IDs []string
 }
 
 // Active reports whether the filter narrows anything, which decides whether the
 // interface offers to clear it.
 func (f Filter) Active() bool {
-	return len(f.Statuses) > 0 || len(f.Categories) > 0 || strings.TrimSpace(f.Search) != ""
+	return len(f.Statuses) > 0 || len(f.Categories) > 0 || len(f.IDs) > 0 ||
+		strings.TrimSpace(f.Search) != ""
 }
 
 // Count reports how many distinct kinds of narrowing are applied. It is the
@@ -174,6 +179,9 @@ func (f Filter) Count() int {
 		n++
 	}
 	if len(f.Categories) > 0 {
+		n++
+	}
+	if len(f.IDs) > 0 {
 		n++
 	}
 	if strings.TrimSpace(f.Search) != "" {
@@ -214,6 +222,70 @@ func (v View) Scope(services []model.Service, scope, region string) []model.Serv
 	return out
 }
 
+// Role narrows to one side of the exchange.
+//
+// The same kind of narrowing as Scope, and for the same reason: requestors are
+// ranked against requestors, counted against requestors, and filtered within
+// requestors. A board that mixed a document API with the bank calling it would
+// be ranking two different things against one measure.
+//
+// A record with no role belongs to the deployment's default, so data reported
+// before the demand side existed reads as the supply side rather than
+// disappearing.
+func (v View) Role(services []model.Service, role string) []model.Service {
+	// A deployment that declares no roles is not making the distinction, so
+	// there is nothing to narrow to — and narrowing anyway would drop every
+	// record that arrived carrying a role the config never mentioned.
+	if len(v.Domain.Roles) == 0 {
+		return services
+	}
+	if role == "" {
+		role = v.Domain.DefaultRole
+	}
+	out := make([]model.Service, 0, len(services))
+	for _, sv := range services {
+		if v.roleOf(sv) != role {
+			continue
+		}
+		out = append(out, sv)
+	}
+	return out
+}
+
+func (v View) roleOf(sv model.Service) string {
+	if sv.RoleID == "" {
+		return v.Domain.DefaultRole
+	}
+	return sv.RoleID
+}
+
+// The two sets of findings the signals band can show.
+const (
+	SignalsAttention   = "attention"
+	SignalsOpportunity = "opportunity"
+)
+
+// SignalTabFor resolves a requested findings tab, falling back to attention:
+// what is broken is the question a status dashboard exists to answer, so it is
+// what an unrecognised selection lands on.
+func SignalTabFor(d config.Domain, tab string) string {
+	if tab == SignalsOpportunity && len(d.Opportunities) > 0 {
+		return SignalsOpportunity
+	}
+	return SignalsAttention
+}
+
+// RoleFor resolves a requested role id to one the deployment declares, falling
+// back to the default rather than to an empty board.
+func RoleFor(d config.Domain, role string) string {
+	for _, r := range d.Roles {
+		if r.ID == role {
+			return r.ID
+		}
+	}
+	return d.DefaultRole
+}
+
 // isAllRegions reports whether a region selection means "no region filter".
 // The region belonging to the default scope doubles as the "all" choice, since
 // a sub-national view has no use for the national bucket.
@@ -247,9 +319,17 @@ func (v View) Rank(services []model.Service) []model.Service {
 	slices.SortStableFunc(out, func(a, b model.Service) int {
 		as, bs := standings[a.ID], standings[b.ID]
 
-		if sa, sb := as.Attention(), bs.Attention(); sa != sb {
-			if sa > sb {
-				return -1 // needs attention more, so ranks first
+		if sa, sb := as.Score(), bs.Score(); sa != sb {
+			if sa < sb {
+				return -1 // performing better, so ranks first
+			}
+			return 1
+		}
+		// Error rate breaks a tie before the name does, so two services with
+		// the same total are separated by the half of it a reader can act on.
+		if ea, eb := as.ErrorRate, bs.ErrorRate; ea != eb {
+			if ea < eb {
+				return -1
 			}
 			return 1
 		}
@@ -281,6 +361,9 @@ func (v View) Apply(services []model.Service, f Filter) []model.Service {
 			continue
 		}
 		if len(f.Categories) > 0 && !slices.Contains(f.Categories, sv.CategoryID) {
+			continue
+		}
+		if len(f.IDs) > 0 && !slices.Contains(f.IDs, sv.ID) {
 			continue
 		}
 		if needle != "" && !strings.Contains(strings.ToLower(v.Labeler.Haystack(sv)), needle) {
@@ -349,24 +432,21 @@ func (v View) comparator(key string, ranks map[string]int) func(a, b model.Servi
 	return func(a, b model.Service) int { return ranks[a.ID] - ranks[b.ID] }
 }
 
-// Attention is the published ranking rule: how much of this service is failing
-// the people using it.
+// Score is the published ranking rule: how much of this service is failing the
+// people using it. Lower is better, and rank 1 is the best performer.
 //
 // Downtime and error rate are both percentages of the same population of
 // requests, so adding them compares like with like — a service down for 2% of
 // the window and erroring on 1% of what got through is failing 3% of the people
-// who came to it. That is the number, and it is why rank 1 is the service that
-// needs attention most rather than the one performing best. A leaderboard whose
-// top entry is the thing already working asks the reader to scroll to find the
-// problem.
+// who came to it.
 //
-// A service with no availability reading at all ranks first, ahead of every
-// measured failure. Not because it is necessarily worse, but because it cannot be
-// verified: an unmonitored service is the one case where nobody can say whether
-// citizens are being served, and that is the most urgent thing on the page.
-// Scoring it zero would sort it among the healthy, which is the specific mistake
-// model.OptFloat exists to prevent.
-func (s Standing) Attention() float64 {
+// A service with no availability reading at all ranks last, behind every
+// measured failure. Not because it is necessarily worse, but because it cannot
+// be verified: nobody can say whether citizens are being served by it, so it
+// cannot be credited with a standing it has not demonstrated. Scoring it zero
+// would sort it among the best, which is the specific mistake model.OptFloat
+// exists to prevent.
+func (s Standing) Score() float64 {
 	if !s.Availability.Valid {
 		return math.Inf(1)
 	}

@@ -25,6 +25,15 @@ mix:
   maintenance: 5
   unknown: 5
 
+# The same shape for the demand side, spread over its own list. Slightly
+# healthier: a requestor that cannot reach an API stops calling it, so the
+# chronic cases are thinner on the ground than they are among publishers.
+requestorMix:
+  major: 6
+  partial: 16
+  maintenance: 3
+  unknown: 3
+
 # Real services vary hugely in traffic, and a chart where every service looks
 # equally busy teaches the reader nothing. Anything not listed gets a value
 # derived from defaultTraffic.
@@ -104,6 +113,111 @@ services:
   - { key: birthCert, category: cat.records, provider: prov.state, scope: state, stateInstances: true }
   - { key: deathCert, category: cat.records, provider: prov.state, scope: state, stateInstances: true }
   - { key: marriageCert, category: cat.records, provider: prov.state, scope: state, stateInstances: true }
+
+# THE DEMAND SIDE.
+#
+# A requestor is an organisation that calls a published API to complete a task
+# for someone: a bank running KYC, a hospital pulling a health id, a lender
+# checking a provident-fund record. It is the same exchange as the service
+# above, seen from the other end, so it is generated as the same kind of record
+# — availability, error rate, history, incidents — and ranked on the same rule.
+#
+# The distribution is deliberate and uneven, and that is the point. Hub APIs
+# carry many requestors across several sectors; the long tail carries one or
+# two; and a named handful of live APIs — CoWIN, DIKSHA, UMANG, the soil-health
+# card and two state registers — carry NONE, because citizens reach them
+# through DigiLocker and UMANG rather than through any subscribed organisation.
+# Smoothing those zeroes away would delete the finding the Opportunities view
+# exists to surface.
+#
+# `calls` is the `key` of the service being consumed, and must name one.
+requestors:
+  # Aadhaar: identity verification, the platform's busiest API
+  - { key: bankKyc, sector: sec.banking, calls: aadhaar, category: cat.identity, subscription: document }
+  - { key: telecomSim, sector: sec.telecom, calls: aadhaar, category: cat.identity, subscription: document }
+  - { key: brokerKyc, sector: sec.fintech, calls: aadhaar, category: cat.identity, subscription: document }
+  - { key: gasConnection, sector: sec.utilities, calls: aadhaar, category: cat.identity, subscription: document }
+  - { key: examIdCheck, sector: sec.education, calls: aadhaar, category: cat.identity, subscription: service }
+  - { key: utilityKyc, sector: sec.utilities, calls: aadhaar, category: cat.identity, subscription: document, stateInstances: true, states: 10 }
+
+  # DigiLocker: document pull
+  - { key: insurerKyc, sector: sec.insurance, calls: digilocker, category: cat.identity, subscription: document }
+  - { key: loanDocPull, sector: sec.lending, calls: digilocker, category: cat.money, subscription: document }
+  - { key: tenantScreening, sector: sec.enterprise, calls: digilocker, category: cat.records, subscription: document }
+  - { key: scholarshipDocs, sector: sec.publicSector, calls: digilocker, category: cat.education, subscription: document }
+
+  # PAN
+  - { key: fintechPan, sector: sec.fintech, calls: pan, category: cat.money, subscription: service }
+  - { key: mfKyc, sector: sec.fintech, calls: pan, category: cat.money, subscription: document }
+  - { key: merchantOnboard, sector: sec.fintech, calls: pan, category: cat.business, subscription: service }
+  - { key: creditBureau, sector: sec.lending, calls: pan, category: cat.money, subscription: service }
+
+  # Driving licence
+  - { key: fleetDl, sector: sec.logistics, calls: dl, category: cat.transport, subscription: document }
+  - { key: gigOnboard, sector: sec.hr, calls: dl, category: cat.employment, subscription: document }
+  - { key: carRental, sector: sec.logistics, calls: dl, category: cat.transport, subscription: document }
+  - { key: driverInsurance, sector: sec.insurance, calls: dl, category: cat.transport, subscription: service }
+
+  # EPFO / employment
+  - { key: employerBgv, sector: sec.hr, calls: epfo, category: cat.employment, subscription: document }
+  - { key: payrollAudit, sector: sec.enterprise, calls: epfo, category: cat.employment, subscription: service }
+  - { key: loanSalaryCheck, sector: sec.lending, calls: epfo, category: cat.money, subscription: document }
+  - { key: serviceHistory, sector: sec.hr, calls: uan, category: cat.employment, subscription: document }
+  - { key: tradeSkill, sector: sec.hr, calls: skillCert, category: cat.employment, subscription: document }
+
+  # GSTN / business
+  - { key: vendorOnboard, sector: sec.enterprise, calls: gstVerify, category: cat.business, subscription: service }
+  - { key: invoiceFinance, sector: sec.fintech, calls: gstVerify, category: cat.business, subscription: service }
+  - { key: marketplaceSeller, sector: sec.enterprise, calls: gstVerify, category: cat.business, subscription: service }
+  - { key: workingCapital, sector: sec.fintech, calls: gstFile, category: cat.money, subscription: service }
+  - { key: companyStanding, sector: sec.enterprise, calls: mca, category: cat.business, subscription: service }
+  - { key: msmeCredit, sector: sec.lending, calls: udyam, category: cat.business, subscription: service }
+  - { key: pharmaLicence, sector: sec.health, calls: fssai, category: cat.business, subscription: service }
+
+  # Health
+  - { key: hospitalAbha, sector: sec.health, calls: abha, category: cat.health, subscription: document }
+  - { key: pharmacyRx, sector: sec.health, calls: abha, category: cat.health, subscription: document }
+  - { key: teleconsult, sector: sec.health, calls: abha, category: cat.health, subscription: service }
+  - { key: insuranceClaim, sector: sec.insurance, calls: ayushman, category: cat.health, subscription: document }
+
+  # Money / tax
+  - { key: nbfcIncome, sector: sec.lending, calls: form26as, category: cat.money, subscription: document }
+  - { key: loanUnderwriting, sector: sec.lending, calls: itr, category: cat.money, subscription: document }
+  - { key: visaFinance, sector: sec.banking, calls: itr, category: cat.money, subscription: document }
+
+  # Identity, long tail
+  - { key: passportVerify, sector: sec.hr, calls: passport, category: cat.identity, subscription: document }
+  - { key: voterKyc, sector: sec.banking, calls: epic, category: cat.identity, subscription: document }
+
+  # Education
+  - { key: uniAdmission, sector: sec.education, calls: cbse12, category: cat.education, subscription: document }
+  - { key: schoolRecords, sector: sec.education, calls: cbse10, category: cat.education, subscription: document }
+  - { key: degreeVerify, sector: sec.hr, calls: nad, category: cat.education, subscription: document }
+  - { key: creditTransfer, sector: sec.education, calls: abc, category: cat.education, subscription: document }
+  - { key: scholarshipDisb, sector: sec.publicSector, calls: nsp, category: cat.education, subscription: document }
+
+  # Transport
+  - { key: vehicleFinance, sector: sec.lending, calls: vahan, category: cat.transport, subscription: service }
+  - { key: rtoHistory, sector: sec.insurance, calls: echallan, category: cat.transport, subscription: service }
+  - { key: tollSettlement, sector: sec.logistics, calls: fastag, category: cat.transport, subscription: service }
+
+  # Welfare / agriculture: thin by design, one sector each
+  - { key: pensionDisb, sector: sec.banking, calls: pension, category: cat.welfare, subscription: document }
+  - { key: benefitEligibility, sector: sec.publicSector, calls: myscheme, category: cat.welfare, subscription: service }
+  - { key: farmCredit, sector: sec.lending, calls: pmkisan, category: cat.agriculture, subscription: service }
+  - { key: agriSubsidy, sector: sec.publicSector, calls: kcc, category: cat.agriculture, subscription: service, stateInstances: true, states: 4 }
+
+  # Sub-national requestors: uneven state coverage, as in the real roster
+  - { key: scholarshipVerify, sector: sec.publicSector, calls: incomeCert, category: cat.welfare, subscription: document, stateInstances: true, states: 12 }
+  - { key: propertyLoan, sector: sec.lending, calls: bhulekh, category: cat.records, subscription: document, stateInstances: true, states: 7 }
+  - { key: rationPortability, sector: sec.publicSector, calls: ration, category: cat.welfare, subscription: document, stateInstances: true, states: 7 }
+  - { key: collateralTax, sector: sec.lending, calls: propTax, category: cat.money, subscription: document, stateInstances: true, states: 6 }
+  - { key: addressProof, sector: sec.banking, calls: electricity, category: cat.money, subscription: document, stateInstances: true, states: 8 }
+  - { key: categoryAdmission, sector: sec.education, calls: casteCert, category: cat.welfare, subscription: document, stateInstances: true, states: 6 }
+  - { key: stateQuota, sector: sec.education, calls: domicile, category: cat.welfare, subscription: document, stateInstances: true, states: 5 }
+  - { key: titleVerify, sector: sec.lending, calls: propReg, category: cat.records, subscription: document, stateInstances: true, states: 4 }
+  - { key: policyAgeProof, sector: sec.insurance, calls: birthCert, category: cat.records, subscription: document, stateInstances: true, states: 4 }
+  - { key: claimProof, sector: sec.insurance, calls: deathCert, category: cat.records, subscription: document, stateInstances: true, states: 3 }
 
 stateExpansion:
   [reg.mh, reg.up, reg.ka, reg.tn, reg.dl, reg.gj, reg.wb, reg.rj, reg.kl, reg.ts, reg.mp, reg.br]

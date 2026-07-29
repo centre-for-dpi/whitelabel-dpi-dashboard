@@ -19,6 +19,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/centre-for-dpi/whitelabel-dpi-dashboard/internal/model"
 )
@@ -56,12 +57,24 @@ type Sparkline struct {
 
 	Points []Point
 
+	// Values and Days are the plotted readings and the days they fall on, in
+	// the same order as Points. Days with no reading are absent from all three,
+	// so a caller labelling a point never has to re-derive which day it was.
+	Values []float64
+	Days   []time.Time
+
 	// Min and Max are the extremes actually observed, for the axis labels.
 	Min float64
 	Max float64
 
 	// Last is the most recent reading, which the summary quotes.
 	Last float64
+
+	// TargetY is where the target line sits, and TargetInView says whether the
+	// scale reaches it. A target drawn off the top of the box would claim the
+	// series is inside a limit it cannot show.
+	TargetY      float64
+	TargetInView bool
 
 	// Empty is set when there was nothing to draw. Callers render a note rather
 	// than an empty box, which would read as "zero" instead of "no data".
@@ -70,6 +83,11 @@ type Sparkline struct {
 
 // SparkOptions tunes the vertical scale.
 type SparkOptions struct {
+	// Complement plots 100 − v. The drawer speaks the leaderboard's vocabulary,
+	// where the measurement is downtime and higher on the chart is worse; the
+	// stored series is availability, where it is the other way round.
+	Complement bool
+
 	// FloorAtMost and CeilingAtLeast widen the scale so that a service sitting
 	// flat at 99.99% does not render as a dramatic mountain range. Availability
 	// series are nearly flat, and scaling them to their own extremes turns
@@ -77,12 +95,23 @@ type SparkOptions struct {
 	FloorAtMost    float64
 	CeilingAtLeast float64
 
+	// CeilingHeadroom lifts the top of the scale by a proportion of itself.
+	// A downtime series has no natural ceiling to widen to — it is bounded
+	// below by zero and by nothing above — so its headroom has to be relative
+	// to what is actually there.
+	CeilingHeadroom float64
+
 	// Padding keeps the trace off the very edge of the viewport.
 	FloorPadding   float64
 	CeilingPadding float64
 
 	// MinSpan stops a perfectly flat series from dividing by zero.
 	MinSpan float64
+
+	// Target, when set, is drawn as a rule across the chart at that value.
+	Target float64
+	// HasTarget distinguishes "no target" from "a target of zero".
+	HasTarget bool
 }
 
 // DefaultSparkOptions matches the demo's availability scaling: the axis always
@@ -97,6 +126,27 @@ func DefaultSparkOptions() SparkOptions {
 	}
 }
 
+// DowntimeSparkOptions scales a downtime series against the limit it is held
+// to, rather than against its own extremes.
+//
+// The floor is zero, because zero downtime is the thing being aimed at and a
+// chart that cropped it away would make a perfect month look like a bad one.
+// The ceiling is whichever is higher of the worst day and the target, plus a
+// quarter again, so the target line is always on the chart and the trace is
+// never pressed against the top of the box.
+func DowntimeSparkOptions(target float64) SparkOptions {
+	return SparkOptions{
+		Complement:      true,
+		FloorAtMost:     0,
+		CeilingAtLeast:  target,
+		CeilingHeadroom: 0.25,
+		CeilingPadding:  0.02,
+		MinSpan:         0.05,
+		Target:          target,
+		HasTarget:       true,
+	}
+}
+
 // Spark plots a series of readings.
 //
 // Points with no reading are skipped rather than plotted as zero: a gap in
@@ -104,9 +154,15 @@ func DefaultSparkOptions() SparkOptions {
 // tells more loudly than any label could correct.
 func Spark(h []model.HistoryPoint, opts SparkOptions, vp Viewport) Sparkline {
 	vals := make([]float64, 0, len(h))
+	days := make([]time.Time, 0, len(h))
 	for _, p := range h {
 		if p.Availability.Valid {
-			vals = append(vals, p.Availability.Value)
+			v := p.Availability.Value
+			if opts.Complement {
+				v = round2(100 - v)
+			}
+			vals = append(vals, v)
+			days = append(days, p.Day)
 		}
 	}
 	if len(vals) == 0 {
@@ -120,7 +176,7 @@ func Spark(h []model.HistoryPoint, opts SparkOptions, vp Viewport) Sparkline {
 	}
 
 	lo := math.Min(minV, opts.FloorAtMost) - opts.FloorPadding
-	hi := math.Max(maxV, opts.CeilingAtLeast) + opts.CeilingPadding
+	hi := math.Max(maxV, opts.CeilingAtLeast)*(1+opts.CeilingHeadroom) + opts.CeilingPadding
 	span := math.Max(opts.MinSpan, hi-lo)
 
 	n := len(vals)
@@ -159,14 +215,20 @@ func Spark(h []model.HistoryPoint, opts SparkOptions, vp Viewport) Sparkline {
 	area.WriteString(" L" + fmtF(vp.Width) + "," + fmtF(vp.Height))
 	area.WriteString(" L0," + fmtF(vp.Height) + " Z")
 
-	return Sparkline{
+	out := Sparkline{
 		Path:   path.String(),
 		Area:   area.String(),
 		Points: points,
+		Values: vals,
+		Days:   days,
 		Min:    minV,
 		Max:    maxV,
 		Last:   vals[n-1],
 	}
+	if opts.HasTarget && opts.Target <= hi {
+		out.TargetY, out.TargetInView = round1(y(opts.Target)), true
+	}
+	return out
 }
 
 // Bar is one column of a bar chart, in viewBox coordinates.
@@ -311,6 +373,10 @@ func Shares(counts []int64) []Share {
 }
 
 func round1(v float64) float64 { return math.Round(v*10) / 10 }
+
+// round2 keeps a complement from carrying the floating-point residue of the
+// subtraction it came from: 100 − 99.95 is 0.050000000000011 otherwise.
+func round2(v float64) float64 { return math.Round(v*100) / 100 }
 
 // fmtF renders a coordinate without a trailing ".0", which halves the size of
 // most path strings.

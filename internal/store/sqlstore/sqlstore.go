@@ -169,16 +169,19 @@ func (s *Store) saveService(ctx context.Context, tx *sql.Tx, sv model.Service, s
 	d := s.dialect
 
 	cols := []string{"id", "key", "name_term_id", "desc_term_id", "category_id",
-		"region_id", "provider_id", "scope", "seq", "updated_at"}
+		"region_id", "provider_id", "scope", "role_id", "sector_id", "calls_key",
+		"subscription_type", "own_error_share", "seq", "updated_at"}
 	// seq is deliberately not in the update list: a service's first-seen
 	// position should not move because it reported again.
 	update := []string{"key", "name_term_id", "desc_term_id", "category_id",
-		"region_id", "provider_id", "scope", "updated_at"}
+		"region_id", "provider_id", "scope", "role_id", "sector_id", "calls_key",
+		"subscription_type", "own_error_share", "updated_at"}
 
 	if _, err := tx.ExecContext(ctx,
 		insert(d, "services", cols, []string{"id"}, update),
 		sv.ID, sv.Key, sv.NameTermID, sv.DescTermID, sv.CategoryID,
-		sv.RegionID, sv.ProviderID, sv.Scope, seq, updatedAt,
+		sv.RegionID, sv.ProviderID, sv.Scope, sv.RoleID, sv.SectorID, sv.CallsKey,
+		sv.SubscriptionType, sv.OwnErrorShare, seq, updatedAt,
 	); err != nil {
 		return err
 	}
@@ -391,12 +394,14 @@ func (s *Store) Load(ctx context.Context, retentionDays int) (model.Snapshot, er
 func (s *Store) loadServices(ctx context.Context) ([]model.Service, time.Time, error) {
 	d := s.dialect
 	stmt := fmt.Sprintf(
-		`SELECT sv.%s, sv.%s, sv.%s, sv.%s, sv.%s, sv.%s, sv.%s, sv.%s, sv.%s,
+		`SELECT sv.%s, sv.%s, sv.%s, sv.%s, sv.%s, sv.%s, sv.%s, sv.%s,
+		        sv.%s, sv.%s, sv.%s, sv.%s, sv.%s, sv.%s,
 		        st.%s, st.%s, st.%s, st.%s, st.%s, st.%s, st.%s, st.%s, st.%s, st.%s, st.%s
 		 FROM %s sv LEFT JOIN %s st ON st.%s = sv.%s ORDER BY sv.%s`,
 		d.Quote("id"), d.Quote("key"), d.Quote("name_term_id"), d.Quote("desc_term_id"),
 		d.Quote("category_id"), d.Quote("region_id"), d.Quote("provider_id"),
-		d.Quote("scope"), d.Quote("updated_at"),
+		d.Quote("scope"), d.Quote("role_id"), d.Quote("sector_id"), d.Quote("calls_key"),
+		d.Quote("subscription_type"), d.Quote("own_error_share"), d.Quote("updated_at"),
 		d.Quote("availability"), d.Quote("error_rate"), d.Quote("latency_p50"),
 		d.Quote("stale_seconds"), d.Quote("volume_total"), d.Quote("volume_success"),
 		d.Quote("status"), d.Quote("maint_active"), d.Quote("maint_until"),
@@ -434,7 +439,9 @@ func (s *Store) loadServices(ctx context.Context) ([]model.Service, time.Time, e
 		// for a service recorded before its first reading arrived.
 		if err := rows.Scan(
 			&sv.ID, &sv.Key, &sv.NameTermID, &sv.DescTermID, &sv.CategoryID,
-			&sv.RegionID, &sv.ProviderID, &sv.Scope, &updatedAt,
+			&sv.RegionID, &sv.ProviderID, &sv.Scope,
+			&sv.RoleID, &sv.SectorID, &sv.CallsKey, &sv.SubscriptionType, &sv.OwnErrorShare,
+			&updatedAt,
 			&avail, &errRate, &latency, &stale, &volTotal, &volSuccess,
 			&status, &maintActive, &maintUntil, &maintReason, &observedAt,
 		); err != nil {

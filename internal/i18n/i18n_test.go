@@ -122,6 +122,31 @@ func TestQuotesEscapeBraces(t *testing.T) {
 	}
 }
 
+func TestAnApostropheIsPunctuationUnlessItProtectsSyntax(t *testing.T) {
+	// ICU 4.8 semantics. Under the older "any apostrophe quotes" rule a pair of
+	// contractions in one sentence swallowed itself: both apostrophes vanished
+	// and the words between them were taken as a quoted literal run. English
+	// mostly hid it; French, which puts "l'", "d'" and "n'" in nearly every
+	// line, corrupted almost every string it had.
+	r := resolver(t, map[string]string{
+		"two":    "a record that didn't arrive, and someone who didn't get it",
+		"french": "L'indisponibilité, c'est un service inaccessible : en attente d'un permis",
+		"three":  "'''",
+		"guard":  "Write '{'count'}' but don't lose this",
+	})
+
+	for _, tc := range []struct{ id, want string }{
+		{"two", "a record that didn't arrive, and someone who didn't get it"},
+		{"french", "L'indisponibilité, c'est un service inaccessible : en attente d'un permis"},
+		{"three", "''"},
+		{"guard", "Write {count} but don't lose this"},
+	} {
+		if got := r.Text(tc.id, nil); got != tc.want {
+			t.Errorf("%s gave %q, want %q", tc.id, got, tc.want)
+		}
+	}
+}
+
 // --- plurals ---------------------------------------------------------------
 
 func TestPluralFormsComeFromCLDR(t *testing.T) {
@@ -324,8 +349,11 @@ func timeTerms() map[string]string {
 		"time.ago.minute": "{n, plural, one{# minute ago} other{# minutes ago}}",
 		"time.ago.hour":   "{n, plural, one{# hour ago} other{# hours ago}}",
 		"time.ago.day":    "{n, plural, one{# day ago} other{# days ago}}",
+		"time.for.second": "{n, plural, one{# sec} other{# sec}}",
 		"time.for.hour":   "{n, plural, one{# hour} other{# hours}}",
 		"time.for.minute": "{n, plural, one{# minute} other{# minutes}}",
+		"time.for.day":    "{n, plural, one{# day} other{# days}}",
+		"time.for.join":   "{major} {minor}",
 	}
 }
 
@@ -360,11 +388,28 @@ func TestATimestampInTheFutureReadsAsNow(t *testing.T) {
 }
 
 func TestDuration(t *testing.T) {
+	// Two units, because how long an incident has been open is a number people
+	// act on and rounding 13h31m to "13 hours" discards half an hour of it. The
+	// second unit only appears when it says something.
 	r := resolver(t, timeTerms())
 
-	if got := r.Duration(3 * time.Hour); got != "3 hours" {
-		t.Errorf("got %q", got)
+	for _, tc := range []struct {
+		d    time.Duration
+		want string
+	}{
+		{3 * time.Hour, "3 hours"},
+		{13*time.Hour + 31*time.Minute, "13 hours 31 minutes"},
+		{time.Hour + time.Minute, "1 hour 1 minute"},
+		{25 * time.Hour, "1 day 1 hour"},
+		{48 * time.Hour, "2 days"},
+		{90 * time.Second, "1 minute 30 sec"},
+		{45 * time.Second, "45 sec"},
+	} {
+		if got := r.Duration(tc.d); got != tc.want {
+			t.Errorf("%s gave %q, want %q", tc.d, got, tc.want)
+		}
 	}
+
 	if got := r.Duration(-time.Hour); got == "" {
 		t.Error("a negative duration produced nothing")
 	}
@@ -502,7 +547,11 @@ func TestEveryParameterTypeInterpolates(t *testing.T) {
 		{42, "42"},
 		{int32(42), "42"},
 		{int64(2900000), "2,900,000"},
-		{99.5, "99.50"},
+		// The digits the number has, not a fixed two. A threshold of 99 in a
+		// published rule reads "99%", not "99.00%".
+		{99.5, "99.5"},
+		{99.0, "99"},
+		{0.125, "0.125"},
 		{true, "true"},
 		{nil, ""},
 		{[]string{"a"}, "[a]"},
@@ -601,10 +650,18 @@ func TestPluralWithNoArmsAtAllRendersNothingRatherThanPanicking(t *testing.T) {
 }
 
 func TestUnterminatedQuoteIsLiteral(t *testing.T) {
-	r := resolver(t, map[string]string{"x": "it's fine"})
+	// Losing the rest of a sentence to one stray apostrophe is worse than
+	// rendering it with the quoting not applied.
+	r := resolver(t, map[string]string{
+		"plain": "it's fine",
+		"open":  "Write '{count to interpolate",
+	})
 
-	if got := r.Text("x", nil); got == "" {
-		t.Error("an unterminated quote swallowed the message")
+	if got := r.Text("plain", nil); got != "it's fine" {
+		t.Errorf("plain gave %q", got)
+	}
+	if got := r.Text("open", nil); got != "Write {count to interpolate" {
+		t.Errorf("open gave %q", got)
 	}
 }
 

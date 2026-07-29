@@ -192,6 +192,7 @@
       "observedAt": "2026-07-27T12:00:00Z",
       "providerId": "prov.uidai",
       "regionId": "reg.national",
+      "roleId": "issuer",
       "scope": "national"
     },
     {
@@ -405,6 +406,7 @@
       "observedAt": "2026-07-27T12:00:00Z",
       "providerId": "prov.mea",
       "regionId": "reg.national",
+      "roleId": "issuer",
       "scope": "national"
     },
     {
@@ -622,6 +624,7 @@
       "observedAt": "2026-07-27T12:00:00Z",
       "providerId": "prov.gstn",
       "regionId": "reg.national",
+      "roleId": "issuer",
       "scope": "national"
     },
     {
@@ -820,6 +823,7 @@
       "observedAt": "2026-07-27T12:00:00Z",
       "providerId": "prov.state",
       "regionId": "reg.kl",
+      "roleId": "issuer",
       "scope": "state"
     },
     {
@@ -998,200 +1002,230 @@
       "observedAt": "2026-07-27T12:00:00Z",
       "providerId": "prov.state",
       "regionId": "reg.ts",
+      "roleId": "issuer",
       "scope": "state"
     },
     {
-      "categoryId": "cat.money",
-      "descTermId": "svc.electricity.desc",
+      "categoryId": "cat.education",
+      "descTermId": "svc.cbse12.desc",
       "errors": [
         {
           "class": "ERROR_CLASS_SERVER",
-          "code": "504",
-          "count": "37",
-          "share": 19.9,
-          "termId": "err.504",
-          "trend": "TREND_DIRECTION_FLAT"
-        },
-        {
-          "class": "ERROR_CLASS_NETWORK",
-          "code": "timeout",
-          "count": "37",
-          "share": 19.8,
-          "termId": "err.timeout",
-          "trend": "TREND_DIRECTION_DOWN"
-        },
-        {
-          "class": "ERROR_CLASS_CLIENT",
-          "code": "400",
-          "count": "34",
-          "share": 18.3,
-          "termId": "err.400",
+          "code": "500",
+          "count": "100",
+          "share": 20.9,
+          "termId": "err.500",
           "trend": "TREND_DIRECTION_UP"
         },
         {
           "class": "ERROR_CLASS_CLIENT",
           "code": "429",
-          "count": "26",
-          "share": 14.1,
+          "count": "95",
+          "share": 19.9,
           "termId": "err.429",
+          "trend": "TREND_DIRECTION_DOWN"
+        },
+        {
+          "class": "ERROR_CLASS_SERVER",
+          "code": "504",
+          "count": "84",
+          "share": 17.5,
+          "termId": "err.504",
           "trend": "TREND_DIRECTION_UP"
         },
         {
           "class": "ERROR_CLASS_CLIENT",
           "code": "401",
-          "count": "22",
-          "share": 11.6,
+          "count": "65",
+          "share": 13.6,
           "termId": "err.401",
-          "trend": "TREND_DIRECTION_DOWN"
-        },
-        {
-          "class": "ERROR_CLASS_SERVER",
-          "code": "500",
-          "count": "21",
-          "share": 11.1,
-          "termId": "err.500",
-          "trend": "TREND_DIRECTION_UP"
+          "trend": "TREND_DIRECTION_FLAT"
         },
         {
           "class": "ERROR_CLASS_SERVER",
           "code": "503",
-          "count": "10",
-          "share": 5.2,
+          "count": "49",
+          "share": 10.2,
           "termId": "err.503",
+          "trend": "TREND_DIRECTION_FLAT"
+        },
+        {
+          "class": "ERROR_CLASS_CLIENT",
+          "code": "400",
+          "count": "44",
+          "share": 9.1,
+          "termId": "err.400",
           "trend": "TREND_DIRECTION_UP"
+        },
+        {
+          "class": "ERROR_CLASS_NETWORK",
+          "code": "timeout",
+          "count": "43",
+          "share": 8.9,
+          "termId": "err.timeout",
+          "trend": "TREND_DIRECTION_DOWN"
         }
       ],
       "history": [
         {
-          "availability": 99.71,
+          "availability": 99.92,
           "day": "2026-07-14T00:00:00Z",
-          "errorRate": 0.55,
-          "latencyP50Ms": 183,
+          "errorRate": 0.44,
+          "latencyP50Ms": 168,
           "samples": 96,
-          "volume": "62033"
+          "volume": "117454"
         },
         {
-          "availability": 99.75,
+          "availability": 99.78,
           "day": "2026-07-15T00:00:00Z",
-          "errorRate": 0.11,
-          "latencyP50Ms": 215,
+          "errorRate": 0.71,
+          "latencyP50Ms": 179,
           "samples": 96,
-          "volume": "63052"
+          "volume": "119535"
         },
         {
-          "availability": 99.61,
+          "availability": 99.79,
           "day": "2026-07-16T00:00:00Z",
-          "errorRate": 0.52,
-          "latencyP50Ms": 155,
-          "samples": 96,
-          "volume": "81119"
-        },
-        {
-          "availability": 99.88,
-          "day": "2026-07-17T00:00:00Z",
           "errorRate": 0.48,
-          "latencyP50Ms": 175,
+          "latencyP50Ms": 166,
           "samples": 96,
-          "volume": "62645"
+          "volume": "121519"
         },
         {
-          "availability": 99.54,
-          "day": "2026-07-18T00:00:00Z",
-          "errorRate": 0.52,
-          "latencyP50Ms": 180,
-          "samples": 96,
-          "volume": "80864"
-        },
-        {
-          "availability": 99.71,
-          "day": "2026-07-19T00:00:00Z",
-          "errorRate": 0.52,
-          "latencyP50Ms": 173,
-          "samples": 96,
-          "volume": "82826"
-        },
-        {
-          "availability": 99.56,
-          "day": "2026-07-20T00:00:00Z",
-          "errorRate": 0.09,
-          "latencyP50Ms": 186,
-          "samples": 96,
-          "volume": "65720"
-        },
-        {
-          "availability": 99.82,
-          "day": "2026-07-21T00:00:00Z",
-          "errorRate": 0.36,
+          "availability": 99.8,
+          "day": "2026-07-17T00:00:00Z",
+          "errorRate": 0.69,
           "latencyP50Ms": 190,
           "samples": 96,
-          "volume": "76278"
+          "volume": "101968"
         },
         {
-          "availability": 99.66,
-          "day": "2026-07-22T00:00:00Z",
-          "errorRate": 0.31,
-          "latencyP50Ms": 216,
-          "samples": 96,
-          "volume": "78831"
-        },
-        {
-          "availability": 99.67,
-          "day": "2026-07-23T00:00:00Z",
-          "errorRate": 0.37,
+          "availability": 99.98,
+          "day": "2026-07-18T00:00:00Z",
+          "errorRate": 0.77,
           "latencyP50Ms": 163,
           "samples": 96,
-          "volume": "53127"
+          "volume": "130260"
         },
         {
-          "availability": 99.64,
-          "day": "2026-07-24T00:00:00Z",
-          "errorRate": 0.17,
-          "latencyP50Ms": 197,
+          "availability": 99.98,
+          "day": "2026-07-19T00:00:00Z",
+          "errorRate": 0.28,
+          "latencyP50Ms": 173,
           "samples": 96,
-          "volume": "56390"
+          "volume": "86083"
         },
         {
-          "availability": 99.58,
-          "day": "2026-07-25T00:00:00Z",
-          "errorRate": 0.07,
-          "latencyP50Ms": 170,
-          "samples": 96,
-          "volume": "73063"
-        },
-        {
-          "availability": 99.71,
-          "day": "2026-07-26T00:00:00Z",
-          "errorRate": 0.43,
-          "latencyP50Ms": 176,
-          "samples": 96,
-          "volume": "78651"
-        },
-        {
-          "availability": 99.64,
-          "day": "2026-07-27T00:00:00Z",
+          "availability": 99.93,
+          "day": "2026-07-20T00:00:00Z",
           "errorRate": 0.47,
-          "latencyP50Ms": 162,
+          "latencyP50Ms": 193,
           "samples": 96,
-          "volume": "77048"
+          "volume": "93862"
+        },
+        {
+          "availability": 99.86,
+          "day": "2026-07-21T00:00:00Z",
+          "errorRate": 0.48,
+          "latencyP50Ms": 156,
+          "samples": 96,
+          "volume": "84791"
+        },
+        {
+          "availability": 99.83,
+          "day": "2026-07-22T00:00:00Z",
+          "errorRate": 0.79,
+          "latencyP50Ms": 160,
+          "samples": 96,
+          "volume": "99510"
+        },
+        {
+          "availability": 99.96,
+          "day": "2026-07-23T00:00:00Z",
+          "errorRate": 0.82,
+          "latencyP50Ms": 175,
+          "samples": 96,
+          "volume": "123069"
+        },
+        {
+          "availability": 99.78,
+          "day": "2026-07-24T00:00:00Z",
+          "errorRate": 0.82,
+          "latencyP50Ms": 150,
+          "samples": 96,
+          "volume": "95681"
+        },
+        {
+          "availability": 99.92,
+          "day": "2026-07-25T00:00:00Z",
+          "errorRate": 0.26,
+          "latencyP50Ms": 143,
+          "samples": 96,
+          "volume": "96410"
+        },
+        {
+          "availability": 99.98,
+          "day": "2026-07-26T00:00:00Z",
+          "errorRate": 0.74,
+          "latencyP50Ms": 173,
+          "samples": 96,
+          "volume": "79816"
+        },
+        {
+          "availability": 99.8,
+          "day": "2026-07-27T00:00:00Z",
+          "errorRate": 0.59,
+          "latencyP50Ms": 189,
+          "samples": 96,
+          "volume": "112143"
         }
       ],
-      "id": "electricity__rj",
-      "key": "electricity",
+      "id": "cbse12",
+      "incidents": [
+        {
+          "closedAt": "2026-07-27T15:54:04.965799665Z",
+          "events": [
+            {
+              "at": "2026-07-27T10:17:15.486412654Z",
+              "type": "opened"
+            },
+            {
+              "at": "2026-07-27T10:29:56.509070908Z",
+              "type": "acknowledged"
+            },
+            {
+              "at": "2026-07-27T11:29:02.677258607Z",
+              "type": "mitigated"
+            },
+            {
+              "at": "2026-07-27T15:54:04.965799665Z",
+              "type": "resolved"
+            }
+          ],
+          "id": "cbse12-inc-7k71",
+          "noteTermId": "incident.note.rateLimited",
+          "openedAt": "2026-07-27T10:17:15.486412654Z",
+          "serviceId": "cbse12",
+          "severity": "STATUS_PARTIAL"
+        }
+      ],
+      "key": "cbse12",
       "metrics": {
-        "availability": 99.71,
-        "errorRate": 0.28,
-        "latencyP50Ms": 183,
-        "staleSeconds": "176",
+        "availability": 99.92,
+        "errorRate": 0.48,
+        "latencyP50Ms": 164,
+        "staleSeconds": "204",
         "volume": {
-          "success": "66633",
-          "total": "66821"
+          "success": "99245",
+          "total": "99724"
         }
       },
-      "nameTermId": "svc.electricity.name",
+      "nameTermId": "svc.cbse12.name",
       "observedAt": "2026-07-27T12:00:00Z",
-      "providerId": "prov.state",
-      "regionId": "reg.rj",
-      "scope": "state"
+      "providerId": "prov.cbse",
+      "regionId": "reg.national",
+      "roleId": "issuer",
+      "scope": "national"
     }
   ],
   "sourceId": "seedgen"

@@ -62,6 +62,7 @@ func Fields() []string {
 	return []string{
 		"id", "key", "name", "description",
 		"categoryId", "regionId", "providerId", "scope",
+		"roleId", "sectorId", "callsKey", "subscriptionType", "ownErrorShare",
 		"metrics.availability", "metrics.errorRate", "metrics.latencyP50",
 		"metrics.staleSeconds", "metrics.volume.total", "metrics.volume.success",
 		"maintenance.active", "maintenance.until", "maintenance.reason",
@@ -269,6 +270,11 @@ func (m *Mapper) service(record any) (model.Service, error) {
 	setText(&sv.RegionID, m.read(record, "regionId"))
 	setText(&sv.ProviderID, m.read(record, "providerId"))
 	setText(&sv.Scope, m.read(record, "scope"))
+	setText(&sv.RoleID, m.read(record, "roleId"))
+	setText(&sv.SectorID, m.read(record, "sectorId"))
+	setText(&sv.CallsKey, m.read(record, "callsKey"))
+	setText(&sv.SubscriptionType, m.read(record, "subscriptionType"))
+	setNumber(&sv.OwnErrorShare, m.read(record, "ownErrorShare"))
 
 	if v, ok := m.read(record, "metrics.availability").Number(); ok {
 		sv.Metrics.Availability = model.Float(v)

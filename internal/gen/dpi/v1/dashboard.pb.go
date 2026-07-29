@@ -811,8 +811,22 @@ type Service struct {
 	// "latencyP50", "volume".
 	Trends map[string]*Trend `protobuf:"bytes,15,rep,name=trends,proto3" json:"trends,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// DERIVED — output only. Rank change since the previous snapshot.
-	RankMovement  int32                  `protobuf:"varint,16,opt,name=rank_movement,json=rankMovement,proto3" json:"rank_movement,omitempty"`
-	ObservedAt    *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=observed_at,json=observedAt,proto3" json:"observed_at,omitempty"`
+	RankMovement int32                  `protobuf:"varint,16,opt,name=rank_movement,json=rankMovement,proto3" json:"rank_movement,omitempty"`
+	ObservedAt   *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=observed_at,json=observedAt,proto3" json:"observed_at,omitempty"`
+	// Which side of the exchange this record is: the service that issues a
+	// document, or the organisation that requests one. Config-declared
+	// vocabulary (domain.roles), so a string rather than an enum. Empty means
+	// the deployment's default role.
+	RoleId string `protobuf:"bytes,18,opt,name=role_id,json=roleId,proto3" json:"role_id,omitempty"`
+	// For a requestor: which sector runs the use case, and which issuer's key it
+	// calls. Both empty for an issuer, which is not a consumer of anything.
+	SectorId string `protobuf:"bytes,19,opt,name=sector_id,json=sectorId,proto3" json:"sector_id,omitempty"`
+	CallsKey string `protobuf:"bytes,20,opt,name=calls_key,json=callsKey,proto3" json:"calls_key,omitempty"`
+	// How the requestor is subscribed to the API it calls.
+	SubscriptionType string `protobuf:"bytes,21,opt,name=subscription_type,json=subscriptionType,proto3" json:"subscription_type,omitempty"`
+	// Percent of a requestor's errors that are its own rather than the
+	// publisher's — a 4xx it sent, not a 5xx it received.
+	OwnErrorShare float64 `protobuf:"fixed64,22,opt,name=own_error_share,json=ownErrorShare,proto3" json:"own_error_share,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -966,6 +980,41 @@ func (x *Service) GetObservedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *Service) GetRoleId() string {
+	if x != nil {
+		return x.RoleId
+	}
+	return ""
+}
+
+func (x *Service) GetSectorId() string {
+	if x != nil {
+		return x.SectorId
+	}
+	return ""
+}
+
+func (x *Service) GetCallsKey() string {
+	if x != nil {
+		return x.CallsKey
+	}
+	return ""
+}
+
+func (x *Service) GetSubscriptionType() string {
+	if x != nil {
+		return x.SubscriptionType
+	}
+	return ""
+}
+
+func (x *Service) GetOwnErrorShare() float64 {
+	if x != nil {
+		return x.OwnErrorShare
+	}
+	return 0
+}
+
 type ListServicesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Services      []*Service             `protobuf:"bytes,1,rep,name=services,proto3" json:"services,omitempty"`
@@ -1072,7 +1121,7 @@ const file_dpi_v1_dashboard_proto_rawDesc = "" +
 	"\x05delta\x18\x01 \x01(\x01R\x05delta\x124\n" +
 	"\tdirection\x18\x02 \x01(\x0e2\x16.dpi.v1.TrendDirectionR\tdirection\x12\x1f\n" +
 	"\vperiod_days\x18\x03 \x01(\x05R\n" +
-	"periodDays\"\xdc\x05\n" +
+	"periodDays\"\x84\a\n" +
 	"\aService\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x10\n" +
 	"\x03key\x18\x02 \x01(\tR\x03key\x12 \n" +
@@ -1096,7 +1145,12 @@ const file_dpi_v1_dashboard_proto_rawDesc = "" +
 	"\x06trends\x18\x0f \x03(\v2\x1b.dpi.v1.Service.TrendsEntryR\x06trends\x12#\n" +
 	"\rrank_movement\x18\x10 \x01(\x05R\frankMovement\x12;\n" +
 	"\vobserved_at\x18\x11 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"observedAt\x1aH\n" +
+	"observedAt\x12\x17\n" +
+	"\arole_id\x18\x12 \x01(\tR\x06roleId\x12\x1b\n" +
+	"\tsector_id\x18\x13 \x01(\tR\bsectorId\x12\x1b\n" +
+	"\tcalls_key\x18\x14 \x01(\tR\bcallsKey\x12+\n" +
+	"\x11subscription_type\x18\x15 \x01(\tR\x10subscriptionType\x12&\n" +
+	"\x0fown_error_share\x18\x16 \x01(\x01R\rownErrorShare\x1aH\n" +
 	"\vTrendsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12#\n" +
 	"\x05value\x18\x02 \x01(\v2\r.dpi.v1.TrendR\x05value:\x028\x01\"\x82\x01\n" +

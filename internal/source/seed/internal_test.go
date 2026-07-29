@@ -187,7 +187,7 @@ func TestNoTrafficMeansNoErrorBreakdown(t *testing.T) {
 	r := newRNG(13)
 	m := model.Metrics{ErrorRate: 2.0, Volume: model.Volume{Total: 0}}
 
-	if got := generateErrors(r, tierMajor, m); got != nil {
+	if got := generateErrors(r, tierMajor, m, sideIssuer); got != nil {
 		t.Errorf("got %v, want nothing", got)
 	}
 }
@@ -198,7 +198,7 @@ func TestTinyErrorCountsDropEmptyBuckets(t *testing.T) {
 	r := newRNG(17)
 	m := model.Metrics{ErrorRate: 0.1, Volume: model.Volume{Total: 2000}}
 
-	for _, b := range generateErrors(r, tierPartial, m) {
+	for _, b := range generateErrors(r, tierPartial, m, sideIssuer) {
 		if b.Count <= 0 {
 			t.Errorf("bucket %q survived with count %d", b.Code, b.Count)
 		}

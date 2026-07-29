@@ -22,20 +22,32 @@
      how the server can compute geometry without knowing the reader's screen.
      vector-effect keeps the stroke a hairline through that stretch. */}}
 {{define "widget/sparkline"}}
-<figure class="w chart">
+<figure class="w w-spark">
   {{if .Empty}}
     <figcaption class="muted">{{.Summary}}</figcaption>
   {{else}}
-  <svg class="spark" viewBox="{{.ViewBox}}" preserveAspectRatio="none"
-       role="img" aria-label="{{.Summary}}"
-       data-dpi-chart data-points="{{.PointData}}">
-    <path class="spark-area" d="{{.Area}}"/>
-    <path class="spark-line" d="{{.Path}}" vector-effect="non-scaling-stroke"/>
-  </svg>
-  <figcaption class="chart-axis muted">
-    <span class="tnum">{{.MinLabel}}</span>
-    <span class="tnum">{{.MaxLabel}}</span>
-  </figcaption>
+  <div class="card chart">
+    <div class="chart-plot">
+      <svg class="spark" viewBox="{{.ViewBox}}" preserveAspectRatio="none"
+           role="img" aria-label="{{.Summary}}"
+           data-dpi-chart data-points="{{.PointData}}" data-readouts="{{.ReadData}}">
+        <path class="spark-area" d="{{.Area}}"/>
+        {{/* The limit the trace is held to, drawn only when the scale reaches
+             it: a target line off the top of the box would claim the series is
+             inside a limit the chart cannot show. */}}
+        {{if .TargetInView}}
+        <line class="spark-target" x1="0" y1="{{num .TargetY}}" x2="300" y2="{{num .TargetY}}"
+              vector-effect="non-scaling-stroke"/>
+        {{end}}
+        <path class="spark-line" d="{{.Path}}" vector-effect="non-scaling-stroke"/>
+      </svg>
+    </div>
+    <p class="chart-axis muted">
+      <span class="tnum">{{.MinLabel}} &#8211; {{.MaxLabel}}</span>
+      {{if .TargetLabel}}<span class="spark-key tnum">{{.TargetLabel}}</span>{{end}}
+    </p>
+  </div>
+  <figcaption class="muted">{{.Summary}}</figcaption>
   {{end}}
 </figure>
 {{end}}
@@ -46,12 +58,14 @@
   {{if .Empty}}
     <figcaption class="muted">{{.PeakText}}</figcaption>
   {{else}}
-  <svg class="bars" viewBox="{{.ViewBox}}" preserveAspectRatio="none"
-       role="img" aria-label="{{.PeakText}}"
-       data-dpi-chart data-points="{{.PointData}}">
-    {{range .Bars}}<rect x="{{num .X}}" y="{{num .Y}}" width="{{num .W}}" height="{{num .H}}"/>{{end}}
-    <path class="overlay" d="{{.ErrPath}}" vector-effect="non-scaling-stroke"/>
-  </svg>
+  <div class="chart-plot">
+    <svg class="bars" viewBox="{{.ViewBox}}" preserveAspectRatio="none"
+         role="img" aria-label="{{.PeakText}}"
+         data-dpi-chart data-points="{{.PointData}}">
+      {{range .Bars}}<rect x="{{num .X}}" y="{{num .Y}}" width="{{num .W}}" height="{{num .H}}"/>{{end}}
+      <path class="overlay" d="{{.ErrPath}}" vector-effect="non-scaling-stroke"/>
+    </svg>
+  </div>
   <figcaption class="chart-axis muted">
     <span>{{.PeakText}}</span>
     <span>{{.LowText}}</span>
@@ -126,7 +140,7 @@
   {{/* The summary names the disclosure and the table both. A table announced
        without a caption is "table, 3 columns, 7 rows" and nothing else, which
        tells a reader what shape the data is but not what it is. */}}
-  <table>
+  <table class="data">
     <caption class="sr-only">{{.Summary}}</caption>
     <thead><tr>{{range .Headers}}<th scope="col">{{.}}</th>{{end}}</tr></thead>
     <tbody>
@@ -153,15 +167,18 @@
 <dialog class="drawer" id="drawer" data-dpi-drawer aria-labelledby="drawer-title">
   <article class="drawer-panel">
     <header class="drawer-head">
+      {{/* The verdict and what it is a verdict about, on one line: the status
+           chip qualifies the taxonomy beside it rather than standing over it
+           as a banner. */}}
       <div class="drawer-head-row">
         <span class="chip-static" data-tone="{{.StatusTone}}">
           {{template "icon" .StatusIcon}} {{.StatusLabel}}
         </span>
+        <p class="muted">{{template "icon" .CategoryIcon}} {{.Category}} · {{.Region}}</p>
         <a class="icon-btn" href="{{.CloseHref}}" data-dpi-drawer-close
            aria-label="{{.CloseIcon.Label}}">{{template "icon" .CloseIcon}}</a>
       </div>
 
-      <p class="muted">{{template "icon" .CategoryIcon}} {{.Category}} · {{.Region}}</p>
       <h2 id="drawer-title" class="serif">{{.Name}}</h2>
       <p class="muted">{{.Description}}</p>
 
@@ -171,34 +188,173 @@
       <p class="drawer-rule"><strong>{{.RuleLabel}}</strong> {{.Rule}}</p>
       {{end}}
 
-      {{/* Navigation, not a tablist.
-
-           Each of these is a real URL that hx-push-url puts in the address bar,
-           so a reader can bookmark or share "the incidents tab of this
-           service". role="tab" would erase that link semantics, announce
-           "tab" for something that is a link, and oblige roving tabindex and
-           arrow-key handling that fights the browser's own behaviour — all to
-           describe a widget this is not. Links with aria-current say the same
-           thing truthfully, work with no script, and need no keyboard code.
-
-           Labelled by the service name, so a screen reader's landmark list
-           distinguishes this nav from the ones in the page chrome. */}}
-      <nav class="tabs" aria-labelledby="drawer-title">
-        {{range .Tabs}}
-        <a class="tab{{if .Active}} is-active{{end}}"
-           {{if .Active}}aria-current="page"{{end}}
-           href="{{.Href}}"
-           hx-get="{{.FragmentHref}}" hx-target="#drawer-host"
-           hx-swap="innerHTML" hx-push-url="{{.Href}}">{{.Label}}</a>
-        {{end}}
-      </nav>
+      {{template "drawer-tabs" .}}
     </header>
 
-    <div class="drawer-body">
-      <div class="grid"{{if .Grid.MinColWidth}} style="--min-col:{{css .Grid.MinColWidth}}"{{end}}>
-        {{range .Widgets}}{{.HTML}}{{end}}
-      </div>
-    </div>
+    {{template "drawer-body" .}}
   </article>
 </dialog>
+{{end}}
+
+
+{{/* Navigation, not a tablist.
+
+     Each of these is a real URL the address bar ends up showing, so a reader can
+     bookmark or share "the incidents tab of this service". role="tab" would
+     erase that link semantics, announce "tab" for something that is a link, and
+     oblige roving tabindex and arrow-key handling that fights the browser's own
+     behaviour — all to describe a widget this is not. Links with aria-current say
+     the same thing truthfully, work with no script, and need no keyboard code.
+
+     Labelled by the service name, so a screen reader's landmark list
+     distinguishes this nav from the ones in the page chrome.
+
+     What a tab swaps is the pane and this strip, not the drawer: everything
+     above — the service, its verdict, the rule behind it — is the same whichever
+     tab is showing, and rebuilding it replayed the panel's entry animation on
+     every click. The strip cannot ride along inside the swapped pane because it
+     lives up here in the sticky header, so it travels out of band instead.
+
+     The ids are load-bearing rather than decoration. That swap replaces the link
+     the reader just activated, and htmx restores focus after a swap only to an
+     element that has one — the same reason #lb-search has an id. */}}
+{{define "drawer-tabs"}}
+<nav class="tabs" id="drawer-tabs"{{if .TabsOOB}} hx-swap-oob="true"{{end}}
+     aria-labelledby="drawer-title">
+  {{range .Tabs}}
+  <a class="tab{{if .Active}} is-active{{end}}" id="drawer-tab-{{.ID}}"
+     {{if .Active}}aria-current="page"{{end}}
+     href="{{.Href}}"
+     hx-get="{{.PaneHref}}" hx-target="#drawer-body"
+     hx-swap="outerHTML show:top">{{.Label}}</a>
+  {{end}}
+</nav>
+{{end}}
+
+
+{{define "drawer-body"}}
+<div class="drawer-body" id="drawer-body">
+  <div class="grid"{{if .Grid.MinColWidth}} style="--min-col:{{css .Grid.MinColWidth}}"{{end}}>
+    {{range .Widgets}}{{template "grid-item" .}}{{end}}
+  </div>
+</div>
+{{end}}
+
+
+{{/* What a tab change returns: the pane, and the strip above it out of band. */}}
+{{define "drawer-panes"}}{{template "drawer-body" .}}{{template "drawer-tabs" .}}{{end}}
+
+
+{{/* Who pulls this service, as shares of its demand.
+
+     Every chart has a table behind it, complete where the chart is compact: a
+     bar is not readable by a screen reader, not copyable, and not checkable,
+     and truncating the only accessible route to the data would be worse than
+     not drawing the chart at all. */}}
+{{define "widget/demand-mix"}}
+<div class="w w-demand">
+  {{if .Summary}}<p class="demand-summary muted">{{.Summary}}</p>{{end}}
+
+  {{if .Stats}}
+  <div class="demand-stats">
+    {{range .Stats}}
+    <div class="card stat">
+      <p class="stat-label muted">{{.Label}}</p>
+      <p class="stat-value tnum"{{if .Tone}} data-tone="{{.Tone}}"{{end}}>{{.Value}}</p>
+    </div>
+    {{end}}
+  </div>
+  {{end}}
+
+  {{range .Charts}}
+  <section class="demand-chart">
+    <h4 class="eyebrow">{{.Title}}</h4>
+    <ul class="demand-bars">
+      {{range .Bars}}
+      <li{{if .Highlight}} class="is-mine"{{end}}>
+        <span class="demand-label">{{.Label}}</span>
+        <span class="demand-count tnum">{{.Count}} · {{.Share}}</span>
+        <span class="demand-track"><span class="demand-fill" style="--w:{{pct .Percent}}"></span></span>
+      </li>
+      {{end}}
+    </ul>
+    {{if .Note}}<p class="demand-note muted tnum">{{.Note}}</p>{{end}}
+
+    <details class="w-disclosure">
+      <summary>{{$.TableToggle}}</summary>
+      <table class="data">
+        <caption class="sr-only">{{.Title}}</caption>
+        <thead><tr>
+          <th scope="col">{{.NameHeader}}</th>
+          <th scope="col">{{$.CountHeader}}</th>
+          <th scope="col">{{$.ShareHeader}}</th>
+        </tr></thead>
+        <tbody>
+          {{range .TableBars}}
+          <tr><td>{{.Label}}</td><td class="tnum">{{.Count}}</td><td class="tnum">{{.Share}}</td></tr>
+          {{end}}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  {{end}}
+</div>
+{{end}}
+
+
+{{/* How the open service compares with everything like it.
+
+     The backbone of the tab rather than a footnote: most APIs have one
+     requestor or none, so a mix of callers has nothing to say about them, while
+     every service — including one nobody has onboarded against — can be read
+     against its own category's median and best. */}}
+{{define "widget/peer-bars"}}
+<div class="w w-peers">
+  <h4 class="eyebrow">{{.Title}}</h4>
+  {{range .Groups}}
+  <section class="peer-group">
+    <p class="peer-title">{{.Title}}</p>
+    <ul class="peer-bars">
+      {{range .Bars}}
+      <li{{if .Highlight}} class="is-mine"{{end}}>
+        <span class="peer-label">{{.Label}}</span>
+        <span class="peer-value tnum">{{.Value}}</span>
+        <span class="peer-track"><span class="peer-fill" style="--w:{{pct .Percent}}"></span></span>
+      </li>
+      {{end}}
+    </ul>
+  </section>
+  {{end}}
+  {{/* Which set "peer" means. Without it, median and best are two numbers with
+       no stated population. */}}
+  {{if .Rule}}<p class="peer-rule muted">{{.Rule}}</p>{{end}}
+</div>
+{{end}}
+
+
+{{/* What a requestor is, rather than how it is doing. Renders as nothing for an
+     issuer, which requests nothing and has none of this to say. */}}
+{{define "widget/requestor-detail"}}
+{{if .Facts}}
+<div class="w w-requestor">
+  <dl class="requestor-facts">
+    {{range .Facts}}
+    <div class="card stat">
+      <dt class="stat-label muted">{{.Label}}</dt>
+      <dd class="stat-value tnum">{{.Value}}</dd>
+      {{if .Note}}<dd class="stat-note muted">{{.Note}}</dd>{{end}}
+    </div>
+    {{end}}
+  </dl>
+  {{/* Why the split is not the error rate. A requestor told only its error rate
+       has a number it cannot act on; this says which half is its own. */}}
+  <details class="w-disclosure">
+    <summary>{{.Title}}</summary>
+    <div class="disclosure-body">
+      <p>{{.Summary}}</p>
+      <p class="muted">{{.Rule}}</p>
+    </div>
+  </details>
+</div>
+{{end}}
 {{end}}

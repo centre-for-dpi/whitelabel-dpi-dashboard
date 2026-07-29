@@ -148,31 +148,42 @@ func TestUnknownRegionMatchesNothing(t *testing.T) {
 
 // --- ranking ---------------------------------------------------------------
 
-// Rank 1 is the service that needs attention most, not the one performing best.
-// A leaderboard whose top entry is the thing already working asks the reader to
-// scroll to find the problem.
-func TestRankOrdersByAttentionNeeded(t *testing.T) {
+// Rank 1 is the best performing service. It is a leaderboard: the reader is
+// being shown who is doing well, and the trouble is marked by status chips
+// wherever it appears rather than by being hoisted to the top.
+func TestRankOrdersByPerformance(t *testing.T) {
 	list := []model.Service{
-		// attention = downtime + error rate
+		// score = downtime + error rate, lowest first
 		svc("mid", avail(99.5), errRate(0.5)),        // 0.5 + 0.5 = 1.0
 		svc("healthiest", avail(99.9), errRate(0.0)), // 0.1 + 0.0 = 0.1
 		svc("worst", avail(99.5), errRate(0.9)),      // 0.5 + 0.9 = 1.4
 	}
 
-	assertIDs(t, v().Rank(list), "worst", "mid", "healthiest")
+	assertIDs(t, v().Rank(list), "healthiest", "mid", "worst")
 }
 
 // Downtime and error rate are both percentages of the same request population, so
 // they add: a service down for 2% of the window and erroring on 1% of what got
 // through is failing 3% of the people who came to it. That is why a service with
-// perfect availability and heavy errors can outrank one with mild downtime.
+// perfect availability and heavy errors can rank below one with mild downtime.
 func TestErrorsAndDowntimeAreAddedNotRankedInTurn(t *testing.T) {
 	list := []model.Service{
 		svc("erroring", avail(100.0), errRate(2.0)), // 0.0 + 2.0 = 2.0
 		svc("flaky", avail(99.0), errRate(0.1)),     // 1.0 + 0.1 = 1.1
 	}
 
-	assertIDs(t, v().Rank(list), "erroring", "flaky")
+	assertIDs(t, v().Rank(list), "flaky", "erroring")
+}
+
+// Two services failing the same proportion of their traffic are separated by the
+// half of it a reader can act on today, before falling back to the name.
+func TestRankBreaksTiesByErrorRateBeforeName(t *testing.T) {
+	list := []model.Service{
+		svc("alpha", avail(99.0), errRate(1.0)), // 1.0 + 1.0 = 2.0
+		svc("zulu", avail(98.0), errRate(0.0)),  // 2.0 + 0.0 = 2.0
+	}
+
+	assertIDs(t, v().Rank(list), "zulu", "alpha")
 }
 
 func TestRankIgnoresStatus(t *testing.T) {
@@ -183,26 +194,26 @@ func TestRankIgnoresStatus(t *testing.T) {
 		svc("bad-month", avail(99.10), status(model.StatusOperational)),
 	}
 
-	assertIDs(t, v().Rank(list), "bad-month", "bad-afternoon")
+	assertIDs(t, v().Rank(list), "bad-afternoon", "bad-month")
 }
 
-// The load-bearing case. A service with no reading ranks FIRST, ahead of every
+// The load-bearing case. A service with no reading ranks LAST, behind every
 // measured failure — not because it is necessarily worse, but because nobody can
-// say whether citizens are being served, and that is the most urgent thing on the
-// page. Scoring it zero would sort it among the healthy, which is the mistake
-// model.OptFloat exists to prevent.
-func TestUnreportedServicesRankFirst(t *testing.T) {
+// say whether citizens are being served by it, so it cannot be credited with a
+// standing it has not demonstrated. Scoring it zero would put it at rank 1,
+// which is the mistake model.OptFloat exists to prevent.
+func TestUnreportedServicesRankLast(t *testing.T) {
 	list := []model.Service{
-		svc("measured-failure", avail(50.0), errRate(9.0)),
 		svc("silent", noAvail()),
+		svc("measured-failure", avail(50.0), errRate(9.0)),
 	}
 
-	assertIDs(t, v().Rank(list), "silent", "measured-failure")
+	assertIDs(t, v().Rank(list), "measured-failure", "silent")
 	// Order-independent: the rule is the score, not the input order.
 	assertIDs(t, v().Rank([]model.Service{
-		svc("silent", noAvail()),
 		svc("measured-failure", avail(50.0), errRate(9.0)),
-	}), "silent", "measured-failure")
+		svc("silent", noAvail()),
+	}), "measured-failure", "silent")
 }
 
 func TestRankBreaksTiesByName(t *testing.T) {
@@ -226,8 +237,8 @@ func TestRankDoesNotMutateItsInput(t *testing.T) {
 
 func TestRanksArePositions(t *testing.T) {
 	got := query.Ranks(v().Rank([]model.Service{
-		svc("second", avail(99.9)), // less to attend to
-		svc("first", avail(99.5)),  // more
+		svc("second", avail(99.5)), // more downtime
+		svc("first", avail(99.9)),  // less
 	}))
 
 	if got["first"] != 1 || got["second"] != 2 {
@@ -415,9 +426,8 @@ func TestMetricWithAnUnrecognisedFieldSortsAsEqual(t *testing.T) {
 }
 
 func TestUnknownSortKeyFallsBackToRank(t *testing.T) {
-	// "first" is the one needing most attention, since rank 1 is the top of the
-	// board.
-	list := []model.Service{svc("second", avail(99.9)), svc("first", avail(99.1))}
+	// "first" is the best performer, since rank 1 is the top of the board.
+	list := []model.Service{svc("second", avail(99.1)), svc("first", avail(99.9))}
 
 	assertIDs(t, ordered(t, list, "invented", query.Asc), "first", "second")
 	assertIDs(t, ordered(t, list, query.SortRank, query.Asc), "first", "second")
@@ -494,9 +504,9 @@ func TestRankIsIndependentOfFiltering(t *testing.T) {
 	// "Rank 4" has to mean the same thing however the reader has narrowed the
 	// view. A rank that shuffled as you typed would be useless.
 	scoped := []model.Service{
-		svc("first", avail(99.50), status(model.StatusPartial)),
-		svc("second", avail(99.90), status(model.StatusPartial)),
-		svc("third", avail(99.99)),
+		svc("first", avail(99.90), status(model.StatusPartial)),
+		svc("second", avail(99.50), status(model.StatusPartial)),
+		svc("third", avail(99.10)),
 	}
 	ranks := query.Ranks(v().Rank(scoped))
 
@@ -530,9 +540,8 @@ func history(vals ...float64) func(*model.Service) {
 
 func TestChangingThePeriodReordersTheBoard(t *testing.T) {
 	// This is the whole point of a period selector on a leaderboard. A service
-	// that was poor last month and excellent this week should sit near the
-	// bottom over seven days and near the top — needing attention — over
-	// fourteen; otherwise the control is decorative.
+	// that was poor last month and excellent this week should lead over seven
+	// days and trail over fourteen; otherwise the control is decorative.
 	recovering := svc("recovering", history(
 		97.0, 97.0, 97.0, 97.0, 97.0, 97.0, 97.0, // the older week
 		99.99, 99.99, 99.99, 99.99, 99.99, 99.99, 99.99, // the recent week
@@ -544,8 +553,8 @@ func TestChangingThePeriodReordersTheBoard(t *testing.T) {
 
 	list := []model.Service{declining, recovering}
 
-	assertIDs(t, view(7).Rank(list), "declining", "recovering")
-	assertIDs(t, view(14).Rank(list), "recovering", "declining")
+	assertIDs(t, view(7).Rank(list), "recovering", "declining")
+	assertIDs(t, view(14).Rank(list), "declining", "recovering")
 }
 
 func TestStandingAveragesRatesAndSumsTraffic(t *testing.T) {
@@ -704,7 +713,7 @@ func TestDaysForWithNoPeriodsConfigured(t *testing.T) {
 
 // The published ranking rule, stated as arithmetic. If this changes, the prose in
 // the interface that claims to describe it has to change with it.
-func TestAttentionIsDowntimePlusErrorRate(t *testing.T) {
+func TestScoreIsDowntimePlusErrorRate(t *testing.T) {
 	for _, tc := range []struct {
 		name  string
 		avail float64
@@ -719,8 +728,8 @@ func TestAttentionIsDowntimePlusErrorRate(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			st := v().Standing(svc("x", avail(tc.avail), errRate(tc.errs)))
-			if got := st.Attention(); math.Abs(got-tc.want) > 1e-9 {
-				t.Errorf("Attention() = %v, want %v", got, tc.want)
+			if got := st.Score(); math.Abs(got-tc.want) > 1e-9 {
+				t.Errorf("Score() = %v, want %v", got, tc.want)
 			}
 		})
 	}
@@ -729,13 +738,13 @@ func TestAttentionIsDowntimePlusErrorRate(t *testing.T) {
 // Absence is not zero. This is the invariant model.OptFloat exists for, asserted
 // at the point where getting it wrong would sort an unmonitored service in among
 // the healthy ones.
-func TestAttentionOfAnUnreadServiceIsInfinite(t *testing.T) {
+func TestScoreOfAnUnreadServiceIsInfinite(t *testing.T) {
 	st := v().Standing(svc("silent", noAvail()))
-	if got := st.Attention(); !math.IsInf(got, 1) {
-		t.Errorf("Attention() = %v, want +Inf; a service that cannot be verified is the most urgent thing on the page", got)
+	if got := st.Score(); !math.IsInf(got, 1) {
+		t.Errorf("Score() = %v, want +Inf; a service that cannot be verified cannot claim a standing", got)
 	}
 	// And specifically not zero, which would rank it as perfect.
-	if st.Attention() == 0 {
-		t.Error("an unread service scored zero, which sorts it among the healthy")
+	if st.Score() == 0 {
+		t.Error("an unread service scored zero, which ranks it as the best performer")
 	}
 }

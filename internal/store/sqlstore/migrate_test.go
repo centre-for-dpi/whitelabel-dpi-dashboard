@@ -205,7 +205,11 @@ func TestShippedMigrationsSplitCleanly(t *testing.T) {
 				if strings.HasPrefix(strings.TrimSpace(stmt), "--") {
 					t.Errorf("%s/%04d: a statement is only a comment: %q", dialect, m.Version, stmt)
 				}
-				if !strings.Contains(strings.ToUpper(stmt), "CREATE") {
+				// Schema only. A migration that split badly leaves a fragment
+				// starting with neither verb, and a migration that touches
+				// data does not belong in the shipped set at all.
+				upper := strings.ToUpper(stmt)
+				if !strings.Contains(upper, "CREATE") && !strings.Contains(upper, "ALTER") {
 					t.Errorf("%s/%04d: unexpected statement %q", dialect, m.Version, firstLine(stmt))
 				}
 			}

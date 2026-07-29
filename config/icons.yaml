@@ -73,3 +73,12 @@ icons:
   incident.ongoing: { glyph: "●", label: Ongoing }
   chart.bar: { glyph: "▮", label: Traffic }
   chart.line: { glyph: "┄", label: Error rate }
+
+  # --- unmet demand ---------------------------------------------------------
+  #
+  # Deliberately not the status glyphs. An opportunity is not a fault, and
+  # marking one with the outage mark would read as something being wrong.
+  opp.rarelyRequested: { glyph: "◈", label: Issued at scale }
+  opp.singleRequestor: { glyph: "⬢", label: One requestor only }
+  opp.zeroRequestors: { glyph: "◇", label: No requestors }
+  opp.growing: { glyph: "▲", label: Growing demand }

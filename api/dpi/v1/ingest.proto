@@ -45,6 +45,20 @@ message IngestService {
   // When the upstream observed these metrics. The server stamps its own
   // receipt time if this is absent.
   google.protobuf.Timestamp observed_at = 14;
+
+  // Which side of the exchange this record is: the service that issues a
+  // document, or the organisation that requests one. Must match a role
+  // declared in domain.yaml; empty means the deployment's default.
+  string role_id = 15;
+  // For a requestor: the sector running the use case, and the `key` of the
+  // service it calls. Leave both empty for an issuer.
+  string sector_id = 16;
+  string calls_key = 17;
+  // How this requestor is subscribed to the API it calls.
+  string subscription_type = 18;
+  // Percent of this requestor's errors that are its own rather than the
+  // publisher's. Optional.
+  double own_error_share = 19;
 }
 
 enum IngestMode {
