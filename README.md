@@ -30,14 +30,25 @@ for what the page shows and why.
 make run          # http://localhost:8080
 ```
 
-Or without cloning anything:
+Or without Go on your machine, straight from the `Dockerfile`:
 
 ```sh
+docker build -t dpi-dashboard . && docker run --rm -p 8080:8080 dpi-dashboard
+```
+
+Members of the `centre-for-dpi` organisation can skip the build and take the
+published image. It is private, so it needs a GitHub token carrying
+`read:packages` first:
+
+```sh
+docker login ghcr.io -u <your-github-username>
 docker run --rm -p 8080:8080 ghcr.io/centre-for-dpi/whitelabel-dpi-dashboard
 ```
 
-The image is published from `main` by the pipeline above, for both `linux/amd64`
-and `linux/arm64`. Nothing is pushed that has not built and been proven to serve.
+That image is published from `main` by the pipeline above, for both
+`linux/amd64` and `linux/arm64`. Nothing is pushed that has not built, been
+proven to serve, and then been pulled back out of the registry onto a machine
+that did not build it and proven to serve again.
 
 Either way it starts on generated demonstration data — 178 services, ninety days
 of history, every status represented — so the dashboard is worth looking at

@@ -144,6 +144,50 @@ smoke-image: ## Prove an already-built $(IMAGE):$(TAG) serves
 	  test "$$health" != "unhealthy" || { docker logs $$name; exit 1; }; \
 	  echo "image serves correctly"
 
+# The README tells a reader to `docker run ghcr.io/...`, and until they can, the
+# README is wrong. Nothing above catches that: `smoke-image` runs an image this
+# machine already has, and a green publish says the push succeeded, not that a
+# pull does. Three green publishes sat on top of a package nobody could pull.
+#
+# The package is private, so this needs credentials — and says so, rather than
+# failing at `docker pull` with a registry error that reads like the image was
+# never built.
+#
+# `docker manifest inspect` before the pull, because it reads the index without
+# downloading it: an image missing an architecture is a broken promise to
+# everyone on that hardware, and finding out costs nothing here.
+.PHONY: pull-check
+pull-check: ## Prove $(IMAGE):$(TAG) pulls from the registry and serves
+	@set -e; \
+	  ref='$(IMAGE):$(TAG)'; \
+	  echo "==> $$ref must pull from the registry and serve"; \
+	  manifest=$$(docker manifest inspect "$$ref" 2>&1) || { \
+	    echo "$$manifest"; \
+	    echo; \
+	    echo "cannot read $$ref from the registry."; \
+	    echo "if that is an authentication failure, the package is private:"; \
+	    echo "  docker login ghcr.io -u <your-github-username>"; \
+	    echo "with a token carrying read:packages."; \
+	    exit 1; \
+	  }; \
+	  flat=$$(printf '%s' "$$manifest" | tr -d ' \n'); \
+	  for arch in amd64 arm64; do \
+	    case "$$flat" in \
+	      *"\"architecture\":\"$$arch\""*) echo "index carries linux/$$arch";; \
+	      *) echo "index has no linux/$$arch; docker run fails on that hardware"; exit 1;; \
+	    esac; \
+	  done; \
+	  docker pull --quiet "$$ref" >/dev/null; \
+	  echo "pulled from the registry"; \
+	  digest=$$(docker inspect --format '{{if .RepoDigests}}{{index .RepoDigests 0}}{{end}}' "$$ref"); \
+	  test -n "$$digest" || { \
+	    echo "$$ref has no repository digest, so it is a local build and not the"; \
+	    echo "published image — this check would be testing the wrong thing"; \
+	    exit 1; \
+	  }; \
+	  echo "$$digest"; \
+	  $(MAKE) --no-print-directory smoke-image IMAGE='$(IMAGE)' TAG='$(TAG)'
+
 .PHONY: compose
 compose: ## Bring the whole thing up with docker compose
 	docker compose up --build

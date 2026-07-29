@@ -1,10 +1,12 @@
 # The pipeline.
 #
-# Four jobs, in the order they can fail fastest: the cheap gates, then the
-# accessibility suite that needs a browser, then the image, then publishing.
+# Five jobs, in the order they can fail fastest: the cheap gates, then the
+# accessibility suite that needs a browser, then the image, then publishing, then
+# pulling the published image back onto a machine that did not build it.
 # Nothing is published that has not been built and proven to serve — a successful
 # `docker build` says the binary compiled, not that the container works, and those
-# are different claims.
+# are different claims. Equally, a successful push says we could write to the
+# registry, not that anybody can read back what we wrote.
 
 name: ci
 
@@ -197,3 +199,52 @@ jobs:
           subject-name: ${{ env.IMAGE }}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
+
+  pullable:
+    name: the published image pulls back and serves
+    # After publish, and only when publish ran: on a pull request there is
+    # nothing pushed to pull, and this job is skipped along with it.
+    needs: [publish]
+    runs-on: ubuntu-latest
+    # read, not write. This job must never be able to repair by pushing what it
+    # failed to pull.
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+
+      # A fresh runner with its own credentials, which is the point: the publish
+      # job's daemon is gone, so nothing here can succeed on a layer that was
+      # merely still lying around locally.
+      #
+      # Credentials at all because the package is private, which makes this
+      # weaker than it looks: it proves the image is pullable by someone
+      # entitled to it, not by the public.
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Both tags, because they answer different questions. The sha tag is the
+      # one that always exists, so this job means something on a branch push or a
+      # release tag; `latest` is the one the README actually tells people to run,
+      # and it only moves on the default branch.
+      #
+      # The retry is the workflow's business and not the Makefile's: ghcr.io can
+      # take a few seconds to serve a tag that was pushed a moment ago, and a job
+      # that goes red on a race is a job people learn to ignore. A developer
+      # running `make pull-check` by hand wants the answer now, not in a minute.
+      - name: the immutable tag for this commit
+        run: |
+          for attempt in 1 2 3; do
+            make pull-check IMAGE="$IMAGE" TAG="sha-${{ github.sha }}" && exit 0
+            echo "::notice::attempt $attempt did not pull; waiting for ghcr to settle"
+            sleep 15
+          done
+          exit 1
+
+      - name: latest, which is what the README tells people to run
+        if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        run: make pull-check IMAGE="$IMAGE" TAG=latest
